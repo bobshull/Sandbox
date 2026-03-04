@@ -1,0 +1,29 @@
+# Scratch / temp
+.scratch/
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
