@@ -1,0 +1,26 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--arcade-bg);
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+canvas {
+  touch-action: none;
+  display: block;
+}
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}

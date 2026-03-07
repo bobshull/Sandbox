@@ -1,0 +1,93 @@
+:root {
+  /* Core palette */
+  --arcade-bg: #070814;
+  --arcade-bg-light: #0f1226;
+  --arcade-primary: #ff4c60;
+  --arcade-accent: #ffd455;
+  --arcade-cyan: #32e8ff;
+  --arcade-green: #00ff41;
+  --arcade-magenta: #ff00ff;
+  --arcade-purple: #8f47b5;
+  --arcade-white: #f1f2f6;
+  --arcade-black: #020308;
+
+  /* Grays */
+  --arcade-gray-100: #e1e2e6;
+  --arcade-gray-200: #c1c2c6;
+  --arcade-gray-300: #a1a2a6;
+  --arcade-gray-400: #6a6d7a;
+  --arcade-gray-500: #3a3d4a;
+  --arcade-gray-600: #1a1d2a;
+
+  /* Semantic text */
+  --arcade-text: #f1f2f6;
+  --arcade-text-dim: #6a6d7a;
+
+  /* Font families */
+  --arcade-font-title: 'Press Start 2P', monospace;
+  --arcade-font-body: 'VT323', monospace;
+  --arcade-font-ui: 'Pixelify Sans', monospace;
+  --arcade-font-alt: 'Silkscreen', monospace;
+
+  /* Font sizes */
+  --arcade-fs-xs: 8px;
+  --arcade-fs-sm: 12px;
+  --arcade-fs-md: 16px;
+  --arcade-fs-lg: 24px;
+  --arcade-fs-xl: 32px;
+  --arcade-fs-2xl: 48px;
+
+  /* Glow / shadow values */
+  --arcade-glow-sm: 0 0 5px;
+  --arcade-glow-md: 0 0 10px;
+  --arcade-glow-lg: 0 0 20px;
+  --arcade-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --arcade-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.6);
+
+  /* Spacing scale */
+  --arcade-space-xs: 4px;
+  --arcade-space-sm: 8px;
+  --arcade-space-md: 16px;
+  --arcade-space-lg: 24px;
+  --arcade-space-xl: 32px;
+  --arcade-space-2xl: 48px;
+
+  /* Responsive sizing */
+  --arcade-canvas-max-width: 480px;
+  --arcade-canvas-max-height: 640px;
+
+  /* Transition defaults */
+  --arcade-transition-fast: 150ms ease;
+  --arcade-transition-normal: 300ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --arcade-transition-fast: 0ms;
+    --arcade-transition-normal: 0ms;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --arcade-bg: #000000;
+    --arcade-primary: #ff0000;
+    --arcade-accent: #ffff00;
+    --arcade-cyan: #00ffff;
+    --arcade-green: #00ff00;
+    --arcade-magenta: #ff00ff;
+    --arcade-purple: #cc66ff;
+    --arcade-white: #ffffff;
+    --arcade-text: #ffffff;
+    --arcade-text-dim: #cccccc;
+    --arcade-glow-sm: none;
+    --arcade-glow-md: none;
+    --arcade-glow-lg: none;
+  }
+}
