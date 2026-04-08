@@ -1,0 +1,1337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>From Requirements to Graph</title>
+  <style>
+    :root {
+      --bg: #1a1b1e;
+      --panel: #212226;
+      --panel2: #18191c;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.90);
+      --muted: rgba(255,255,255,0.68);
+      --faint: rgba(255,255,255,0.45);
+      --accent: #e8a44a;
+      --green: #4a9;
+      --red: #e05a33;
+      --shadow: 0 4px 12px rgba(0,0,0,0.30);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 48px 18px 80px;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+    header .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 20px;
+    }
+    .pills {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      padding: 5px 14px;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      background: var(--panel);
+    }
+    .pill.hi {
+      border-color: rgba(232,164,74,0.35);
+      color: var(--accent);
+      background: rgba(232,164,74,0.08);
+    }
+    .pill.gr {
+      border-color: rgba(68,170,153,0.3);
+      color: var(--green);
+      background: rgba(68,170,153,0.07);
+    }
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      justify-content: center;
+    }
+    .toc a {
+      color: var(--faint);
+      font-size: 0.8rem;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+    .toc a:hover { color: var(--accent); }
+
+    /* Slide sections */
+    .slide {
+      margin-bottom: 56px;
+    }
+    .slide-num {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    p {
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .highlight {
+      color: var(--text);
+      font-size: 1.15rem;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    /* Callout */
+    .callout {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .callout p { margin: 0; color: var(--text); }
+    .callout.warn { border-left-color: var(--red); }
+
+    /* Bullet lists */
+    ul { list-style: none; padding: 0; margin: 0 0 12px; }
+    li {
+      position: relative;
+      padding-left: 18px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+    }
+    li strong { color: var(--text); }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .flow-step {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+      flex: 1;
+      min-width: 120px;
+    }
+    .flow-arrow {
+      color: var(--accent);
+      font-size: 1.2rem;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* Zoom levels */
+    .levels {
+      display: grid;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .level {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .level-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      color: var(--accent);
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .level-body strong { color: var(--text); display: block; margin-bottom: 4px; }
+    .level-body span { color: var(--muted); font-size: 0.9rem; }
+
+    /* Node anatomy */
+    .node-box {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      margin: 16px 0;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.86);
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .node-box .key { color: var(--accent); }
+    .node-box .val { color: var(--muted); }
+    .node-box .comment { color: var(--green); }
+
+    /* Code blocks */
+    code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      padding: 2px 6px;
+      background: rgba(0,0,0,0.40);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--accent);
+    }
+    pre {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    pre code {
+      white-space: pre;
+      padding: 0;
+      border: none;
+      background: transparent;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.86);
+    }
+
+    /* Steps list */
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+    }
+    .steps li {
+      padding-left: 32px;
+    }
+    .steps li::before {
+      content: counter(step);
+      counter-increment: step;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      top: 4px;
+    }
+
+    /* Wave diagram */
+    .wave-grid {
+      display: grid;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .wave-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .wave-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 8px 10px;
+      border: 1px solid var(--border2);
+      color: var(--accent);
+      text-align: center;
+      background: var(--panel);
+    }
+    .wave-nodes {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .wave-node {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+    .wave-node.dep {
+      border-color: rgba(232,164,74,0.25);
+      background: rgba(232,164,74,0.05);
+    }
+    .wave-connector {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--faint);
+      font-size: 0.9rem;
+      padding: 2px 0;
+    }
+
+    /* Entity table */
+    .entity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .entity-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .entity-card strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    .entity-card span {
+      color: var(--faint);
+      font-size: 0.78rem;
+    }
+
+    /* Divider */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 56px 0;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      color: var(--faint);
+      font-size: 0.78rem;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.7rem; }
+      h2 { font-size: 1.2rem; }
+      body { padding: 28px 12px 48px; }
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+      .level { grid-template-columns: 1fr; }
+      .wave-row { grid-template-columns: 1fr; }
+      .wave-label { text-align: left; }
+      pre { padding: 12px 14px; }
+      pre code { font-size: 0.72rem; white-space: pre-wrap; word-break: break-all; }
+      .node-box { font-size: 0.72rem; white-space: pre-wrap; word-break: break-all; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      header, .callout, .level, pre { border-color: #ddd; }
+      pre { background: #f6f6f6; }
+      code, pre code { color: #111; }
+      .pill { color: #333; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>From Requirements to Graph</h1>
+    <p class="subtitle">A step-by-step walkthrough of decomposing a project into an execution graph &mdash; the messy middle nobody shows you.</p>
+    <div class="pills">
+      <span class="pill hi">Decomposition</span>
+      <span class="pill">Domain extraction</span>
+      <span class="pill">Vertical slices</span>
+      <span class="pill gr">Wave planning</span>
+      <span class="pill">Concrete example</span>
+    </div>
+    <div class="toc">
+      <a href="#gap">The gap</a>
+      <a href="#start">Start with what you know</a>
+      <a href="#domain">Extract the domain</a>
+      <a href="#boundaries">Subsystem boundaries</a>
+      <a href="#foundation">The foundation</a>
+      <a href="#slices">Vertical slices</a>
+      <a href="#crosscut">Cross-cutting concerns</a>
+      <a href="#waves">Group into waves</a>
+      <a href="#mistakes">Spot the mistakes</a>
+      <a href="#full-graph">The full graph</a>
+      <a href="#changes">What changes</a>
+      <a href="#summary">The process, summarized</a>
+    </div>
+  </header>
+
+  <!-- 1. The Gap -->
+  <div class="slide" id="gap">
+    <div class="slide-num">01 &mdash; The Gap</div>
+    <h2>You know the what and the how. You&rsquo;re missing the bridge.</h2>
+    <p class="highlight">Article 1 told you to specialize your agents. Article 2 gave you the execution graph format &mdash; nodes with IDs, dependencies, inputs, outputs, acceptance criteria. But neither article answered the obvious next question: how do you actually get from &ldquo;I have a project idea&rdquo; to &ldquo;I have a runnable graph?&rdquo;</p>
+    <p>That&rsquo;s the hard part. Not writing YAML. Not configuring agents. The hard part is decomposition &mdash; breaking a vague idea into concrete, bounded, dependency-ordered units of work that an agent (or a human) can execute without guessing.</p>
+    <p>This article walks through that process from start to finish, using one example the whole way through. No hand-waving. No &ldquo;and then you decompose it&rdquo; as if that&rsquo;s a single step. We&rsquo;ll show every decision, every split, every judgment call.</p>
+    <div class="callout">
+      <p>The graph is not the goal. Clarity is the goal. The graph is just what clarity looks like when you write it down.</p>
+    </div>
+  </div>
+
+  <!-- 2. Start With What You Know -->
+  <div class="slide" id="start">
+    <div class="slide-num">02 &mdash; Start With What You Know</div>
+    <h2>You don&rsquo;t need a 50-page spec</h2>
+    <p class="highlight">Start with a plain-language description of what the app does. One paragraph. Maybe two. If you can&rsquo;t describe it in a paragraph, you don&rsquo;t understand it yet &mdash; and no amount of YAML will fix that.</p>
+    <p>Here&rsquo;s our example. We&rsquo;ll use it for the rest of this article:</p>
+    <div class="callout">
+      <p>&ldquo;A task management app where teams can create projects, add tasks, assign them to team members, set due dates, and track progress. Users log in, see their dashboard of assigned tasks, and can comment on tasks. Project owners can view progress across all tasks in a project.&rdquo;</p>
+    </div>
+    <p>That&rsquo;s 50 words. It&rsquo;s enough to start decomposing. You don&rsquo;t need to know the tech stack. You don&rsquo;t need wireframes. You don&rsquo;t need a database schema. All of that comes out of the decomposition process &mdash; it doesn&rsquo;t go into it.</p>
+    <p>What you do need:</p>
+    <ul>
+      <li><strong>Who uses it</strong> &mdash; team members, project owners (two roles, at minimum)</li>
+      <li><strong>What they do</strong> &mdash; create projects, manage tasks, assign work, comment, view progress</li>
+      <li><strong>What &ldquo;done&rdquo; looks like</strong> &mdash; a working app where those actions are possible</li>
+    </ul>
+    <p>That&rsquo;s your starting input. Everything else is derived.</p>
+  </div>
+
+  <!-- 3. Extract the Domain -->
+  <div class="slide" id="domain">
+    <div class="slide-num">03 &mdash; Extract the Domain</div>
+    <h2>Pull out the nouns and the verbs</h2>
+    <p class="highlight">Read your description again. Underline the nouns &mdash; those are your entities. Underline the verbs &mdash; those are your operations. Don&rsquo;t overthink it. You&rsquo;re not designing a schema yet. You&rsquo;re identifying the things the system cares about.</p>
+    <p>From our description:</p>
+    <div class="entity-grid">
+      <div class="entity-card">
+        <strong>User</strong>
+        <span>Logs in, has a role, gets assigned tasks</span>
+      </div>
+      <div class="entity-card">
+        <strong>Team</strong>
+        <span>Groups users, owns projects</span>
+      </div>
+      <div class="entity-card">
+        <strong>Project</strong>
+        <span>Contains tasks, has an owner, tracks progress</span>
+      </div>
+      <div class="entity-card">
+        <strong>Task</strong>
+        <span>Has assignee, due date, status, belongs to project</span>
+      </div>
+      <div class="entity-card">
+        <strong>Comment</strong>
+        <span>Attached to a task, written by a user</span>
+      </div>
+    </div>
+    <p>And the operations:</p>
+    <ul>
+      <li><strong>Auth</strong> &mdash; register, login, logout, manage sessions</li>
+      <li><strong>Projects</strong> &mdash; create, list, view details, view progress</li>
+      <li><strong>Tasks</strong> &mdash; create, edit, assign, set due date, change status, list, filter</li>
+      <li><strong>Comments</strong> &mdash; create, list by task</li>
+      <li><strong>Dashboard</strong> &mdash; view assigned tasks, view overdue tasks, view recent activity</li>
+    </ul>
+    <p>Notice what we didn&rsquo;t do: we didn&rsquo;t pick a database. We didn&rsquo;t decide on REST vs GraphQL. We didn&rsquo;t argue about state management. That comes later. Right now we&rsquo;re just naming the pieces.</p>
+    <div class="callout">
+      <p>If you find yourself designing implementation details at this stage, stop. You&rsquo;re optimizing too early. Name the things first. Build them later.</p>
+    </div>
+  </div>
+
+  <!-- 4. Draw Subsystem Boundaries -->
+  <div class="slide" id="boundaries">
+    <div class="slide-num">04 &mdash; Draw Subsystem Boundaries</div>
+    <h2>Group the work into areas that can be owned independently</h2>
+    <p class="highlight">Subsystem boundaries aren&rsquo;t about technology. They&rsquo;re about ownership. Each boundary defines a region of the codebase that one agent (or one developer) can work in without stepping on anyone else&rsquo;s toes.</p>
+    <p>For our task management app, the subsystems are:</p>
+    <div class="levels">
+      <div class="level">
+        <div class="level-tag">Database</div>
+        <div class="level-body">
+          <strong>Schema, migrations, seed data</strong>
+          <span>Everything that touches the relational DB directly. Table definitions, indexes, foreign keys, initial reference data. Owned by a database-focused agent.</span>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">Auth</div>
+        <div class="level-body">
+          <strong>Identity, sessions, permissions</strong>
+          <span>User registration, login, token management, role-based access control. A horizontal concern that every other subsystem depends on, so it needs to land early.</span>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">Backend API</div>
+        <div class="level-body">
+          <strong>REST endpoints, domain logic, validation</strong>
+          <span>The server-side code that exposes operations over HTTP. One set of endpoints per domain entity. Depends on database and auth.</span>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">Frontend</div>
+        <div class="level-body">
+          <strong>UI shell, pages, components, state</strong>
+          <span>The client-side application. App shell, routing, shared components, then feature-specific pages. Depends on API contracts being defined.</span>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">DevOps</div>
+        <div class="level-body">
+          <strong>Repo setup, CI, build scripts, deployment</strong>
+          <span>Everything that isn&rsquo;t application code but is required to build, test, and ship it. Lands first because everything else depends on a working build.</span>
+        </div>
+      </div>
+    </div>
+    <p>Why these boundaries matter for parallelization: if two agents are working in different subsystems, they&rsquo;re editing different files. No merge conflicts. No coordination overhead. The graph&rsquo;s dependency edges handle sequencing automatically &mdash; the boundaries handle isolation.</p>
+    <div class="callout warn">
+      <p>A common mistake: making the boundaries too fine-grained. &ldquo;Validation&rdquo; is not a subsystem. &ldquo;Error handling&rdquo; is not a subsystem. Those are cross-cutting concerns that live inside other subsystems. We&rsquo;ll handle those in slide 07.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 5. Identify the Foundation -->
+  <div class="slide" id="foundation">
+    <div class="slide-num">05 &mdash; Identify the Foundation</div>
+    <h2>What must exist before anything else can start?</h2>
+    <p class="highlight">Every graph has a bottom layer &mdash; nodes with no dependencies. These are your Wave 0 nodes. They set up the infrastructure that everything else builds on. Get them wrong and the entire graph stalls.</p>
+    <p>For our app, the foundation nodes are:</p>
+    <div class="node-box"><span class="key">id:</span> <span class="val">W0-01</span>
+<span class="key">title:</span> <span class="val">Repository and build setup</span>
+<span class="key">dependsOn:</span> <span class="val">[]</span>
+<span class="key">outputs:</span>
+  - <span class="val">Project repo with folder structure</span>
+  - <span class="val">Build scripts (backend + frontend)</span>
+  - <span class="val">CI pipeline config</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Both backend and frontend build from clean checkout&quot;</span>
+
+<span class="key">id:</span> <span class="val">W0-02</span>
+<span class="key">title:</span> <span class="val">Database connection and migration framework</span>
+<span class="key">dependsOn:</span> <span class="val">[]</span>
+<span class="key">outputs:</span>
+  - <span class="val">Database connection config</span>
+  - <span class="val">Migration runner setup</span>
+  - <span class="val">Empty initial migration</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Migration runner connects to DB and runs empty migration&quot;</span>
+
+<span class="key">id:</span> <span class="val">W0-03</span>
+<span class="key">title:</span> <span class="val">Backend API skeleton</span>
+<span class="key">dependsOn:</span> <span class="val">[]</span>
+<span class="key">outputs:</span>
+  - <span class="val">API project with health-check endpoint</span>
+  - <span class="val">Request/response pipeline configured</span>
+  - <span class="val">Error handling middleware</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;GET /health returns 200&quot;</span>
+
+<span class="key">id:</span> <span class="val">W0-04</span>
+<span class="key">title:</span> <span class="val">Frontend app scaffold</span>
+<span class="key">dependsOn:</span> <span class="val">[]</span>
+<span class="key">outputs:</span>
+  - <span class="val">SPA framework initialized</span>
+  - <span class="val">Router configured with placeholder routes</span>
+  - <span class="val">Base layout component (nav, sidebar, content area)</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;App runs in dev mode, renders base layout&quot;</span></div>
+    <p>Notice: all four nodes have <code>dependsOn: []</code>. They can all run in parallel. Four agents, four nodes, zero conflicts &mdash; because each one touches a different part of the codebase.</p>
+    <p>This is the first payoff of good subsystem boundaries. Your foundation layer is as wide as your boundary count.</p>
+    <div class="callout">
+      <p>The foundation isn&rsquo;t glamorous. Nobody wants to set up CI pipelines and migration runners. But if these nodes fail, every downstream node is blocked. Treat them as P0.</p>
+    </div>
+  </div>
+
+  <!-- 6. Build Vertical Slices -->
+  <div class="slide" id="slices">
+    <div class="slide-num">06 &mdash; Build Vertical Slices</div>
+    <h2>Take one entity and trace it through the entire stack</h2>
+    <p class="highlight">This is the core technique. Pick a domain entity &mdash; we&rsquo;ll use Tasks &mdash; and trace it from database to UI. Each layer becomes a node. The dependencies between layers are your edges. One entity, one vertical slice, 4&ndash;6 nodes.</p>
+    <div class="flow">
+      <div class="flow-step">DB Migration</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Domain Model</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">API Endpoints</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">UI Components</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Integration Tests</div>
+    </div>
+    <p>For the Tasks entity, that becomes:</p>
+    <div class="node-box"><span class="comment"># --- Tasks vertical slice ---</span>
+
+<span class="key">id:</span> <span class="val">DB-TASK</span>
+<span class="key">title:</span> <span class="val">Create tasks table migration</span>
+<span class="key">dependsOn:</span> <span class="val">[W0-02, DB-PROJ]</span>  <span class="comment"># needs migration framework + projects table</span>
+<span class="key">inputs:</span>
+  - <span class="val">&quot;Entity definition: Task (title, description, status, due_date, assignee_id, project_id)&quot;</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;db/migrations/003_create_tasks.sql&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Migration runs, tasks table exists with correct columns and FKs&quot;</span>
+
+<span class="key">id:</span> <span class="val">BE-TASK-MODEL</span>
+<span class="key">title:</span> <span class="val">Task domain model and repository</span>
+<span class="key">dependsOn:</span> <span class="val">[W0-03, DB-TASK]</span>  <span class="comment"># needs API skeleton + table</span>
+<span class="key">inputs:</span>
+  - <span class="val">&quot;db/migrations/003_create_tasks.sql&quot;</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;src/api/models/task.{ext}&quot;</span>
+  - <span class="val">&quot;src/api/repositories/task-repository.{ext}&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Unit tests for CRUD operations pass&quot;</span>
+
+<span class="key">id:</span> <span class="val">BE-TASK-API</span>
+<span class="key">title:</span> <span class="val">Task REST endpoints</span>
+<span class="key">dependsOn:</span> <span class="val">[BE-TASK-MODEL, BE-AUTH]</span>  <span class="comment"># needs model + auth middleware</span>
+<span class="key">inputs:</span>
+  - <span class="val">&quot;src/api/models/task.{ext}&quot;</span>
+  - <span class="val">&quot;src/api/middleware/auth.{ext}&quot;</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;src/api/routes/tasks.{ext}&quot;</span>
+  - <span class="val">&quot;POST/GET/PUT/DELETE /api/tasks endpoints&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;All CRUD endpoints return correct status codes&quot;</span>
+  - <span class="val">&quot;Unauthenticated requests return 401&quot;</span>
+
+<span class="key">id:</span> <span class="val">FE-TASK-UI</span>
+<span class="key">title:</span> <span class="val">Task list and detail pages</span>
+<span class="key">dependsOn:</span> <span class="val">[W0-04, BE-TASK-API, FE-AUTH]</span>  <span class="comment"># needs scaffold + API + auth UI</span>
+<span class="key">inputs:</span>
+  - <span class="val">&quot;API contract: /api/tasks endpoints&quot;</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;src/app/pages/task-list.{ext}&quot;</span>
+  - <span class="val">&quot;src/app/pages/task-detail.{ext}&quot;</span>
+  - <span class="val">&quot;src/app/components/task-card.{ext}&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Task list page renders tasks from API&quot;</span>
+  - <span class="val">&quot;Task detail page shows all fields, supports edit&quot;</span>
+
+<span class="key">id:</span> <span class="val">TEST-TASK</span>
+<span class="key">title:</span> <span class="val">Task slice integration tests</span>
+<span class="key">dependsOn:</span> <span class="val">[FE-TASK-UI]</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;tests/integration/tasks.test.{ext}&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Create task, assign it, change status, verify in UI&quot;</span></div>
+    <p>Five nodes. Clear chain of dependencies. Each node touches different files. Each has a concrete acceptance criterion that&rsquo;s binary &mdash; it passes or it doesn&rsquo;t.</p>
+    <p>Now repeat this for every entity: Users, Projects, Comments, Dashboard. Each one produces a similar chain. The slices share foundation nodes at the top and may share cross-cutting nodes (like auth) in the middle, but they&rsquo;re otherwise independent.</p>
+    <div class="callout">
+      <p>Vertical slices are the highest-leverage decomposition technique. One slice proves the whole stack works end-to-end. After that, every additional slice is just more of the same pattern.</p>
+    </div>
+  </div>
+
+  <!-- 7. Wire Cross-Cutting Concerns -->
+  <div class="slide" id="crosscut">
+    <div class="slide-num">07 &mdash; Wire Cross-Cutting Concerns</div>
+    <h2>Some things don&rsquo;t get their own vertical slice</h2>
+    <p class="highlight">Auth, error handling, logging, and validation are horizontal. They cut across every slice. The temptation is to make them their own subsystem with a dozen nodes. Don&rsquo;t. They&rsquo;re support nodes that multiple slices depend on.</p>
+    <p>The key question: when does a cross-cutting concern become a node?</p>
+    <ul>
+      <li><strong>It produces a reusable artifact</strong> &mdash; middleware, a utility module, a shared config. Something other nodes reference as an input.</li>
+      <li><strong>It has its own acceptance criteria</strong> &mdash; &ldquo;auth middleware rejects expired tokens&rdquo; is testable. &ldquo;The app handles errors well&rdquo; is not.</li>
+      <li><strong>Multiple slices would duplicate the work</strong> &mdash; if three slices all need the same auth check, that&rsquo;s a sign to extract it into its own node.</li>
+    </ul>
+    <p>For our app, the cross-cutting nodes are:</p>
+    <div class="node-box"><span class="key">id:</span> <span class="val">BE-AUTH</span>
+<span class="key">title:</span> <span class="val">Auth middleware and token validation</span>
+<span class="key">dependsOn:</span> <span class="val">[W0-03, DB-USER]</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;src/api/middleware/auth.{ext}&quot;</span>
+  - <span class="val">&quot;src/api/utils/token.{ext}&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Valid token passes middleware&quot;</span>
+  - <span class="val">&quot;Expired/invalid token returns 401&quot;</span>
+  - <span class="val">&quot;Role-based checks return 403 when unauthorized&quot;</span>
+
+<span class="key">id:</span> <span class="val">FE-AUTH</span>
+<span class="key">title:</span> <span class="val">Login page, auth context, route guards</span>
+<span class="key">dependsOn:</span> <span class="val">[W0-04, BE-AUTH]</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;src/app/pages/login.{ext}&quot;</span>
+  - <span class="val">&quot;src/app/context/auth.{ext}&quot;</span>
+  - <span class="val">&quot;src/app/guards/auth-guard.{ext}&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Login flow works end-to-end&quot;</span>
+  - <span class="val">&quot;Protected routes redirect to login when unauthenticated&quot;</span>
+
+<span class="key">id:</span> <span class="val">BE-ERRORS</span>
+<span class="key">title:</span> <span class="val">Global error handling and validation pipeline</span>
+<span class="key">dependsOn:</span> <span class="val">[W0-03]</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;src/api/middleware/error-handler.{ext}&quot;</span>
+  - <span class="val">&quot;src/api/middleware/validation.{ext}&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Unhandled exceptions return structured JSON error, not stack trace&quot;</span>
+  - <span class="val">&quot;Validation errors return 400 with field-level details&quot;</span></div>
+    <p>These nodes sit between the foundation and the feature slices. Multiple slices depend on <code>BE-AUTH</code> and <code>FE-AUTH</code>, but those nodes only run once. The graph handles this naturally &mdash; a node with multiple dependents just means multiple downstream paths.</p>
+    <div class="callout warn">
+      <p>Watch for bottlenecks. If every single node in your graph depends on one cross-cutting node, that node is on the critical path. Make it small, make it reliable, and get it done first. A flaky auth node will block your entire project.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 8. Group Into Waves -->
+  <div class="slide" id="waves">
+    <div class="slide-num">08 &mdash; Group Into Waves</div>
+    <h2>Lay out the graph in execution order</h2>
+    <p class="highlight">Waves are just a visualization. They&rsquo;re not a new concept &mdash; they&rsquo;re the graph&rsquo;s dependency layers, drawn horizontally. Wave 0 is everything with no dependencies. Wave 1 is everything that depends only on Wave 0. And so on.</p>
+    <div class="wave-grid">
+      <div class="wave-row">
+        <div class="wave-label">Wave 0</div>
+        <div class="wave-nodes">
+          <div class="wave-node">W0-01 Repo setup</div>
+          <div class="wave-node">W0-02 DB connection</div>
+          <div class="wave-node">W0-03 API skeleton</div>
+          <div class="wave-node">W0-04 Frontend scaffold</div>
+        </div>
+      </div>
+      <div class="wave-connector">&darr;</div>
+      <div class="wave-row">
+        <div class="wave-label">Wave 1</div>
+        <div class="wave-nodes">
+          <div class="wave-node dep">DB-USER Users table</div>
+          <div class="wave-node dep">DB-TEAM Teams table</div>
+          <div class="wave-node">BE-ERRORS Error handling</div>
+        </div>
+      </div>
+      <div class="wave-connector">&darr;</div>
+      <div class="wave-row">
+        <div class="wave-label">Wave 2</div>
+        <div class="wave-nodes">
+          <div class="wave-node dep">BE-AUTH Auth middleware</div>
+          <div class="wave-node dep">DB-PROJ Projects table</div>
+          <div class="wave-node">BE-USER-API User endpoints</div>
+        </div>
+      </div>
+      <div class="wave-connector">&darr;</div>
+      <div class="wave-row">
+        <div class="wave-label">Wave 3</div>
+        <div class="wave-nodes">
+          <div class="wave-node dep">FE-AUTH Login + guards</div>
+          <div class="wave-node dep">DB-TASK Tasks table</div>
+          <div class="wave-node dep">BE-PROJ-API Project endpoints</div>
+          <div class="wave-node dep">DB-COMMENT Comments table</div>
+        </div>
+      </div>
+      <div class="wave-connector">&darr;</div>
+      <div class="wave-row">
+        <div class="wave-label">Wave 4</div>
+        <div class="wave-nodes">
+          <div class="wave-node">BE-TASK-API Task endpoints</div>
+          <div class="wave-node">BE-COMMENT-API Comment endpoints</div>
+          <div class="wave-node">FE-PROJ-UI Project pages</div>
+        </div>
+      </div>
+      <div class="wave-connector">&darr;</div>
+      <div class="wave-row">
+        <div class="wave-label">Wave 5</div>
+        <div class="wave-nodes">
+          <div class="wave-node">FE-TASK-UI Task pages</div>
+          <div class="wave-node">FE-COMMENT-UI Comment components</div>
+          <div class="wave-node">FE-DASH Dashboard</div>
+        </div>
+      </div>
+      <div class="wave-connector">&darr;</div>
+      <div class="wave-row">
+        <div class="wave-label">Wave 6</div>
+        <div class="wave-nodes">
+          <div class="wave-node">TEST-TASK Task integration tests</div>
+          <div class="wave-node">TEST-PROJ Project integration tests</div>
+          <div class="wave-node">TEST-E2E End-to-end suite</div>
+        </div>
+      </div>
+    </div>
+    <p>Read this diagram top to bottom: everything in the same wave can run in parallel. An agent finishing Wave 0&rsquo;s repo setup can immediately start on Wave 1&rsquo;s DB migrations while another agent is still finishing the frontend scaffold.</p>
+    <p>The wave structure also tells you your critical path. The longest chain from top to bottom determines the minimum elapsed time. For our app, it&rsquo;s roughly: repo setup &rarr; DB tables &rarr; auth &rarr; API endpoints &rarr; UI pages &rarr; integration tests. Six waves deep. Everything else happens in parallel alongside that chain.</p>
+    <div class="callout">
+      <p>Waves are a communication tool. Show them to stakeholders when they ask &ldquo;what happens in what order?&rdquo; Show the graph to agents when they need precise dependency info. Same data, different zoom level.</p>
+    </div>
+  </div>
+
+  <!-- 9. Spot the Mistakes -->
+  <div class="slide" id="mistakes">
+    <div class="slide-num">09 &mdash; Spot the Mistakes</div>
+    <h2>Common decomposition errors (and how to fix them)</h2>
+    <p class="highlight">Every first-draft graph has problems. Here are the ones you&rsquo;ll hit most often.</p>
+
+    <p><strong>Nodes too big</strong></p>
+    <p>Symptom: a node titled &ldquo;Build the backend.&rdquo; If you can&rsquo;t estimate it in hours, it&rsquo;s too big. Split it along entity boundaries or layer boundaries until each node is 0.5&ndash;2 days of work.</p>
+    <div class="callout warn">
+      <p>Bad: &ldquo;Implement task management feature.&rdquo; Good: &ldquo;Create tasks table migration,&rdquo; &ldquo;Build task domain model,&rdquo; &ldquo;Add task REST endpoints,&rdquo; &ldquo;Build task list UI component.&rdquo;</p>
+    </div>
+
+    <p><strong>Nodes too small</strong></p>
+    <p>Symptom: &ldquo;Add status column to tasks table&rdquo; as its own node. If a node takes 15 minutes and has no standalone value, merge it into its parent. The overhead of tracking a node should be less than the effort of doing it.</p>
+
+    <p><strong>Missing dependencies</strong></p>
+    <p>Symptom: an agent starts a node and immediately hits a blocker because something it needs doesn&rsquo;t exist yet. Walk through each node&rsquo;s inputs &mdash; does another node produce them? If not, either add a dependency edge or add a new node that produces the missing artifact.</p>
+
+    <p><strong>Circular dependencies</strong></p>
+    <p>Symptom: A depends on B, B depends on C, C depends on A. This means your boundaries are wrong. The fix is almost always to extract a shared interface or contract that both sides depend on, breaking the cycle.</p>
+    <div class="node-box"><span class="comment"># Circular: BE-TASK-API needs FE-TASK-UI for types,</span>
+<span class="comment">#          FE-TASK-UI needs BE-TASK-API for endpoints</span>
+<span class="comment">#</span>
+<span class="comment"># Fix: extract a shared contract node</span>
+
+<span class="key">id:</span> <span class="val">CONTRACT-TASK</span>
+<span class="key">title:</span> <span class="val">Define Task API contract (request/response shapes)</span>
+<span class="key">dependsOn:</span> <span class="val">[W0-03]</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;docs/api/task-contract.yaml&quot;</span>   <span class="comment"># OpenAPI or similar</span>
+<span class="comment"># Now both BE-TASK-API and FE-TASK-UI depend on CONTRACT-TASK</span>
+<span class="comment"># instead of on each other. Cycle broken.</span></div>
+
+    <p><strong>Shared-file conflicts</strong></p>
+    <p>Symptom: two nodes both list the same file as an output. When they run in parallel, one overwrites the other. Solutions: merge the nodes, sequence them with a dependency edge, or restructure so each node writes to different files.</p>
+
+    <div class="callout">
+      <p>Do a &ldquo;conflict scan&rdquo; before running: list every output file across all nodes. Any file appearing more than once is a conflict. Fix them before execution, not during.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 10. The Full Graph -->
+  <div class="slide" id="full-graph">
+    <div class="slide-num">10 &mdash; The Full Graph</div>
+    <h2>The complete execution graph for the task management app</h2>
+    <p class="highlight">Everything we&rsquo;ve built, assembled into a single runnable YAML file. This came from a one-sentence description. No architecture committee. No six-week planning phase. Just structured decomposition.</p>
+    <div class="node-box"><span class="key">meta:</span>
+  <span class="key">project:</span> <span class="val">TaskFlow</span>
+  <span class="key">description:</span> <span class="val">&quot;Team task management application&quot;</span>
+  <span class="key">stack:</span>
+    <span class="key">backend:</span> <span class="val">&quot;REST API&quot;</span>
+    <span class="key">frontend:</span> <span class="val">&quot;SPA framework&quot;</span>
+    <span class="key">db:</span> <span class="val">&quot;Relational DB&quot;</span>
+  <span class="key">rules:</span>
+    <span class="key">max_node_scope:</span> <span class="val">&quot;0.5-2 dev days&quot;</span>
+    <span class="key">no_guessing:</span> <span class="val">true</span>
+    <span class="key">if_unknown:</span> <span class="val">&quot;mark_requires_clarification&quot;</span>
+
+<span class="comment"># ============================================</span>
+<span class="comment"># WAVE 0 — Foundation (no dependencies)</span>
+<span class="comment"># ============================================</span>
+<span class="key">nodes:</span>
+
+  - <span class="key">id:</span> <span class="val">W0-01</span>
+    <span class="key">title:</span> <span class="val">Repository and build setup</span>
+    <span class="key">owner:</span> <span class="val">DevOpsAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Project description document&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;Repo with folder structure (src/api, src/app, db/, tests/, docs/)&quot;</span>
+      - <span class="val">&quot;Build scripts for backend and frontend&quot;</span>
+      - <span class="val">&quot;CI pipeline config&quot;</span>
+      - <span class="val">&quot;.gitignore, .editorconfig, linter configs&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Backend builds from clean checkout&quot;</span>
+      - <span class="val">&quot;Frontend builds from clean checkout&quot;</span>
+      - <span class="val">&quot;Linter runs with zero errors on empty project&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Delete repo, re-initialize&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">W0-02</span>
+    <span class="key">title:</span> <span class="val">Database connection and migration framework</span>
+    <span class="key">owner:</span> <span class="val">DatabaseAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Database connection string (from env config)&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;db/config.{ext} — connection setup&quot;</span>
+      - <span class="val">&quot;db/migrate.{ext} — migration runner&quot;</span>
+      - <span class="val">&quot;db/migrations/001_init.sql — empty baseline&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Migration runner connects and runs baseline migration&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Drop database, re-run migrations&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">W0-03</span>
+    <span class="key">title:</span> <span class="val">Backend API skeleton with health check</span>
+    <span class="key">owner:</span> <span class="val">BackendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Chosen backend framework docs&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/api/server.{ext} — app entry point&quot;</span>
+      - <span class="val">&quot;src/api/routes/health.{ext} — GET /health&quot;</span>
+      - <span class="val">&quot;src/api/middleware/ — empty middleware directory&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;GET /health returns 200 with { status: ok }&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Revert API project commits&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">W0-04</span>
+    <span class="key">title:</span> <span class="val">Frontend app scaffold with routing</span>
+    <span class="key">owner:</span> <span class="val">FrontendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Chosen SPA framework docs&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/app/main.{ext} — app entry point&quot;</span>
+      - <span class="val">&quot;src/app/router.{ext} — route definitions&quot;</span>
+      - <span class="val">&quot;src/app/layouts/main-layout.{ext} — nav + sidebar + content&quot;</span>
+      - <span class="val">&quot;src/app/pages/home.{ext} — placeholder landing page&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;App runs in dev mode at localhost&quot;</span>
+      - <span class="val">&quot;Navigation between routes works&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Revert frontend project commits&quot;</span>
+
+<span class="comment"># ============================================</span>
+<span class="comment"># WAVE 1 — Core tables + error handling</span>
+<span class="comment"># ============================================</span>
+
+  - <span class="key">id:</span> <span class="val">DB-USER</span>
+    <span class="key">title:</span> <span class="val">Create users table migration</span>
+    <span class="key">owner:</span> <span class="val">DatabaseAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[W0-02]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Entity: User (email, password_hash, display_name, role, created_at)&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;db/migrations/002_create_users.sql&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Migration runs, users table has correct columns, indexes on email&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Down migration drops users table&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">DB-TEAM</span>
+    <span class="key">title:</span> <span class="val">Create teams and team_members tables</span>
+    <span class="key">owner:</span> <span class="val">DatabaseAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[W0-02, DB-USER]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Entity: Team (name, created_by). Join: team_members (team_id, user_id, role)&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;db/migrations/003_create_teams.sql&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Migration runs, FK to users exists, unique constraint on (team_id, user_id)&quot;</span>
+    <span class="key">risk:</span> <span class="val">P1</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Down migration drops teams and team_members tables&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">BE-ERRORS</span>
+    <span class="key">title:</span> <span class="val">Global error handling and validation middleware</span>
+    <span class="key">owner:</span> <span class="val">BackendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[W0-03]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;src/api/server.{ext}&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/api/middleware/error-handler.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/middleware/validation.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/utils/api-error.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Unhandled errors return { error, message, statusCode } JSON&quot;</span>
+      - <span class="val">&quot;Validation failures return 400 with field-level errors&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove middleware, revert server config&quot;</span>
+
+<span class="comment"># ============================================</span>
+<span class="comment"># WAVE 2 — Auth + projects table + user API</span>
+<span class="comment"># ============================================</span>
+
+  - <span class="key">id:</span> <span class="val">BE-AUTH</span>
+    <span class="key">title:</span> <span class="val">Auth middleware, token generation, login/register endpoints</span>
+    <span class="key">owner:</span> <span class="val">BackendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[W0-03, DB-USER, BE-ERRORS]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;db/migrations/002_create_users.sql&quot;</span>
+      - <span class="val">&quot;src/api/middleware/error-handler.{ext}&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/api/middleware/auth.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/utils/token.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/routes/auth.{ext} — POST /auth/register, POST /auth/login&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Register creates user, returns token&quot;</span>
+      - <span class="val">&quot;Login with valid credentials returns token&quot;</span>
+      - <span class="val">&quot;Invalid credentials return 401&quot;</span>
+      - <span class="val">&quot;Auth middleware rejects expired tokens&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove auth routes and middleware&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">DB-PROJ</span>
+    <span class="key">title:</span> <span class="val">Create projects table migration</span>
+    <span class="key">owner:</span> <span class="val">DatabaseAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[DB-TEAM]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Entity: Project (name, description, team_id, owner_id, status, created_at)&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;db/migrations/004_create_projects.sql&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Migration runs, FKs to teams and users exist&quot;</span>
+    <span class="key">risk:</span> <span class="val">P1</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Down migration drops projects table&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">BE-USER-API</span>
+    <span class="key">title:</span> <span class="val">User profile and team management endpoints</span>
+    <span class="key">owner:</span> <span class="val">BackendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[BE-AUTH, DB-TEAM]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;src/api/middleware/auth.{ext}&quot;</span>
+      - <span class="val">&quot;db/migrations/002_create_users.sql&quot;</span>
+      - <span class="val">&quot;db/migrations/003_create_teams.sql&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/api/models/user.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/models/team.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/routes/users.{ext} — GET /users/me, PUT /users/me&quot;</span>
+      - <span class="val">&quot;src/api/routes/teams.{ext} — CRUD /teams, POST /teams/:id/members&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Authenticated user can read/update own profile&quot;</span>
+      - <span class="val">&quot;Team CRUD works, members can be added/removed&quot;</span>
+    <span class="key">risk:</span> <span class="val">P1</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove user/team routes and models&quot;</span>
+
+<span class="comment"># ============================================</span>
+<span class="comment"># WAVE 3 — Auth UI, tasks table, project API, comments table</span>
+<span class="comment"># ============================================</span>
+
+  - <span class="key">id:</span> <span class="val">FE-AUTH</span>
+    <span class="key">title:</span> <span class="val">Login page, registration page, auth state, route guards</span>
+    <span class="key">owner:</span> <span class="val">FrontendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[W0-04, BE-AUTH]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;API contract: POST /auth/register, POST /auth/login&quot;</span>
+      - <span class="val">&quot;src/app/router.{ext}&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/app/pages/login.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/pages/register.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/context/auth.{ext} — token storage, current user&quot;</span>
+      - <span class="val">&quot;src/app/guards/auth-guard.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/utils/api-client.{ext} — HTTP client with auth headers&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Register → login → redirect to dashboard works&quot;</span>
+      - <span class="val">&quot;Unauthenticated visit to /dashboard redirects to /login&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove auth pages, context, and guard&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">DB-TASK</span>
+    <span class="key">title:</span> <span class="val">Create tasks table migration</span>
+    <span class="key">owner:</span> <span class="val">DatabaseAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[DB-PROJ, DB-USER]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Entity: Task (title, description, status, priority, due_date, assignee_id, project_id, created_by, created_at)&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;db/migrations/005_create_tasks.sql&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Migration runs, FKs to projects and users exist&quot;</span>
+      - <span class="val">&quot;Indexes on project_id, assignee_id, status, due_date&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Down migration drops tasks table&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">BE-PROJ-API</span>
+    <span class="key">title:</span> <span class="val">Project CRUD endpoints and progress query</span>
+    <span class="key">owner:</span> <span class="val">BackendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[BE-AUTH, DB-PROJ]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;src/api/middleware/auth.{ext}&quot;</span>
+      - <span class="val">&quot;db/migrations/004_create_projects.sql&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/api/models/project.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/routes/projects.{ext} — CRUD /projects, GET /projects/:id/progress&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;CRUD operations work for authenticated users&quot;</span>
+      - <span class="val">&quot;Only team members can access team projects&quot;</span>
+      - <span class="val">&quot;Progress endpoint returns task count by status&quot;</span>
+    <span class="key">risk:</span> <span class="val">P1</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove project routes and model&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">DB-COMMENT</span>
+    <span class="key">title:</span> <span class="val">Create comments table migration</span>
+    <span class="key">owner:</span> <span class="val">DatabaseAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[DB-TASK]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;Entity: Comment (body, task_id, author_id, created_at)&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;db/migrations/006_create_comments.sql&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Migration runs, FKs to tasks and users exist&quot;</span>
+    <span class="key">risk:</span> <span class="val">P2</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Down migration drops comments table&quot;</span>
+
+<span class="comment"># ============================================</span>
+<span class="comment"># WAVE 4 — Task API, comment API, project UI</span>
+<span class="comment"># ============================================</span>
+
+  - <span class="key">id:</span> <span class="val">BE-TASK-API</span>
+    <span class="key">title:</span> <span class="val">Task CRUD, assignment, and status endpoints</span>
+    <span class="key">owner:</span> <span class="val">BackendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[BE-AUTH, DB-TASK, BE-ERRORS]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;src/api/middleware/auth.{ext}&quot;</span>
+      - <span class="val">&quot;db/migrations/005_create_tasks.sql&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/api/models/task.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/routes/tasks.{ext} — CRUD /tasks, PUT /tasks/:id/assign, PUT /tasks/:id/status&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;CRUD endpoints return correct status codes&quot;</span>
+      - <span class="val">&quot;Assignment updates assignee_id&quot;</span>
+      - <span class="val">&quot;Status transitions are validated&quot;</span>
+      - <span class="val">&quot;Unauthenticated requests return 401&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove task routes and model&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">BE-COMMENT-API</span>
+    <span class="key">title:</span> <span class="val">Comment endpoints (create, list by task)</span>
+    <span class="key">owner:</span> <span class="val">BackendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[BE-AUTH, DB-COMMENT]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;src/api/middleware/auth.{ext}&quot;</span>
+      - <span class="val">&quot;db/migrations/006_create_comments.sql&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/api/models/comment.{ext}&quot;</span>
+      - <span class="val">&quot;src/api/routes/comments.{ext} — POST /tasks/:id/comments, GET /tasks/:id/comments&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Authenticated user can add comment to task&quot;</span>
+      - <span class="val">&quot;Comments list returns in chronological order&quot;</span>
+    <span class="key">risk:</span> <span class="val">P2</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove comment routes and model&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">FE-PROJ-UI</span>
+    <span class="key">title:</span> <span class="val">Project list and detail pages</span>
+    <span class="key">owner:</span> <span class="val">FrontendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[FE-AUTH, BE-PROJ-API]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;API contract: /projects endpoints&quot;</span>
+      - <span class="val">&quot;src/app/utils/api-client.{ext}&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/app/pages/project-list.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/pages/project-detail.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/project-card.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/progress-bar.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Project list shows all user&#39;s projects&quot;</span>
+      - <span class="val">&quot;Project detail shows progress bar and task summary&quot;</span>
+    <span class="key">risk:</span> <span class="val">P1</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove project pages and components&quot;</span>
+
+<span class="comment"># ============================================</span>
+<span class="comment"># WAVE 5 — Task UI, comment UI, dashboard</span>
+<span class="comment"># ============================================</span>
+
+  - <span class="key">id:</span> <span class="val">FE-TASK-UI</span>
+    <span class="key">title:</span> <span class="val">Task list, detail, and edit pages</span>
+    <span class="key">owner:</span> <span class="val">FrontendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[FE-AUTH, BE-TASK-API, FE-PROJ-UI]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;API contract: /tasks endpoints&quot;</span>
+      - <span class="val">&quot;src/app/utils/api-client.{ext}&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/app/pages/task-list.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/pages/task-detail.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/task-card.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/status-badge.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/assignee-picker.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Task list page renders with filter by status&quot;</span>
+      - <span class="val">&quot;Task detail shows all fields, supports inline edit&quot;</span>
+      - <span class="val">&quot;Assignment and status changes persist via API&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove task pages and components&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">FE-COMMENT-UI</span>
+    <span class="key">title:</span> <span class="val">Comment thread component on task detail</span>
+    <span class="key">owner:</span> <span class="val">FrontendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[FE-TASK-UI, BE-COMMENT-API]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;API contract: /tasks/:id/comments endpoints&quot;</span>
+      - <span class="val">&quot;src/app/pages/task-detail.{ext}&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/app/components/comment-thread.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/comment-input.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Comments display below task detail&quot;</span>
+      - <span class="val">&quot;New comment appears after submit without page reload&quot;</span>
+    <span class="key">risk:</span> <span class="val">P2</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove comment components from task detail&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">FE-DASH</span>
+    <span class="key">title:</span> <span class="val">Dashboard — assigned tasks, overdue, recent activity</span>
+    <span class="key">owner:</span> <span class="val">FrontendAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[FE-TASK-UI, FE-PROJ-UI]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;API contract: /tasks (filtered), /projects/progress&quot;</span>
+      - <span class="val">&quot;src/app/components/task-card.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/project-card.{ext}&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;src/app/pages/dashboard.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/overdue-widget.{ext}&quot;</span>
+      - <span class="val">&quot;src/app/components/activity-feed.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Dashboard shows tasks assigned to current user&quot;</span>
+      - <span class="val">&quot;Overdue tasks highlighted&quot;</span>
+      - <span class="val">&quot;Clicking a task navigates to task detail&quot;</span>
+    <span class="key">risk:</span> <span class="val">P1</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove dashboard page and widgets&quot;</span>
+
+<span class="comment"># ============================================</span>
+<span class="comment"># WAVE 6 — Integration tests and hardening</span>
+<span class="comment"># ============================================</span>
+
+  - <span class="key">id:</span> <span class="val">TEST-AUTH</span>
+    <span class="key">title:</span> <span class="val">Auth flow integration tests</span>
+    <span class="key">owner:</span> <span class="val">TestAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[FE-AUTH]</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;tests/integration/auth.test.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Register, login, access protected route, logout — all pass&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove test file&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">TEST-TASK</span>
+    <span class="key">title:</span> <span class="val">Task lifecycle integration tests</span>
+    <span class="key">owner:</span> <span class="val">TestAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[FE-TASK-UI, FE-COMMENT-UI]</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;tests/integration/tasks.test.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Create task, assign, change status, add comment — all via UI, all verified&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove test file&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">TEST-PROJ</span>
+    <span class="key">title:</span> <span class="val">Project management integration tests</span>
+    <span class="key">owner:</span> <span class="val">TestAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[FE-PROJ-UI, FE-DASH]</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;tests/integration/projects.test.{ext}&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Create project, add tasks, verify progress bar, check dashboard&quot;</span>
+    <span class="key">risk:</span> <span class="val">P1</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove test file&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">TEST-E2E</span>
+    <span class="key">title:</span> <span class="val">End-to-end smoke test suite</span>
+    <span class="key">owner:</span> <span class="val">TestAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[TEST-AUTH, TEST-TASK, TEST-PROJ]</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;tests/e2e/smoke.test.{ext}&quot;</span>
+      - <span class="val">&quot;CI pipeline updated to run e2e suite&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Full user journey: register → create team → create project → add tasks → assign → comment → view dashboard&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Remove e2e tests, revert CI config&quot;</span></div>
+    <p>26 nodes. 7 waves. From a 50-word description to a fully wired execution plan. Every node has a clear owner, bounded scope, explicit dependencies, and binary acceptance criteria.</p>
+    <div class="callout">
+      <p>This isn&rsquo;t a plan you show to a project manager and then ignore. This is a machine. Feed it to a controller agent and it will tell you which nodes are ready, assign them, verify the outputs, and advance the graph. That&rsquo;s the point.</p>
+    </div>
+  </div>
+
+  <!-- 11. What Changes -->
+  <div class="slide" id="changes">
+    <div class="slide-num">11 &mdash; What Changes</div>
+    <h2>Graphs aren&rsquo;t static. Neither are requirements.</h2>
+    <p class="highlight">The graph you build on day one will not be the graph you finish with. Requirements shift, unknowns surface, nodes fail. That&rsquo;s fine. The graph is designed to handle change &mdash; if you know the three operations.</p>
+
+    <p><strong>Adding a node</strong></p>
+    <p>A new requirement comes in: &ldquo;We need email notifications when a task is assigned.&rdquo; Create a new node. Wire its dependencies (it needs the task API and a mail service). Wire its dependents (nothing depends on it yet &mdash; it&rsquo;s a leaf). Drop it into the appropriate wave. The rest of the graph is untouched.</p>
+    <div class="node-box"><span class="key">id:</span> <span class="val">BE-NOTIFY</span>
+<span class="key">title:</span> <span class="val">Email notification on task assignment</span>
+<span class="key">dependsOn:</span> <span class="val">[BE-TASK-API]</span>
+<span class="key">outputs:</span>
+  - <span class="val">&quot;src/api/services/notification.{ext}&quot;</span>
+  - <span class="val">&quot;src/api/templates/task-assigned.{ext}&quot;</span>
+<span class="key">acceptance:</span>
+  - <span class="val">&quot;Assigning a task sends email to assignee&quot;</span>
+  - <span class="val">&quot;Email contains task title, project name, and link&quot;</span></div>
+
+    <p><strong>Re-wiring dependencies</strong></p>
+    <p>You discover that the frontend auth guard actually needs user profile data that hasn&rsquo;t been built yet. Add a dependency edge from <code>FE-AUTH</code> to <code>BE-USER-API</code>. This might push <code>FE-AUTH</code> to a later wave. That&rsquo;s the graph telling you something true about your project &mdash; listen to it.</p>
+
+    <p><strong>Splitting a node</strong></p>
+    <p>A node is taking longer than expected because it&rsquo;s actually two things. Split it. The original node&rsquo;s dependents now depend on both new nodes (or just the one they actually need). Update the edges and keep going.</p>
+
+    <div class="callout warn">
+      <p>Never modify a completed node&rsquo;s outputs. If downstream nodes already consumed those outputs, changing them breaks the chain. Instead, create a new node that produces the updated artifact and re-wire the dependents.</p>
+    </div>
+
+    <div class="callout">
+      <p>The graph is a living document. Treat it like code: version it, review changes, and don&rsquo;t make edits that break downstream consumers. The graph discipline is the same as the code discipline.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 12. The Process, Summarized -->
+  <div class="slide" id="summary">
+    <div class="slide-num">12 &mdash; The Process, Summarized</div>
+    <h2>A reusable decomposition checklist</h2>
+    <p class="highlight">This is the process. It works for a task management app, a billing system, a data pipeline, or anything else you can describe in a paragraph. The domain changes. The technique doesn&rsquo;t.</p>
+    <ul class="steps">
+      <li><strong>Describe the app in plain language</strong> &mdash; one paragraph, no jargon, no implementation details. If you can&rsquo;t do this, you&rsquo;re not ready to build.</li>
+      <li><strong>Extract entities and operations</strong> &mdash; nouns are entities, verbs are operations. List them. Don&rsquo;t design anything yet.</li>
+      <li><strong>Draw subsystem boundaries</strong> &mdash; group by ownership, not by technology. Each boundary is a region one agent can own without conflicts.</li>
+      <li><strong>Identify foundation nodes</strong> &mdash; what must exist before anything else starts? These are your Wave 0 nodes with no dependencies.</li>
+      <li><strong>Build vertical slices</strong> &mdash; trace each entity from DB to UI. Each layer is a node. Dependencies flow downward. This is the core technique.</li>
+      <li><strong>Wire cross-cutting concerns</strong> &mdash; auth, error handling, validation. Extract them when multiple slices would duplicate the work.</li>
+      <li><strong>Group into waves</strong> &mdash; sort by dependency depth. Everything at the same depth can run in parallel.</li>
+      <li><strong>Scan for conflicts</strong> &mdash; check for shared output files, circular dependencies, nodes that are too big or too small. Fix them now.</li>
+      <li><strong>Write the YAML</strong> &mdash; every node gets an ID, title, owner, dependsOn, inputs, outputs, acceptance, risk, and rollback. No optional fields.</li>
+      <li><strong>Plan for change</strong> &mdash; requirements will shift. Know how to add nodes, re-wire edges, and split nodes without breaking the graph.</li>
+    </ul>
+    <div class="callout">
+      <p>The graph is not the goal. Clarity is the goal. The graph is just what clarity looks like when you write it down.</p>
+    </div>
+  </div>
+
+  <footer>
+    From Requirements to Graph
+  </footer>
+
+</div>
+</body>
+</html>

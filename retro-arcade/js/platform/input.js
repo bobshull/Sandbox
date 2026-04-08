@@ -46,6 +46,7 @@ class InputManager {
     this._touchStartY = 0;
     this._touchStartTime = 0;
     this._touchId = null;
+    this._touchEnabled = true;
 
     this._onKeyDown = this._handleKeyDown.bind(this);
     this._onKeyUp = this._handleKeyUp.bind(this);
@@ -135,9 +136,11 @@ class InputManager {
     this._removeAction(action);
   }
 
+  setTouchEnabled(v) { this._touchEnabled = v; }
+
   _handleTouchStart(e) {
     e.preventDefault();
-    if (this._touchId !== null) return;
+    if (!this._touchEnabled || this._touchId !== null) return;
     const touch = e.changedTouches[0];
     this._touchId = touch.identifier;
     this._touchStartX = touch.clientX;
@@ -145,12 +148,11 @@ class InputManager {
     this._touchStartTime = performance.now();
   }
 
-  _handleTouchMove(e) {
-    e.preventDefault();
-  }
+  _handleTouchMove(e) { e.preventDefault(); }
 
   _handleTouchEnd(e) {
     e.preventDefault();
+    if (!this._touchEnabled) return;
     const touch = this._findTouch(e.changedTouches, this._touchId);
     if (!touch) return;
     this._touchId = null;

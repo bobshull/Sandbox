@@ -11,6 +11,7 @@ import { crt } from '../render/crt.js';
 import { transitions, TransitionType } from '../render/transitions.js';
 import { gameManifest } from '../games/manifest.js';
 import { createGameContext } from '../games/game-interface.js';
+import { touchControls } from '../platform/touch-controls.js';
 
 const AppScreen = Object.freeze({
   BOOT: 'boot',
@@ -48,6 +49,7 @@ class App {
     audio.init();
     renderer.init();
     crt.init();
+    touchControls.init(canvas, input);
 
     const settings = storage.getSettings();
     audio.setMasterVolume(settings.masterVolume);
@@ -184,6 +186,7 @@ class App {
     this._particles.draw(ctx);
     effects.draw(ctx, width, height);
     transitions.draw(ctx, width, height);
+    touchControls.draw(ctx);
 
     renderer.endFrame();
   }

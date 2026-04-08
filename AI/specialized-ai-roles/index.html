@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Specialized Roles, Better Results</title>
+  <style>
+    :root {
+      --bg: #1a1b1e;
+      --panel: #212226;
+      --panel2: #18191c;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.90);
+      --muted: rgba(255,255,255,0.68);
+      --faint: rgba(255,255,255,0.45);
+      --accent: #e8a44a;
+      --green: #4a9;
+      --red: #e05a33;
+      --blue: #5b8def;
+      --purple: #a78bfa;
+      --shadow: 0 4px 12px rgba(0,0,0,0.30);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 48px 18px 80px;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+    header .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 680px;
+      margin: 0 auto 20px;
+    }
+    .pills {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      padding: 5px 14px;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      background: var(--panel);
+    }
+    .pill.hi {
+      border-color: rgba(232,164,74,0.35);
+      color: var(--accent);
+      background: rgba(232,164,74,0.08);
+    }
+    .pill.gr {
+      border-color: rgba(68,170,153,0.3);
+      color: var(--green);
+      background: rgba(68,170,153,0.07);
+    }
+    .pill.bl {
+      border-color: rgba(91,141,239,0.3);
+      color: var(--blue);
+      background: rgba(91,141,239,0.07);
+    }
+    .pill.pr {
+      border-color: rgba(167,139,250,0.3);
+      color: var(--purple);
+      background: rgba(167,139,250,0.07);
+    }
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      justify-content: center;
+    }
+    .toc a {
+      color: var(--faint);
+      font-size: 0.8rem;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+    .toc a:hover { color: var(--accent); }
+
+    /* Phase sections */
+    .phase {
+      margin-bottom: 64px;
+    }
+    .phase-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .phase-num {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    p {
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .highlight {
+      color: var(--text);
+      font-size: 1.15rem;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    sup {
+      font-size: 0.68em;
+      vertical-align: super;
+    }
+    sup a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    sup a:hover { text-decoration: underline; }
+
+    /* Callout */
+    .callout {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .callout p { margin: 0; color: var(--text); font-size: 0.9rem; }
+    .callout.warn { border-left-color: var(--red); }
+    .callout.info { border-left-color: var(--blue); }
+    .callout.accent { border-left-color: var(--accent); }
+
+    /* Cards grid */
+    .nodes {
+      display: grid;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .nodes.grid-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .node {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+    }
+    .node h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .node p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* Table */
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.85rem;
+    }
+    .summary-table th {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border2);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .summary-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .summary-table td:first-child { color: var(--text); font-weight: 600; }
+
+    /* Pre / code */
+    pre {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      margin: 16px 0;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--muted);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: 0.86em;
+      padding: 2px 6px;
+      background: rgba(0,0,0,0.40);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--accent);
+    }
+
+    /* Bullet lists */
+    ul.plain { list-style: none; padding: 0; margin: 0 0 12px; }
+    ul.plain li {
+      position: relative;
+      padding-left: 18px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    ul.plain li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+    }
+    ul.plain li strong { color: var(--text); }
+
+    /* Divider */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 56px 0;
+    }
+
+    /* Citations / footnotes */
+    .footnotes ol {
+      list-style: none;
+      counter-reset: fn;
+      padding: 0;
+      margin: 0;
+    }
+    .footnotes li {
+      counter-increment: fn;
+      position: relative;
+      padding-left: 28px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .footnotes li::before {
+      content: counter(fn) ".";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+      font-weight: 700;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+    .ref-list {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0;
+    }
+    .ref-list li {
+      position: relative;
+      padding-left: 18px;
+      margin-bottom: 6px;
+      color: var(--faint);
+      font-size: 0.8rem;
+    }
+    .ref-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 5px;
+      height: 5px;
+      background: var(--faint);
+    }
+    .ref-list a {
+      color: var(--faint);
+      text-decoration: none;
+    }
+    .ref-list a:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    /* Back to top */
+    .top-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--faint);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+    .top-link:hover { color: var(--accent); }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      color: var(--faint);
+      font-size: 0.78rem;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.7rem; }
+      h2 { font-size: 1.2rem; }
+      body { padding: 28px 12px 48px; }
+      .nodes.grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header id="top">
+    <h1>Specialized Roles, Better Results</h1>
+    <p class="subtitle">Why AI work improves when tasks are scoped by specialization instead of shoving frontend, backend, architecture, testing, and strategy into one overloaded prompt window.</p>
+    <div class="pills">
+      <span class="pill hi">Task Specialization</span>
+      <span class="pill gr">Context Isolation</span>
+      <span class="pill bl">Separation of Concerns</span>
+      <span class="pill pr">Routing</span>
+      <span class="pill">Orchestration</span>
+      <span class="pill">Evaluation</span>
+    </div>
+    <div class="toc">
+      <a href="#core-idea">What it is</a>
+      <a href="#monolith-problem">The problem</a>
+      <a href="#roles-vs-specialization">Roles vs specialization</a>
+      <a href="#why-it-works">Why it works</a>
+      <a href="#software-analogy">Software analogy</a>
+      <a href="#execution-graph">Execution graphs</a>
+      <a href="#patterns">Patterns</a>
+      <a href="#anti-patterns">Anti-patterns</a>
+      <a href="#playbook">Playbook</a>
+      <a href="#citations">Citations</a>
+    </div>
+  </header>
+
+  <div class="phase" id="core-idea">
+    <div class="phase-header">
+      <div class="phase-num">01 &mdash; The Core Idea</div>
+      <h2>Stop treating one prompt like an entire engineering department</h2>
+    </div>
+    <p class="highlight">One of the fastest ways to make AI output turn muddy is to pile every concern into the same request: gather requirements, design the schema, write the API, build the Angular UI, audit security, create tests, and explain tradeoffs &mdash; all in one shot.</p>
+    <p>That looks efficient on the surface, but it creates a scope problem. The model is now juggling too many objectives at once, and the result usually gets broad, vague, and inconsistent.<sup><a href="#fn-1">1</a></sup><sup><a href="#fn-2">2</a></sup></p>
+    <p>A better pattern is to give the work a specialization. Route architecture to an architecture prompt. Route frontend work to a frontend prompt. Route test coverage to a test auditor. Route security review to a security reviewer. The win is not fake job-title cosplay. The win is cleaner boundaries, narrower objectives, better signal-to-noise, and outputs that can actually be checked.<sup><a href="#fn-3">3</a></sup><sup><a href="#fn-4">4</a></sup></p>
+    <div class="callout accent">
+      <p><strong>Context engineering asks what goes into the window. Task specialization asks a harder question: how do you structure the work so each window only needs the right slice?</strong> One is about managing input. The other is about designing the workflow itself. This article is about the second problem.<sup><a href="#fn-2">2</a></sup><sup><a href="#fn-5">5</a></sup></p>
+    </div>
+  </div>
+
+  <div class="phase" id="monolith-problem">
+    <div class="phase-header">
+      <div class="phase-num">02 &mdash; The Monolithic Prompt Problem</div>
+      <h2>When everything is in scope, nothing is really in focus</h2>
+    </div>
+    <p class="highlight">The instinct is to give the model everything up front &mdash; all the requirements, all the context, all the constraints &mdash; and let it figure it out. It feels efficient. It is not.</p>
+    <p>Google's prompt guidance is blunt on this: for complex tasks with multiple instructions or steps, breaking prompts into subtasks improves controllability, debugging, and accuracy.<sup><a href="#fn-4">4</a></sup> Anthropic makes the same case through prompt chaining, routing, parallelization, and orchestrator-worker flows, each of which narrows the burden on any single call.<sup><a href="#fn-6">6</a></sup> The reason these strategies exist is because monolithic prompts fail in predictable ways:</p>
+    <div class="nodes grid-2">
+      <div class="node">
+        <h3>Instruction collision</h3>
+        <p>When you ask the model to optimize for speed, depth, brevity, correctness, architecture, implementation, and polish simultaneously, it compromises on all of them. Conflicting objectives produce mediocre results across the board.</p>
+      </div>
+      <div class="node">
+        <h3>Context pollution</h3>
+        <p>More context is not automatically better context. Backend implementation details actively distract a frontend generation task. Design rationale interferes with a schema audit. The model attends to everything, even when it shouldn't.</p>
+      </div>
+      <div class="node">
+        <h3>Weak evaluation</h3>
+        <p>A blended answer is nearly impossible to evaluate. Was the architecture sound but the code sloppy? Was the schema solid but the API surface wrong? When everything is in one response, failure boundaries disappear.</p>
+      </div>
+      <div class="node">
+        <h3>Poor handoffs</h3>
+        <p>Monolithic responses produce fewer concrete, verifiable artifacts. There is nothing structured enough for a downstream step to consume, validate, or reject &mdash; just a wall of text you have to manually pick apart.</p>
+      </div>
+    </div>
+    <div class="callout warn">
+      <p>The common objection is that splitting things up "loses context." In practice, the opposite is true. A focused prompt with the right 200 lines of context outperforms a bloated prompt with 2,000 lines of everything. Relevance beats volume.</p>
+    </div>
+  </div>
+
+  <div class="phase" id="roles-vs-specialization">
+    <div class="phase-header">
+      <div class="phase-num">03 &mdash; Roles vs Specialization</div>
+      <h2>These are related ideas, but they are not the same thing</h2>
+    </div>
+    <p>There are two different meanings of "role" that people often mash together.</p>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Concept</th>
+          <th>What it means</th>
+          <th>Why it matters</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Message role</td>
+          <td>The formal conversation role such as <code>system</code>, <code>developer</code>, <code>user</code>, <code>assistant</code>, or <code>tool</code>.</td>
+          <td>These roles affect instruction authority and conflict resolution in systems that use structured messages.<sup><a href="#fn-7">7</a></sup></td>
+        </tr>
+        <tr>
+          <td>Task specialization</td>
+          <td>A workflow choice where one prompt or agent is assigned a narrower job such as frontend generation, schema review, requirements extraction, or security audit.</td>
+          <td>This improves focus, makes outputs easier to validate, and reduces prompt overload.<sup><a href="#fn-1">1</a></sup><sup><a href="#fn-3">3</a></sup></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>OpenAI's Model Spec is about the first meaning: who gave the instruction and how conflicts are resolved. Specialized prompting is about the second meaning: how the work is partitioned. Both matter, but only one of them explains why a "frontend specialist" prompt is often better than telling one giant chat window to do frontend, backend, and product thinking simultaneously.<sup><a href="#fn-7">7</a></sup></p>
+  </div>
+
+  <div class="phase" id="why-it-works">
+    <div class="phase-header">
+      <div class="phase-num">04 &mdash; Why Specialization Works</div>
+      <h2>Better outputs come from narrower objectives</h2>
+    </div>
+    <p>Specialization works because it reduces ambiguity. A prompt that says, "Audit Angular component architecture, file separation, and maintainability" has a tighter target than one that says, "Review this whole app and tell me what you think." Clearer scope leads to clearer evaluation.<sup><a href="#fn-5">5</a></sup><sup><a href="#fn-8">8</a></sup></p>
+    <p>It also reduces cognitive interference. Anthropic explicitly recommends routing when distinct categories are better handled separately, noting that optimizing for one kind of input can hurt performance on other inputs if they are forced through the same path. The same writeup recommends parallelization for complex tasks with multiple considerations because focused calls generally perform better when each consideration is handled separately.<sup><a href="#fn-6">6</a></sup></p>
+    <p>OpenAI's agent guidance lands in the same place from a different angle: start with a single agent when possible, but split prompts and tools across multiple agents when instructions become hard to follow, tool choice becomes unreliable, or logical segments become difficult to scale. That is basically a production way of saying: once the context gets too mixed and the task too broad, carve it up.<sup><a href="#fn-1">1</a></sup></p>
+    <div class="callout">
+      <p><strong>The practical rule:</strong> specialize when a task has distinct evaluation criteria, distinct tool needs, or distinct domains of knowledge. If those boundaries exist in your engineering process, they usually should exist in your AI workflow too.</p>
+    </div>
+  </div>
+
+  <div class="phase" id="software-analogy">
+    <div class="phase-header">
+      <div class="phase-num">05 &mdash; The Software Engineering Analogy</div>
+      <h2>This is just separation of concerns, applied to prompting</h2>
+    </div>
+    <p>The case for specialization becomes obvious the moment you compare AI workflow design to codebase design.</p>
+    <pre>Level 1 &mdash; Context discipline (necessary but insufficient):
+"Give the model the right files, the right conventions, the right constraints."
+This is table stakes. It helps. But it still leaves you with one overloaded
+session trying to do everything.
+
+Level 2 &mdash; Workflow decomposition (where the real gains are):
+"Break the work into specialized tasks, each with its own scope, its own
+context slice, and its own success criteria."
+Now context discipline happens automatically &mdash; each task only sees
+what it needs because the workflow was designed that way.</pre>
+    <p>This is the difference between organizing your desk and redesigning the assembly line. One reduces clutter in the moment. The other eliminates the clutter structurally.</p>
+    <p>Specialized prompts function like layers and modules. They create narrower contracts. A requirements prompt emits acceptance criteria. A schema prompt emits entities, keys, and relationships. An API prompt emits endpoints and contracts. A frontend prompt consumes those contracts and emits UI behavior. A test-audit prompt evaluates the whole chain against clear criteria. That is not just cleaner. It is easier to rerun, easier to compare, and easier to fix.<sup><a href="#fn-2">2</a></sup><sup><a href="#fn-6">6</a></sup></p>
+  </div>
+
+  <div class="phase" id="execution-graph">
+    <div class="phase-header">
+      <div class="phase-num">06 &mdash; The Execution Graph Method</div>
+      <h2>What happens when you take specialization to its logical conclusion</h2>
+    </div>
+    <p class="highlight">If specialization works for individual prompts, it works even better when you structure an entire project as a dependency graph of atomic, specialized task nodes.</p>
+    <p>This is the execution graph method: decompose a complex project into a directed acyclic graph (DAG) where each node represents a single, scoped task &mdash; create these database tables, implement this API endpoint, build this UI component. Each node specifies its dependencies, its inputs, its outputs, and how to verify completion. The model only loads context relevant to that node, not the entire project.</p>
+    <p>The critical insight: when work is decomposed this way, context scoping is no longer a manual discipline. You do not have to carefully curate what goes into the window for each task &mdash; the graph already defines it. Each node declares exactly which files, line ranges, and upstream outputs it needs. Context engineering becomes a property of the workflow, not a skill you have to exercise on every prompt.</p>
+    <p>The idea is not new or exotic. Recent research formalizes this as a <strong>task dependency graph</strong> (TDG), where nodes are sub-tasks and edges represent prerequisite relationships. Graph-based Agent Planning (GAP) explicitly models inter-task dependencies through graph-based planning to enable adaptive parallel and serial execution.<sup><a href="#fn-9">9</a></sup> Dynamic task decomposition frameworks use orchestrators to generate task graphs from user queries, with delegators managing distribution and executors optimizing for parallel and sequential execution.<sup><a href="#fn-10">10</a></sup></p>
+    <div class="nodes grid-2">
+      <div class="node">
+        <h3>Context stays scoped</h3>
+        <p>Each node loads only what it needs &mdash; the relevant plan sections, architecture constraints, and outputs from upstream nodes. The model never has to hold an entire project in its head at once.</p>
+      </div>
+      <div class="node">
+        <h3>Work is verifiable</h3>
+        <p>Every node has a verify step: a command, a test, a compilation check. You know whether a node succeeded before moving to the next one. No more guessing whether page 47 of a giant response is correct.</p>
+      </div>
+      <div class="node">
+        <h3>Parallelization is built in</h3>
+        <p>Nodes with no dependency relationship can execute concurrently. Independent database tables, unrelated API endpoints, and separate UI components can all be built at the same time.</p>
+      </div>
+      <div class="node">
+        <h3>Failure is isolated</h3>
+        <p>When a node fails, you rerun that node. You do not have to regenerate an entire monolithic output and hope the unrelated parts stay intact.</p>
+      </div>
+    </div>
+    <div class="callout accent">
+      <p><strong>You don't need the full graph to benefit.</strong> Even without a formal execution graph, the underlying principle still applies: scope each AI interaction to one job, give it only the context it needs, and verify the output before moving on. The graph is just this principle systematized across an entire project.</p>
+    </div>
+  </div>
+
+  <div class="phase" id="patterns">
+    <div class="phase-header">
+      <div class="phase-num">07 &mdash; Patterns That Actually Work</div>
+      <h2>Four useful ways to specialize AI work</h2>
+    </div>
+    <div class="nodes grid-2">
+      <div class="node">
+        <h3>Prompt chaining</h3>
+        <p>Use when work has a natural order. Example: requirements &rarr; schema &rarr; API contracts &rarr; UI plan &rarr; implementation notes. Each step becomes input to the next.<sup><a href="#fn-4">4</a></sup><sup><a href="#fn-6">6</a></sup></p>
+      </div>
+      <div class="node">
+        <h3>Routing</h3>
+        <p>Classify the task first, then send it to a specialized path. Example: security issue, performance issue, frontend issue, or domain-model issue each gets its own follow-up prompt.<sup><a href="#fn-6">6</a></sup></p>
+      </div>
+      <div class="node">
+        <h3>Parallel review</h3>
+        <p>Run separate evaluations for different concerns at the same time. One pass checks architecture, another checks accessibility, another checks testability, another checks security.<sup><a href="#fn-6">6</a></sup></p>
+      </div>
+      <div class="node">
+        <h3>Orchestrator-workers</h3>
+        <p>Use for large, messy tasks where the exact subtasks are not fully known up front. The orchestrator breaks the work down, delegates, and synthesizes results.<sup><a href="#fn-1">1</a></sup><sup><a href="#fn-6">6</a></sup></p>
+      </div>
+    </div>
+    <p>Google's design-pattern guidance frames this as an architectural choice: define requirements, assess task complexity, cost, latency, and human involvement, and then choose a single-agent or multi-agent pattern accordingly. In other words, agent structure should follow workload characteristics, not hype.<sup><a href="#fn-2">2</a></sup></p>
+  </div>
+
+  <div class="phase" id="anti-patterns">
+    <div class="phase-header">
+      <div class="phase-num">08 &mdash; What to Avoid</div>
+      <h2>Not every use of "roles" is smart</h2>
+    </div>
+    <p>Here are several ways this approach commonly goes wrong.</p>
+    <ul class="plain">
+      <li><strong>Persona fluff without task boundaries.</strong> "You are a world-class genius senior architect ninja" is useless if the actual assignment is still blurry.</li>
+      <li><strong>Splitting too early.</strong> OpenAI explicitly recommends maximizing a single agent's capabilities first because extra agents add coordination overhead. Do not build a tiny bureaucracy for a two-minute task.<sup><a href="#fn-1">1</a></sup></li>
+      <li><strong>Redundant specializations.</strong> If two prompts have almost the same job, you are not isolating concerns; you are duplicating them.</li>
+      <li><strong>No handoff contract.</strong> Specialized prompts only work when the output is structured enough for the next step to consume and evaluate.</li>
+      <li><strong>No review gate.</strong> Splitting tasks is not magic. It just makes review easier. You still need review.</li>
+    </ul>
+    <div class="callout warn">
+      <p>The point is not to create more prompts for the hell of it. The point is to create cleaner units of work. Sometimes one well-scoped prompt is enough. Sometimes you need a routed or chained workflow. The right answer depends on task complexity, overlap, and evaluation clarity.<sup><a href="#fn-1">1</a></sup><sup><a href="#fn-2">2</a></sup></p>
+    </div>
+  </div>
+
+  <div class="phase" id="playbook">
+    <div class="phase-header">
+      <div class="phase-num">09 &mdash; A Practical Playbook</div>
+      <h2>How to apply specialization to software work</h2>
+    </div>
+    <p>For product and engineering teams, the easiest way to start is not by inventing a fancy multi-agent platform. It is by introducing task-scoped prompts with explicit inputs, outputs, and acceptance criteria.</p>
+    <pre>Example specialization map
+
+1. Requirements Analyst
+   Input:  BRD, existing notes, stakeholder goals
+   Output: clarified scope, assumptions, open questions, acceptance criteria
+
+2. Data Architect
+   Input:  accepted requirements
+   Output: entities, keys, relationships, normalization concerns, indexing notes
+
+3. API Architect
+   Input:  domain model + acceptance criteria
+   Output: endpoint contracts, DTO boundaries, error model, auth considerations
+
+4. Frontend Architect
+   Input:  API contract + UX rules
+   Output: screen flows, state boundaries, component responsibilities, validation rules
+
+5. Code Reviewer
+   Input:  implementation diff or generated code
+   Output: defects, separation-of-concerns issues, maintainability risks, missing tests
+
+6. Test Auditor
+   Input:  requirements + implementation
+   Output: test matrix, coverage gaps, critical paths, regression risks</pre>
+    <p>This pattern works because each role has a narrower objective and a cleaner definition of success. OpenAI's prompt guidance emphasizes being specific about context, outcome, format, and style, while Google and Anthropic both recommend decomposing complex work into smaller or routed pieces where appropriate. Specialization is just that principle applied at workflow scale.<sup><a href="#fn-5">5</a></sup><sup><a href="#fn-4">4</a></sup><sup><a href="#fn-6">6</a></sup></p>
+  </div>
+
+  <div class="phase" id="conclusion">
+    <div class="phase-header">
+      <div class="phase-num">10 &mdash; Conclusion</div>
+      <h2>Specialization is workflow engineering, not prompt theater</h2>
+    </div>
+    <p class="highlight">AI does not get better because it was given a flattering title. It gets better when the work is bounded, the instructions are clearer, the context is cleaner, the handoffs are tighter, and the outputs are easier to judge. That is why specialized roles work.</p>
+    <p>For simple tasks, one good prompt is often enough. For multi-domain software work, though, the "just shove everything into one window" strategy usually collapses into vagueness. Specialized prompts, routed flows, and orchestrated worker patterns are not a gimmick. They are the prompting equivalent of modular architecture: less confusion, less coupling, and a much better shot at getting something you can actually use.<sup><a href="#fn-1">1</a></sup><sup><a href="#fn-2">2</a></sup><sup><a href="#fn-6">6</a></sup></p>
+    <a class="top-link" href="#top">Back to top</a>
+  </div>
+
+  <hr />
+
+  <div class="phase footnotes" id="citations">
+    <div class="phase-header">
+      <div class="phase-num">11 &mdash; Citations</div>
+      <h2>Sources</h2>
+    </div>
+    <ol>
+      <li id="fn-1">OpenAI, <em>A Practical Guide to Building Agents</em>. Notes used here include the recommendation to start simple, split when prompts or tools become hard to manage, and the distinction between single-agent and multi-agent orchestration patterns.</li>
+      <li id="fn-2">Google Cloud, <em>Choose a Design Pattern for Your Agentic AI System</em>. Used for the framing that architecture should be selected based on workload characteristics such as task complexity, cost, latency, and human involvement.</li>
+      <li id="fn-3">OpenAI, <em>Model Spec</em>. Used to distinguish formal message-role authority from workflow-level task specialization.</li>
+      <li id="fn-4">Google Cloud, <em>Break Down Complex Tasks into Simpler Prompts</em>. Used for the claim that smaller prompts can improve controllability, debugging, and accuracy.</li>
+      <li id="fn-5">OpenAI Help Center, <em>Best Practices for Prompt Engineering with the OpenAI API</em>. Used for the emphasis on clarity, specificity, explicit format, and structured prompting.</li>
+      <li id="fn-6">Anthropic, <em>Building Effective AI Agents</em>. Used for prompt chaining, routing, parallelization, and orchestrator-worker patterns, plus the claim that focused calls often perform better when separate considerations are handled independently.</li>
+      <li id="fn-7">OpenAI, <em>Model Spec</em>, sections on instruction authority and conversation roles.</li>
+      <li id="fn-8">Google AI for Developers, <em>Prompt Design Strategies</em>. Used for the broader point that effective prompt design depends on clear and specific instructions and iterative refinement.</li>
+      <li id="fn-9">Zheng et al., <em>GAP: Graph-based Agent Planning with Parallel Tool Use and Reinforcement Learning</em> (arXiv:2510.25320). Used for the formalization of inter-task dependency modeling through graph-based planning enabling adaptive parallel and serial execution.</li>
+      <li id="fn-10">Vashisht et al., <em>Advancing Agentic Systems: Dynamic Task Decomposition, Tool Integration and Evaluation using Novel Metrics and Dataset</em> (arXiv:2410.22457). Used for the orchestrator-delegator-executor architecture that dynamically generates and executes task graphs.</li>
+    </ol>
+
+    <ul class="ref-list">
+      <li><a href="https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/" target="_blank">OpenAI &mdash; A Practical Guide to Building Agents</a></li>
+      <li><a href="https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf" target="_blank">OpenAI &mdash; A Practical Guide to Building Agents (PDF)</a></li>
+      <li><a href="https://docs.google.com/architecture/choose-design-pattern-agentic-ai-system" target="_blank">Google Cloud &mdash; Choose a Design Pattern for Your Agentic AI System</a></li>
+      <li><a href="https://docs.google.com/architecture/multiagent-ai-system" target="_blank">Google Cloud &mdash; Multi-agent AI System</a></li>
+      <li><a href="https://model-spec.openai.com/2025-12-18.html" target="_blank">OpenAI &mdash; Model Spec (2025/12/18)</a></li>
+      <li><a href="https://openai.com/index/introducing-structured-outputs-in-the-api/" target="_blank">OpenAI &mdash; Introducing Structured Outputs in the API</a></li>
+      <li><a href="https://developers.openai.com/api/docs/guides/structured-outputs/" target="_blank">OpenAI &mdash; Structured Model Outputs (API Docs)</a></li>
+      <li><a href="https://developers.openai.com/cookbook/examples/structured_outputs_intro/" target="_blank">OpenAI &mdash; Introduction to Structured Outputs (Cookbook)</a></li>
+      <li><a href="https://developers.openai.com/tracks/building-agents/" target="_blank">OpenAI &mdash; Building Agents (Developers)</a></li>
+      <li><a href="https://developers.openai.com/api/docs/guides/reasoning-best-practices/" target="_blank">OpenAI &mdash; Reasoning Best Practices</a></li>
+      <li><a href="https://arxiv.org/html/2410.02189v2" target="_blank">arXiv &mdash; Agent-Oriented Planning in Multi-Agent Systems</a></li>
+      <li><a href="https://arxiv.org/abs/2505.19591" target="_blank">arXiv &mdash; Multi-Agent Collaboration via Evolving Orchestration</a></li>
+      <li><a href="https://arxiv.org/html/2507.14447v1" target="_blank">arXiv &mdash; Routine: A Structural Planning Framework for LLM Agent Systems</a></li>
+      <li><a href="https://arxiv.org/abs/2602.03128" target="_blank">arXiv &mdash; Understanding Multi-Agent LLM Frameworks</a></li>
+      <li><a href="https://arxiv.org/html/2510.25320v1" target="_blank">arXiv &mdash; GAP: Graph-based Agent Planning with Parallel Tool Use and Reinforcement Learning</a></li>
+      <li><a href="https://arxiv.org/html/2410.22457v1" target="_blank">arXiv &mdash; Advancing Agentic Systems: Dynamic Task Decomposition, Tool Integration and Evaluation</a></li>
+      <li><a href="https://arxiv.org/html/2507.21407v1" target="_blank">arXiv &mdash; Graph-Augmented Large Language Model Agents: Current Progress and Future Prospects</a></li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>Specialized Roles, Better Results</p>
+  </footer>
+
+</div>
+</body>
+</html>

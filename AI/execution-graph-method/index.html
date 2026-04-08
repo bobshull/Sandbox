@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Execution Graph Method</title>
+  <style>
+    :root {
+      --bg: #1a1b1e;
+      --panel: #212226;
+      --panel2: #18191c;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.90);
+      --muted: rgba(255,255,255,0.68);
+      --faint: rgba(255,255,255,0.45);
+      --accent: #e8a44a;
+      --green: #4a9;
+      --red: #e05a33;
+      --shadow: 0 4px 12px rgba(0,0,0,0.30);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 48px 18px 80px;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+    header .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 20px;
+    }
+    .pills {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      padding: 5px 14px;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      background: var(--panel);
+    }
+    .pill.hi {
+      border-color: rgba(232,164,74,0.35);
+      color: var(--accent);
+      background: rgba(232,164,74,0.08);
+    }
+    .pill.gr {
+      border-color: rgba(68,170,153,0.3);
+      color: var(--green);
+      background: rgba(68,170,153,0.07);
+    }
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      justify-content: center;
+    }
+    .toc a {
+      color: var(--faint);
+      font-size: 0.8rem;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+    .toc a:hover { color: var(--accent); }
+
+    /* Slide sections */
+    .slide {
+      margin-bottom: 56px;
+    }
+    .slide-num {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    p {
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .highlight {
+      color: var(--text);
+      font-size: 1.15rem;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    /* Callout */
+    .callout {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .callout p { margin: 0; color: var(--text); }
+    .callout.warn { border-left-color: var(--red); }
+
+    /* Bullet lists */
+    ul { list-style: none; padding: 0; margin: 0 0 12px; }
+    li {
+      position: relative;
+      padding-left: 18px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+    }
+    li strong { color: var(--text); }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .flow-step {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+      flex: 1;
+      min-width: 120px;
+    }
+    .flow-arrow {
+      color: var(--accent);
+      font-size: 1.2rem;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* Zoom levels */
+    .levels {
+      display: grid;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .level {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .level-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      color: var(--accent);
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .level-body strong { color: var(--text); display: block; margin-bottom: 4px; }
+    .level-body span { color: var(--muted); font-size: 0.9rem; }
+
+    /* Node anatomy */
+    .node-box {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      margin: 16px 0;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.86);
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .node-box .key { color: var(--accent); }
+    .node-box .val { color: var(--muted); }
+    .node-box .comment { color: var(--green); }
+
+    /* Code blocks */
+    code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      padding: 2px 6px;
+      background: rgba(0,0,0,0.40);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--accent);
+    }
+    pre {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    pre code {
+      white-space: pre;
+      padding: 0;
+      border: none;
+      background: transparent;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.86);
+    }
+
+    /* Steps list */
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+    }
+    .steps li {
+      padding-left: 32px;
+    }
+    .steps li::before {
+      content: counter(step);
+      counter-increment: step;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      top: 4px;
+    }
+
+    /* Divider */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 56px 0;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      color: var(--faint);
+      font-size: 0.78rem;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.7rem; }
+      h2 { font-size: 1.2rem; }
+      body { padding: 28px 12px 48px; }
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+      .level { grid-template-columns: 1fr; }
+      pre { padding: 12px 14px; }
+      pre code { font-size: 0.72rem; white-space: pre-wrap; word-break: break-all; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      header, .callout, .level, pre { border-color: #ddd; }
+      pre { background: #f6f6f6; }
+      code, pre code { color: #111; }
+      .pill { color: #333; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Execution Graph Method</h1>
+    <p class="subtitle">A calm, dependency-driven way to architect and build new applications with parallel agents.</p>
+    <div class="pills">
+      <span class="pill hi">DAG-first</span>
+      <span class="pill">Small executable nodes</span>
+      <span class="pill">Explicit I/O</span>
+      <span class="pill gr">Acceptance checks</span>
+      <span class="pill">Parallel-safe</span>
+    </div>
+    <div class="toc">
+      <a href="#what">What it is</a>
+      <a href="#graph">The graph</a>
+      <a href="#levels">Levels</a>
+      <a href="#contract">Node contract</a>
+      <a href="#example">YAML example</a>
+      <a href="#controller">Controller</a>
+      <a href="#generate">Generate</a>
+      <a href="#parallel">Parallelize</a>
+      <a href="#run">Run</a>
+      <a href="#why">Why it works</a>
+      <a href="#start">Start here</a>
+    </div>
+  </header>
+
+  <!-- 1. The Core Idea -->
+  <div class="slide" id="what">
+    <div class="slide-num">01 &mdash; The Core Idea</div>
+    <h2>Turn architecture into a build system</h2>
+    <p class="highlight">Break the project into a DAG of small, testable tasks with explicit inputs and outputs. Execute in dependency order. Parallelize where safe.</p>
+    <div class="callout">
+      <p>A task isn&rsquo;t &ldquo;Build Workflow Engine.&rdquo; A task is a bounded unit that has prerequisites, produces concrete outputs, and has acceptance checks.</p>
+    </div>
+  </div>
+
+  <!-- 2. What an Execution Graph Is -->
+  <div class="slide" id="graph">
+    <div class="slide-num">02 &mdash; What an Execution Graph Is</div>
+    <h2>Every node in the graph must be&hellip;</h2>
+    <ul>
+      <li><strong>Prerequisite-aware</strong> &mdash; knows exactly what must be done first</li>
+      <li><strong>Bounded</strong> &mdash; touches a known, limited set of files</li>
+      <li><strong>Concrete</strong> &mdash; produces specific output artifacts</li>
+      <li><strong>Verifiable</strong> &mdash; has acceptance checks that pass or fail</li>
+      <li><strong>Assignable</strong> &mdash; has a clear owner (human or agent)</li>
+    </ul>
+    <p>If a node doesn&rsquo;t meet all five, it&rsquo;s too vague. Break it down further.</p>
+  </div>
+
+  <!-- 3. Graph Levels -->
+  <div class="slide" id="levels">
+    <div class="slide-num">03 &mdash; Graph Levels</div>
+    <h2>Three zoom levels</h2>
+    <div class="levels">
+      <div class="level">
+        <div class="level-tag">Level 0</div>
+        <div class="level-body">
+          <strong>Master Roadmap</strong>
+          <span>The executive view. Lists every subsystem (Database, Backend, Frontend, DevOps&hellip;) and their coarse dependency order. Answers &ldquo;which subsystems exist and which must finish before others can start.&rdquo;</span>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">Level 1</div>
+        <div class="level-body">
+          <strong>Subsystem Graphs</strong>
+          <span>The tech-lead view. One graph file per subsystem. Task node IDs + names, internal dependency edges, cross-subsystem references, parallel groups, and rough sizing (~0.5&ndash;2 days per node). Does <em>not</em> contain file paths, line ranges, or verify commands.</span>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">Level 2</div>
+        <div class="level-body">
+          <strong>Execution Nodes</strong>
+          <span>The builder&rsquo;s view. Full task spec &mdash; <code>id</code>, <code>name</code>, <code>depends_on</code>, <code>inputs</code> (exact file:line-range references), <code>arch_rules</code>, <code>outputs</code>, and <code>verify</code> commands. Everything needed to execute with zero ambiguity.</span>
+        </div>
+      </div>
+    </div>
+    <p>Each level is a zoom-in. Level 0 picks the subsystem. Level 1 picks the task. Level 2 gives you everything to execute it.</p>
+    <div class="callout">
+      <p>How they nest:</p>
+    </div>
+    <pre><code>Level 0:  Master Roadmap
+              │
+              ├── Level 1:  database-graph.md     (task names + deps only)
+              │                 ├── Level 2: P1-01 yaml block  (full spec)
+              │                 ├── Level 2: P1-02 yaml block
+              │                 └── ...
+              ├── Level 1:  backend-graph.md
+              │                 ├── Level 2: P1-06 yaml block
+              │                 ├── Level 2: P1-07 yaml block
+              │                 └── ...
+              ├── Level 1:  frontend-graph.md
+              └── ...</code></pre>
+  </div>
+
+  <!-- 4. Node Contract -->
+  <div class="slide" id="contract">
+    <div class="slide-num">04 &mdash; Node Contract</div>
+    <h2>What every node must declare</h2>
+    <ul>
+      <li><strong>ID</strong> &mdash; stable, unique identifier</li>
+      <li><strong>Description</strong> &mdash; what the task does</li>
+      <li><strong>DependsOn</strong> &mdash; prerequisite node IDs</li>
+      <li><strong>Inputs</strong> &mdash; docs, files, contracts to read</li>
+      <li><strong>Outputs</strong> &mdash; files created or changed</li>
+      <li><strong>Acceptance</strong> &mdash; tests, checks, endpoints, UI behaviors</li>
+      <li><strong>Owner</strong> &mdash; agent role or person</li>
+      <li><strong>Risk</strong> &mdash; P0 / P1 / P2</li>
+      <li><strong>Rollback</strong> &mdash; how to revert safely</li>
+    </ul>
+    <p>Every field is required. No ambiguity, no guessing. If info is missing, create a node that produces the missing artifact first.</p>
+  </div>
+
+  <hr>
+
+  <!-- 5. YAML Example -->
+  <div class="slide" id="example">
+    <div class="slide-num">05 &mdash; YAML Example</div>
+    <h2>What a task spec looks like</h2>
+    <p>File format: <code>/plans/execution-graph.yaml</code></p>
+    <div class="node-box"><span class="key">meta:</span>
+  <span class="key">project:</span> <span class="val">Platform</span>
+  <span class="key">stack:</span>
+    <span class="key">backend:</span> <span class="val">&quot;.NET 10 Web API&quot;</span>
+    <span class="key">frontend:</span> <span class="val">&quot;Angular + Angular Material&quot;</span>
+    <span class="key">db:</span> <span class="val">&quot;SQL Server&quot;</span>
+  <span class="key">rules:</span>
+    <span class="key">max_node_scope:</span> <span class="val">&quot;0.5-2 dev days&quot;</span>
+    <span class="key">no_guessing:</span> <span class="val">true</span>
+    <span class="key">if_unknown:</span> <span class="val">&quot;mark_requires_clarification&quot;</span>
+
+<span class="key">nodes:</span>
+  - <span class="key">id:</span> <span class="val">G0-01</span>
+    <span class="key">title:</span> <span class="val">Establish repo build baseline</span>
+    <span class="key">owner:</span> <span class="val">DevOpsAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[]</span>
+    <span class="key">inputs:</span>
+      - <span class="val">&quot;repo root&quot;</span>
+    <span class="key">outputs:</span>
+      - <span class="val">&quot;README-build.md&quot;</span>
+      - <span class="val">&quot;CI pipeline config&quot;</span>
+      - <span class="val">&quot;scripts/build.ps1 or scripts/build.sh&quot;</span>
+    <span class="key">acceptance:</span>
+      - <span class="val">&quot;Backend builds from clean checkout&quot;</span>
+      - <span class="val">&quot;Frontend builds from clean checkout&quot;</span>
+      - <span class="val">&quot;Tests (if any) run in CI&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Revert pipeline/script commits&quot;</span>
+
+  - <span class="key">id:</span> <span class="val">DB-01</span>
+    <span class="key">title:</span> <span class="val">Define core reference tables</span>
+    <span class="key">owner:</span> <span class="val">DatabaseAgent</span>
+    <span class="key">dependsOn:</span> <span class="val">[G0-01]</span>
+    <span class="key">inputs:</span> <span class="comment"># what to read</span>
+      - <span class="val">&quot;docs/architecture/database-model.md&quot;</span>
+      - <span class="val">&quot;docs/architecture/domain-model.md&quot;</span>
+    <span class="key">outputs:</span> <span class="comment"># what to produce</span>
+      - <span class="val">&quot;db/migrations/0001_core_reference_tables.sql&quot;</span>
+      - <span class="val">&quot;db/schema/core_reference_tables.md&quot;</span>
+    <span class="key">acceptance:</span> <span class="comment"># how to verify</span>
+      - <span class="val">&quot;Migration runs on empty DB&quot;</span>
+      - <span class="val">&quot;Tables have PKs, FKs, required indexes&quot;</span>
+    <span class="key">risk:</span> <span class="val">P0</span>
+    <span class="key">rollback:</span> <span class="val">&quot;Drop created tables OR down migration&quot;</span></div>
+  </div>
+
+  <!-- 6. Controller Prompt -->
+  <div class="slide" id="controller">
+    <div class="slide-num">06 &mdash; Controller Prompt</div>
+    <h2>The graph generation prompt</h2>
+    <p>Feed this to an agent along with your architecture docs to produce the initial graph.</p>
+    <pre><code>You are the Execution Graph Controller.
+
+Inputs:
+- docs/architecture/project-requirements.md
+- docs/architecture/backend-architecture.md
+- docs/architecture/frontend-architecture.md
+- docs/architecture/database-model.md
+- docs/architecture/system-risks.md
+
+Task:
+Generate /plans/execution-graph.yaml as a dependency
+graph of executable nodes.
+
+Rules:
+- Each node: 0.5–2 dev days scope
+- Required fields: id, title, owner, dependsOn,
+  inputs, outputs, acceptance, risk, rollback
+- No guessing — missing info = new prerequisite node
+- Minimum coverage:
+    10 foundation nodes (P0)
+    30 domain slice nodes (DB→BE→FE chains)
+    10 hardening nodes (tests, security, perf)
+- Group by waves (Wave0..Wave5)
+- Keep dependencies acyclic
+- Prefer smaller nodes over larger ones
+
+Output ONLY valid YAML.
+Write to /plans/execution-graph.yaml.</code></pre>
+  </div>
+
+  <hr>
+
+  <!-- 7. Building the Graph -->
+  <div class="slide" id="generate">
+    <div class="slide-num">07 &mdash; Building the Graph</div>
+    <h2>Four steps to generate one</h2>
+    <ul>
+      <li><strong>Map subsystem boundaries</strong> &mdash; Backend, Frontend, DB, Workflow, Files/Assets, Integrations, Security, DevOps/CI, Reporting</li>
+      <li><strong>Create foundation nodes</strong> &mdash; build baseline, layering, migrations, auth baseline, logging/telemetry, OpenAPI baseline</li>
+      <li><strong>Build vertical slices per domain</strong> &mdash; DB &rarr; Domain &rarr; API &rarr; UI &rarr; Tests &rarr; Permissions</li>
+      <li><strong>Group into waves</strong> &mdash; Wave0 scaffolding; Wave1 reference data+identity; Wave2 core domain entities; Wave3 relationships+assets; Wave4 integrations+business rules; Wave5 workflows+reporting+hardening</li>
+    </ul>
+    <div class="callout">
+      <p>Prefer smaller nodes over larger ones. A node scoped to 0.5&ndash;2 days is about right. If it feels bigger, split it.</p>
+    </div>
+  </div>
+
+  <!-- 8. Parallelization -->
+  <div class="slide" id="parallel">
+    <div class="slide-num">08 &mdash; Parallelization</div>
+    <h2>When parallel is safe</h2>
+    <ul>
+      <li><strong>Different areas</strong> &mdash; db/ vs src/app/ vs src/Api/ can run simultaneously</li>
+      <li><strong>Shared contracts first</strong> &mdash; interfaces and types must land before parallel consumers start</li>
+      <li><strong>No overlapping files</strong> &mdash; two agents editing the same module at the same time is never safe</li>
+    </ul>
+    <p>The graph&rsquo;s dependency edges enforce this automatically. If two nodes don&rsquo;t share an edge, they&rsquo;re safe to parallelize.</p>
+  </div>
+
+  <!-- 9. The Execution Loop -->
+  <div class="slide" id="run">
+    <div class="slide-num">09 &mdash; The Execution Loop</div>
+    <h2>How it runs</h2>
+    <div class="flow">
+      <div class="flow-step">Pick ready nodes</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Assign by owner</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Build outputs</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Meet acceptance</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Merge &amp; repeat</div>
+    </div>
+    <p>A node is &ldquo;ready&rdquo; when all its dependencies are complete. Multiple ready nodes with no overlap can run in parallel.</p>
+    <div class="callout">
+      <p>Think <code>make</code> for software projects. Each target knows its prerequisites and its outputs. The graph engine just resolves the order.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 10. Why This Works -->
+  <div class="slide" id="why">
+    <div class="slide-num">10 &mdash; Why This Works</div>
+    <h2>It eliminates the two things that kill AI-assisted builds</h2>
+    <ul>
+      <li><strong>Ambiguity</strong> &mdash; every node has explicit inputs, outputs, and acceptance criteria. There&rsquo;s nothing to interpret, nothing to assume. An agent either produces the artifact or it doesn&rsquo;t.</li>
+      <li><strong>Scope creep</strong> &mdash; nodes are bounded by design. An agent can&rsquo;t wander into adjacent concerns because the graph doesn&rsquo;t give it permission to. Dependencies enforce order; acceptance checks enforce quality.</li>
+      <li><strong>Context overload</strong> &mdash; each node carries only what it needs. No 50-page prompt. No &ldquo;here&rsquo;s the whole codebase, figure it out.&rdquo; Scoped context means better results from every agent, every time.</li>
+    </ul>
+    <div class="callout">
+      <p>The graph isn&rsquo;t a plan you hope works. It&rsquo;s a machine you can run, inspect, and fix one node at a time.</p>
+    </div>
+  </div>
+
+  <!-- 11. Start Here -->
+  <div class="slide" id="start">
+    <div class="slide-num">11 &mdash; Start Here</div>
+    <h2>Try it in five minutes</h2>
+    <ul class="steps">
+      <li><strong>Pick one feature</strong> &mdash; something real but small. A login flow. A CRUD endpoint. A dashboard widget.</li>
+      <li><strong>Decompose it into 3&ndash;5 nodes</strong> &mdash; each with inputs, outputs, and a way to verify it works.</li>
+      <li><strong>Wire the dependencies</strong> &mdash; draw the edges. Which nodes can run in parallel? Which must wait?</li>
+      <li><strong>Run the first node</strong> &mdash; hand it to an agent or build it yourself. Check the acceptance criteria. Move on.</li>
+      <li><strong>Notice what happens</strong> &mdash; scope stays tight. Verification is binary. Progress is visible. That&rsquo;s the method.</li>
+    </ul>
+    <div class="callout">
+      <p>You don&rsquo;t need to graph the whole application on day one. Start with one slice, prove it works, then expand. The graph grows with the project.</p>
+    </div>
+  </div>
+
+  <footer>
+    Execution Graph Method
+  </footer>
+
+</div>
+</body>
+</html>

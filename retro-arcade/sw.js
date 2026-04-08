@@ -1,4 +1,4 @@
-const CACHE_NAME = 'retro-arcade-v2';
+const CACHE_NAME = 'retro-arcade-v3';
 
 const ASSETS = [
   './',
@@ -16,6 +16,7 @@ const ASSETS = [
   './js/platform/audio.js',
   './js/platform/audio-sounds.js',
   './js/platform/music.js',
+  './js/platform/touch-controls.js',
   './js/engine/loop.js',
   './js/engine/collision.js',
   './js/engine/pool.js',
