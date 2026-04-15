@@ -4,15 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bobby's Weekly Rhythm</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark"></span>
-        <span class="brand-name">Home Rhythm</span>
-      </div>
       <div class="topbar-actions">
         <button id="prevDayBtn" class="icon-btn" aria-label="Previous day">&#10094;</button>
         <button id="datePickerBtn" class="date-picker-btn" aria-haspopup="true" aria-expanded="false">
@@ -79,12 +75,10 @@
   "weekdayOrder": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   "dailyTemplates": {
     "0": {
-      "label": "Master Bath + Background Rooms",
-      "purpose": "Slow Sunday pace: knock out the master bath on your own time and vacuum the two background rooms. Still plenty of room to rest.",
+      "label": "Master Bath",
+      "purpose": "Slow Sunday pace: knock out the master bath on your own time. One room, do it whenever.",
       "tasks": [
-        "Master bath: toilet, sink, mirror, shower, then vacuum and mop the floor.",
-        "Vacuum the office.",
-        "Vacuum the spare room."
+        "Master bath: toilet, sink, mirror, shower, then vacuum and mop the floor."
       ]
     },
     "1": {
@@ -99,21 +93,21 @@
       ]
     },
     "2": {
-      "label": "Dusting Day",
-      "purpose": "Knock out the dust in one full pass so the house feels cleaner fast.",
+      "label": "Dust + Baseboards",
+      "purpose": "Detail day. Dust and baseboards back-to-back in one 30-minute pass so the house doesn't feel grimy around the edges.",
       "tasks": [
         "Walk at the park before going home from work.",
-        "Dust the whole house in one go.",
-        "Hit furniture, picture frames, shelves, surfaces, and obvious dusty spots."
+        "Dust the whole house in one go — furniture, frames, shelves, surfaces.",
+        "Do all baseboards in one go.",
+        "Optional: catch trim, corners, or window sills if you still have gas in the tank."
       ]
     },
     "3": {
-      "label": "Baseboards Day",
-      "purpose": "Handle the detail grime in one pass and keep the house from feeling grimy around the edges.",
+      "label": "Main Bath",
+      "purpose": "Midweek reset: just the main bathroom. One small room, one focused pass, then you're done.",
       "tasks": [
         "Walk at the park before going home from work.",
-        "Do all baseboards in one go.",
-        "Optional: catch trim, corners, or window sills if you still have gas in the tank."
+        "Main bath: toilet, sink, mirror, tub, then vacuum and mop the floor."
       ]
     },
     "4": {
@@ -126,20 +120,21 @@
       ]
     },
     "5": {
-      "label": "Main Bath",
-      "purpose": "End the week with just the main bathroom. One small room, one focused pass, then you're done.",
+      "label": "Background Rooms",
+      "purpose": "Keep Friday easy. A quick vacuum on the two carpeted background rooms and you're done.",
       "tasks": [
         "Walk at the park before going home from work.",
-        "Main bath: toilet, sink, mirror, tub, then vacuum and mop the floor."
+        "Vacuum the office.",
+        "Vacuum the spare room."
       ]
     },
     "6": {
-      "label": "Laundry + Bedroom Floors + House Project",
-      "purpose": "Saturday is the main progress day: finish laundry completely, knock out the remaining floors, and do one house project.",
+      "label": "Laundry + Floors + House Project",
+      "purpose": "Saturday is the main progress day: finish laundry completely, knock out the last floor zones, and do one house project.",
       "tasks": [
         "Laundry all in one go: wash, dry, fold, and put away immediately.",
-        "Vacuum bedroom and laundry room.",
-        "Mop bedroom and laundry room.",
+        "Vacuum and mop the bedroom.",
+        "Vacuum and mop the laundry room.",
         "Do one house project from the current rotation."
       ]
     }
@@ -169,6 +164,6 @@
   ]
 }
   </script>
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

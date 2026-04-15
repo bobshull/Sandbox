@@ -31,8 +31,8 @@ const nextDayBtn = document.getElementById('nextDayBtn');
 
 init();
 
-async function init() {
-  state.config = await loadConfig();
+function init() {
+  state.config = loadConfig();
 
   const today = new Date();
   state.selectedDate = loadSelectedDate() ?? stripTime(today);
@@ -44,21 +44,9 @@ async function init() {
   wireEvents();
 }
 
-async function loadConfig() {
+function loadConfig() {
   const embedded = document.getElementById('scheduleData');
-  if (embedded?.textContent?.trim()) {
-    try {
-      return JSON.parse(embedded.textContent);
-    } catch (error) {
-      console.warn('Embedded schedule JSON could not be parsed. Falling back to fetch.', error);
-    }
-  }
-
-  const response = await fetch('schedule.json');
-  if (!response.ok) {
-    throw new Error(`Failed to load schedule.json: ${response.status} ${response.statusText}`);
-  }
-  return response.json();
+  return JSON.parse(embedded.textContent);
 }
 
 function wireEvents() {
