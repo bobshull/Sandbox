@@ -1,0 +1,319 @@
+import AVFoundation
+import Foundation
+
+enum Synths {
+
+    static func render(_ voice: VoiceKind, kit: String = "studio", sampleRate: Double) -> [Float] {
+        switch voice {
+        case .kick:  return renderKick(kit: kit, sampleRate: sampleRate)
+        case .snare: return renderSnare(kit: kit, sampleRate: sampleRate)
+        case .hat:   return renderHat(kit: kit, sampleRate: sampleRate)
+        case .clap:  return renderClap(kit: kit, sampleRate: sampleRate)
+        case .bass:  return renderBass(kit: kit, sampleRate: sampleRate)
+        case .pluck: return renderPluck(kit: kit, sampleRate: sampleRate)
+        case .pad:   return renderPad(kit: kit, sampleRate: sampleRate)
+        case .perc:  return renderPerc(kit: kit, sampleRate: sampleRate)
+        }
+    }
+
+    // MARK: - Envelope helpers
+
+    private static func decay(_ t: Double, peak: Float, decay: Double) -> Float {
+        peak * Float(exp(-t / decay * 5))
+    }
+
+    private static func ad(_ t: Double, attack: Double, decay: Double, peak: Float) -> Float {
+        if t < attack { return peak * Float(t / attack) }
+        return peak * Float(exp(-(t - attack) / decay * 5))
+    }
+
+    private static func adsr(_ t: Double, attack: Double, decay: Double, sustain: Float,
+                             release: Double, totalLen: Double, peak: Float) -> Float {
+        let releaseStart = totalLen - release
+        if t < attack { return peak * Float(t / attack) }
+        if t < releaseStart {
+            let dt = t - attack
+            let level = Float(exp(-dt / decay * 3))
+            return peak * (sustain + (1 - sustain) * max(level, 0))
+        }
+        let rt = t - releaseStart
+        return peak * sustain * Float(exp(-rt / max(release, 0.0001) * 5))
+    }
+}
+
+// MARK: - Kick
+
+private extension Synths {
+    static func renderKick(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.40, startF = 150.0, endF = 40.0, sweepT = 0.18, decayT = 0.18, peak = Float(1.00)
+        switch kit {
+        case "dusty-tape":  len = 0.45; startF = 110; endF = 35; sweepT = 0.25; decayT = 0.24; peak = 0.85
+        case "boom-bap":    len = 0.35; startF = 185; endF = 45; sweepT = 0.14; decayT = 0.14
+        case "808":         len = 0.80; startF = 80;  endF = 28; sweepT = 0.35; decayT = 0.55
+        case "jazz":        len = 0.35; startF = 100; endF = 50; sweepT = 0.20; decayT = 0.22; peak = 0.75
+        case "rainy-night": len = 0.50; startF = 90;  endF = 32; sweepT = 0.30; decayT = 0.30; peak = 0.60
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+        var phase = 0.0
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            let freq = startF * pow(endF / startF, min(t / sweepT, 1))
+            phase += 2 * .pi * freq / sampleRate
+            out[i] = Float(sin(phase)) * decay(t, peak: peak, decay: decayT)
+        }
+        return out
+    }
+}
+
+// MARK: - Snare
+
+private extension Synths {
+    static func renderSnare(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.30, hpAlpha = 0.92, noiseDecay = 0.12, noisePeak = Float(0.70)
+        var bodyFreq = 220.0, bodyDecay = 0.08, bodyPeak = Float(0.40)
+        switch kit {
+        case "dusty-tape":
+            len = 0.32; hpAlpha = 0.85; noiseDecay = 0.16; noisePeak = 0.50
+            bodyFreq = 180; bodyDecay = 0.12; bodyPeak = 0.30
+        case "boom-bap":
+            len = 0.28; hpAlpha = 0.96; noiseDecay = 0.09; noisePeak = 0.85
+            bodyFreq = 260; bodyDecay = 0.06; bodyPeak = 0.45
+        case "808":
+            len = 0.32; hpAlpha = 0.94; noiseDecay = 0.14; noisePeak = 0.85
+            bodyFreq = 200; bodyDecay = 0.06; bodyPeak = 0.25
+        case "jazz":
+            len = 0.36; hpAlpha = 0.80; noiseDecay = 0.20; noisePeak = 0.45
+            bodyFreq = 160; bodyDecay = 0.16; bodyPeak = 0.25
+        case "rainy-night":
+            len = 0.40; hpAlpha = 0.78; noiseDecay = 0.25; noisePeak = 0.30
+            bodyFreq = 140; bodyDecay = 0.20; bodyPeak = 0.15
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+
+        // HP-filtered noise body
+        var prevIn: Float = 0, prevOut: Float = 0
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            let n = Float.random(in: -1...1)
+            let hp = Float(hpAlpha) * (prevOut + n - prevIn)
+            prevIn = n; prevOut = hp
+            out[i] += hp * ad(t, attack: 0.001, decay: noiseDecay, peak: noisePeak)
+        }
+
+        // Pitched sine body
+        var phase = 0.0
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            let freq = bodyFreq * pow(0.5, min(t / bodyDecay, 1))
+            phase += 2 * .pi * freq / sampleRate
+            out[i] += Float(sin(phase)) * ad(t, attack: 0.001, decay: bodyDecay, peak: bodyPeak)
+        }
+        return out
+    }
+}
+
+// MARK: - Hat
+
+private extension Synths {
+    static func renderHat(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.08, decayT = 0.04, peak = Float(0.35)
+        switch kit {
+        case "dusty-tape":  len = 0.10; decayT = 0.060; peak = 0.22
+        case "boom-bap":    len = 0.06; decayT = 0.025; peak = 0.40
+        case "808":         len = 0.05; decayT = 0.018; peak = 0.45
+        case "jazz":        len = 0.15; decayT = 0.100; peak = 0.28
+        case "rainy-night": len = 0.20; decayT = 0.150; peak = 0.16
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+        var prev: Float = 0
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            let n = Float.random(in: -1...1)
+            let bright = n - prev; prev = n
+            out[i] = bright * ad(t, attack: 0.001, decay: decayT, peak: peak)
+        }
+        return out
+    }
+}
+
+// MARK: - Clap
+
+private extension Synths {
+    static func renderClap(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.25, peak = Float(0.50), finalDecay = 0.12
+        switch kit {
+        case "dusty-tape":  len = 0.28; peak = 0.35; finalDecay = 0.16
+        case "boom-bap":    len = 0.22; peak = 0.65; finalDecay = 0.09
+        case "808":         len = 0.20; peak = 0.75; finalDecay = 0.08
+        case "jazz":        len = 0.25; peak = 0.40; finalDecay = 0.10
+        case "rainy-night": len = 0.35; peak = 0.25; finalDecay = 0.22
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+        let bursts: [(Double, Double)] = [(0, 0.02), (0.012, 0.02), (0.025, 0.02), (0.045, finalDecay)]
+        for (offset, dec) in bursts {
+            let start = Int(offset * sampleRate)
+            for i in start..<count {
+                let t = Double(i - start) / sampleRate
+                out[i] += Float.random(in: -1...1) * ad(t, attack: 0.001, decay: dec, peak: peak)
+            }
+        }
+        return out
+    }
+}
+
+// MARK: - Bass
+
+private extension Synths {
+    static func renderBass(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.35, freq = 55.0, lpStart = 1200.0, lpEnd = 180.0
+        var sweepT = 0.25, decayT = 0.18, peak = Float(0.60), useSine = false
+        switch kit {
+        case "dusty-tape":
+            len = 0.38; freq = 49; lpStart = 800;  lpEnd = 120; sweepT = 0.28; decayT = 0.22; peak = 0.55
+        case "boom-bap":
+            len = 0.35; freq = 41; lpStart = 1600; lpEnd = 220; sweepT = 0.22; decayT = 0.16; peak = 0.65
+        case "808":
+            len = 0.45; freq = 41; lpStart = 2000; lpEnd = 280; sweepT = 0.20; decayT = 0.25; peak = 0.70; useSine = true
+        case "jazz":
+            len = 0.40; freq = 49; lpStart = 900;  lpEnd = 200; sweepT = 0.15; decayT = 0.25; peak = 0.55; useSine = true
+        case "rainy-night":
+            len = 0.45; freq = 55; lpStart = 600;  lpEnd = 100; sweepT = 0.35; decayT = 0.28; peak = 0.45; useSine = true
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+        var phase = 0.0, lpPrev = Float(0)
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            phase += 2 * .pi * freq / sampleRate
+            let raw: Float
+            if useSine {
+                raw = Float(sin(phase))
+            } else {
+                raw = Float(2 * (phase / (2 * .pi) - floor(phase / (2 * .pi) + 0.5)))
+            }
+            let cutoff = lpStart * pow(lpEnd / lpStart, min(t / sweepT, 1))
+            let rc = 1 / (2 * .pi * cutoff)
+            let dt = 1 / sampleRate
+            let alpha = Float(dt / (rc + dt))
+            lpPrev = lpPrev + alpha * (raw - lpPrev)
+            out[i] = lpPrev * ad(t, attack: 0.005, decay: decayT, peak: peak)
+        }
+        return out
+    }
+}
+
+// MARK: - Pluck
+
+private extension Synths {
+    static func renderPluck(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.40, startF = 523.25, endF = 440.0, sweepT = 0.20, decayT = 0.18, peak = Float(0.50)
+        switch kit {
+        case "dusty-tape":  len = 0.45; startF = 392; endF = 330; sweepT = 0.22; decayT = 0.22; peak = 0.42
+        case "boom-bap":    len = 0.38; startF = 440; endF = 370; sweepT = 0.18; decayT = 0.15
+        case "808":         len = 0.42; startF = 480; endF = 380; sweepT = 0.15; decayT = 0.20; peak = 0.52
+        case "jazz":        len = 0.35; startF = 659; endF = 587; sweepT = 0.15; decayT = 0.14; peak = 0.45
+        case "rainy-night": len = 0.50; startF = 740; endF = 659; sweepT = 0.25; decayT = 0.28; peak = 0.35
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+        var phase = 0.0
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            let freq = startF * pow(endF / startF, min(t / sweepT, 1))
+            phase += 2 * .pi * freq / sampleRate
+            let normalized = phase / (2 * .pi)
+            let frac = normalized - floor(normalized)
+            let tri = Float(4 * abs(frac - 0.5) - 1)
+            out[i] = tri * ad(t, attack: 0.002, decay: decayT, peak: peak)
+        }
+        return out
+    }
+}
+
+// MARK: - Pad
+
+private extension Synths {
+    static func renderPad(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.90, baseFreq = 261.63, detuneCents = 12.0, lpCutoff = 1600.0
+        var attack = 0.06, decayT = 0.40, sustain = Float(0.40), releaseT = 0.40, peak = Float(0.35)
+        switch kit {
+        case "dusty-tape":
+            len = 1.00; baseFreq = 246.94; detuneCents = 18; lpCutoff = 1100
+            attack = 0.09; decayT = 0.50; sustain = 0.35; releaseT = 0.45; peak = 0.28
+        case "boom-bap":
+            len = 0.85; baseFreq = 220.00; detuneCents = 8;  lpCutoff = 1400
+            attack = 0.05; decayT = 0.35; sustain = 0.45; releaseT = 0.38; peak = 0.38
+        case "808":
+            len = 1.00; baseFreq = 220.00; detuneCents = 22; lpCutoff = 1800
+            attack = 0.07; decayT = 0.45; sustain = 0.45; releaseT = 0.45; peak = 0.38
+        case "jazz":
+            len = 1.00; baseFreq = 261.63; detuneCents = 6;  lpCutoff = 1400
+            attack = 0.12; decayT = 0.50; sustain = 0.50; releaseT = 0.50; peak = 0.32
+        case "rainy-night":
+            len = 1.20; baseFreq = 220.00; detuneCents = 15; lpCutoff = 900
+            attack = 0.15; decayT = 0.60; sustain = 0.50; releaseT = 0.60; peak = 0.25
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+        let freqs = [
+            baseFreq * pow(2.0, -detuneCents / 1200.0),
+            baseFreq * pow(2.0,  detuneCents / 1200.0),
+        ]
+        var phases = [0.0, 0.0]
+        var lpPrev: Float = 0
+        let rc = 1 / (2 * Double.pi * lpCutoff)
+        let dt = 1 / sampleRate
+        let alpha = Float(dt / (rc + dt))
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            var sample: Float = 0
+            for (j, f) in freqs.enumerated() {
+                phases[j] += 2 * .pi * f / sampleRate
+                let frac = phases[j] / (2 * .pi) - floor(phases[j] / (2 * .pi))
+                sample += Float(2 * frac - 1)
+            }
+            sample *= 0.5
+            lpPrev += alpha * (sample - lpPrev)
+            out[i] = lpPrev * adsr(t, attack: attack, decay: decayT, sustain: sustain,
+                                   release: releaseT, totalLen: len, peak: peak)
+        }
+        return out
+    }
+}
+
+// MARK: - Perc
+
+private extension Synths {
+    static func renderPerc(kit: String, sampleRate: Double) -> [Float] {
+        var len = 0.12, startF = 880.0, endF = 440.0, sweepT = 0.08, decayT = 0.06, peak = Float(0.40)
+        switch kit {
+        case "dusty-tape":  len = 0.14; startF = 440;  endF = 220; sweepT = 0.10; decayT = 0.08; peak = 0.32
+        case "boom-bap":    len = 0.10; startF = 1200; endF = 600; sweepT = 0.06; decayT = 0.05; peak = 0.45
+        case "808":         len = 0.18; startF = 1760; endF = 880; sweepT = 0.12; decayT = 0.12; peak = 0.38
+        case "jazz":        len = 0.10; startF = 600;  endF = 350; sweepT = 0.06; decayT = 0.06; peak = 0.38
+        case "rainy-night": len = 0.16; startF = 320;  endF = 160; sweepT = 0.12; decayT = 0.12; peak = 0.22
+        default: break
+        }
+        let count = Int(sampleRate * len)
+        var out = [Float](repeating: 0, count: count)
+        var phase = 0.0
+        for i in 0..<count {
+            let t = Double(i) / sampleRate
+            let freq = startF * pow(endF / startF, min(t / sweepT, 1))
+            phase += 2 * .pi * freq / sampleRate
+            out[i] = Float(sin(phase)) * ad(t, attack: 0.001, decay: decayT, peak: peak)
+        }
+        return out
+    }
+}

@@ -1,0 +1,92 @@
+/* === Sequencer grid === */
+.sequencer {
+  overflow-x: auto;
+}
+
+.sequencer__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 760px;
+}
+
+.sequencer__row {
+  display: grid;
+  grid-template-columns: 220px repeat(16, 1fr);
+  gap: 4px;
+  align-items: center;
+}
+
+.sequencer__row--header { gap: 4px; margin-bottom: 4px; }
+
+.sequencer__corner { height: 1px; }
+
+.sequencer__step-header {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  padding: 4px 0;
+  border-radius: 4px;
+  transition: color 120ms ease, background 120ms ease;
+}
+.sequencer__step-header.is-beat { color: var(--text-dim); font-weight: 700; }
+.sequencer__step-header.is-active {
+  color: #1a0f0a;
+  background: var(--accent);
+}
+
+/* Cells */
+.cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+  outline: none;
+  padding: 0;
+}
+
+.cell:hover { border-color: #354063; background: #1f2638; }
+.cell:active { transform: scale(0.95); }
+.cell:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.cell.is-beat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.cell.is-on {
+  background: var(--track-color, var(--accent));
+  border-color: var(--track-accent, var(--accent));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset, 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.cell.is-on:hover {
+  filter: brightness(1.1);
+}
+
+.cell.is-playing {
+  box-shadow: 0 0 0 2px var(--accent-2), 0 0 16px rgba(155, 246, 255, 0.4);
+}
+
+.cell.is-on.is-playing {
+  box-shadow: 0 0 0 2px var(--accent-2), 0 0 24px var(--track-color, var(--accent));
+}
+
+/* --track-color and --track-accent are set inline on each row by Sequencer.js. */
+
+@media (max-width: 720px) {
+  .sequencer__row { grid-template-columns: 160px repeat(16, 1fr); }
+  .track { padding: 4px 6px; }
+  .track__volume { width: 56px; }
+  .transport__range { width: 90px; }
+}

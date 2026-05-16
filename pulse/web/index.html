@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d0f14" />
+    <meta name="description" content="Pulse — a lo-fi step sequencer for the browser." />
+    <title>Pulse · Lo-Fi Step Sequencer</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <link rel="stylesheet" href="/src/styles/controls.css" />
+    <link rel="stylesheet" href="/src/styles/grid.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#sequencer">Skip to sequencer</a>
+
+    <header class="app-header" role="banner">
+      <div class="brand">
+        <span class="brand__dot" aria-hidden="true"></span>
+        <h1 class="brand__name">Pulse</h1>
+        <span class="brand__tag">lo-fi step sequencer</span>
+      </div>
+
+      <div class="transport" id="transport" aria-label="Transport controls">
+        <!-- Transport.js renders here -->
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="panel panel--sequencer" id="sequencer" aria-label="Step sequencer">
+        <div class="sequencer" id="sequencer-root">
+          <!-- Sequencer.js renders here -->
+        </div>
+      </section>
+
+      <aside class="panel panel--library" aria-label="Pattern library">
+        <div id="pattern-library">
+          <!-- PatternLibrary.js renders here -->
+        </div>
+      </aside>
+    </main>
+
+    <footer class="app-footer">
+      <p>
+        <kbd>Space</kbd> play/stop · <kbd>C</kbd> clear · <kbd>S</kbd> save ·
+        click cells to toggle steps · click again to remove
+      </p>
+    </footer>
+
+    <div id="toast-root" class="toast-root" role="status" aria-live="polite"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
