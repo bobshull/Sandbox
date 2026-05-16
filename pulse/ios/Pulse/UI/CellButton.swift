@@ -42,6 +42,7 @@ final class CellButton: UIControl {
     private func updateAppearance() {
         backgroundLayer.removeAnimation(forKey: "pulse")
         backgroundLayer.removeAnimation(forKey: "flash")
+        backgroundLayer.removeAnimation(forKey: "bloom")
 
         if isOn {
             backgroundLayer.backgroundColor = trackColor.cgColor
@@ -60,22 +61,35 @@ final class CellButton: UIControl {
             backgroundLayer.shadowRadius = 12
             backgroundLayer.shadowOffset = .zero
 
+            // Spring bounce: overshoot then snap back
             let scale = CAKeyframeAnimation(keyPath: "transform.scale")
-            scale.values = [1.0, 1.08, 1.0]
-            scale.keyTimes = [0, 0.35, 1.0]
-            scale.duration = 0.22
+            scale.values = [1.0, 1.18, 0.92, 1.0]
+            scale.keyTimes = [0, 0.3, 0.65, 1.0]
+            scale.duration = 0.38
             scale.timingFunctions = [
                 CAMediaTimingFunction(name: .easeOut),
-                CAMediaTimingFunction(name: .easeIn),
+                CAMediaTimingFunction(name: .easeOut),
+                CAMediaTimingFunction(name: .easeOut),
             ]
             backgroundLayer.add(scale, forKey: "pulse")
 
             let flash = CABasicAnimation(keyPath: "backgroundColor")
-            flash.fromValue = UIColor.white.withAlphaComponent(0.85).cgColor
+            flash.fromValue = UIColor.white.withAlphaComponent(0.9).cgColor
             flash.toValue = trackColor.cgColor
-            flash.duration = 0.28
+            flash.duration = 0.32
             flash.timingFunction = CAMediaTimingFunction(name: .easeOut)
             backgroundLayer.add(flash, forKey: "flash")
+
+            // Glow bloom: shadow radius spikes then settles
+            let bloom = CAKeyframeAnimation(keyPath: "shadowRadius")
+            bloom.values = [12.0, 28.0, 10.0]
+            bloom.keyTimes = [0, 0.3, 1.0]
+            bloom.duration = 0.45
+            bloom.timingFunctions = [
+                CAMediaTimingFunction(name: .easeOut),
+                CAMediaTimingFunction(name: .easeIn),
+            ]
+            backgroundLayer.add(bloom, forKey: "bloom")
         } else if isPlayhead {
             backgroundLayer.shadowColor = Theme.accent2.cgColor
             backgroundLayer.shadowOpacity = 0.9

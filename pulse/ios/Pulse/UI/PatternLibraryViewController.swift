@@ -2,8 +2,6 @@ import UIKit
 
 protocol PatternLibraryDelegate: AnyObject {
     func patternLibraryDidPick(_ pattern: Pattern)
-    func patternLibraryDidRequestSave()
-    func patternLibraryDidPickKit(_ kit: SampleKit)
 }
 
 final class PatternLibraryViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
@@ -11,20 +9,17 @@ final class PatternLibraryViewController: UIViewController, UITableViewDataSourc
     weak var delegate: PatternLibraryDelegate?
 
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private let saveButton = UIButton(type: .system)
     private typealias Category = (title: String, patterns: [Pattern])
     private static let categoryOrder: [(String, [String])] = [
-        ("Chill / Lo-Fi",  ["lofi-shuffle", "dusty-lofi", "rainy-window", "chillhop", "tape-deck"]),
-        ("Hip-Hop",        ["boom-bap", "late-night", "half-time"]),
-        ("Electronic",     ["house-pulse", "spacey", "breakbeat"]),
+        ("Electronic",     ["floor-filler", "dubstep", "house-pulse", "breakbeat"]),
+        ("Hip-Hop",        ["boom-bap", "half-time"]),
+        ("Chill / Lo-Fi",  ["lofi-shuffle", "chillhop", "tape-deck"]),
         ("Minimal",        ["minimal", "empty"]),
     ]
     private var categories: [Category] = []
     private var userPatterns: [Pattern] = []
     private let currentName: String
     private let currentKitId: String
-    private var kitChips: [UIButton] = []
-
     init(currentName: String, currentKitId: String = "studio") {
         self.currentName = currentName
         self.currentKitId = currentKitId
@@ -80,41 +75,13 @@ final class PatternLibraryViewController: UIViewController, UITableViewDataSourc
         header.addSubview(cloudIcon)
 
         // Action buttons
-        configureActionButton(saveButton, label: "Save", primary: true, action: #selector(saveTapped))
         let closeButton = UIButton(type: .system)
         configureActionButton(closeButton, label: "Close", primary: false, action: #selector(closeTapped))
-        let buttons = UIStackView(arrangedSubviews: [saveButton, closeButton])
+        let buttons = UIStackView(arrangedSubviews: [closeButton])
         buttons.axis = .horizontal
         buttons.spacing = 8
         buttons.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(buttons)
-
-        // Kit strip
-        let kitStack = UIStackView()
-        kitStack.axis = .horizontal
-        kitStack.spacing = 8
-        kitStack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(kitStack)
-
-        for (i, kit) in SampleKits.all.enumerated() {
-            var cfg = UIButton.Configuration.plain()
-            cfg.title = kit.name
-            cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
-            cfg.background.cornerRadius = 14
-            cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-                var out = incoming; out.font = .systemFont(ofSize: 12, weight: .semibold); return out
-            }
-            let isSelected = kit.id == currentKitId
-            cfg.baseForegroundColor = isSelected ? UIColor(white: 0.1, alpha: 1) : Theme.textDim
-            cfg.background.backgroundColor = isSelected ? Theme.accent : Theme.backgroundElevated2
-            cfg.background.strokeColor = isSelected ? .clear : Theme.border
-            cfg.background.strokeWidth = 1
-            let btn = UIButton(configuration: cfg)
-            btn.tag = i
-            btn.addTarget(self, action: #selector(kitChipTapped(_:)), for: .touchUpInside)
-            kitStack.addArrangedSubview(btn)
-            kitChips.append(btn)
-        }
 
         // Table
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -146,11 +113,7 @@ final class PatternLibraryViewController: UIViewController, UITableViewDataSourc
             buttons.centerYAnchor.constraint(equalTo: header.centerYAnchor),
             buttons.heightAnchor.constraint(equalToConstant: 34),
 
-            kitStack.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 10),
-            kitStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            kitStack.heightAnchor.constraint(equalToConstant: 36),
-
-            tableView.topAnchor.constraint(equalTo: kitStack.bottomAnchor, constant: 8),
+            tableView.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 10),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -190,24 +153,7 @@ final class PatternLibraryViewController: UIViewController, UITableViewDataSourc
         button.addTarget(self, action: action, for: .touchUpInside)
     }
 
-    @objc private func kitChipTapped(_ sender: UIButton) {
-        let kit = SampleKits.all[sender.tag]
-        for (i, chip) in kitChips.enumerated() {
-            let selected = i == sender.tag
-            var cfg = chip.configuration ?? UIButton.Configuration.plain()
-            cfg.baseForegroundColor = selected ? UIColor(white: 0.1, alpha: 1) : Theme.textDim
-            cfg.background.backgroundColor = selected ? Theme.accent : Theme.backgroundElevated2
-            cfg.background.strokeColor = selected ? .clear : Theme.border
-            chip.configuration = cfg
-        }
-        delegate?.patternLibraryDidPickKit(kit)
-    }
-
     @objc private func closeTapped() { dismiss(animated: true) }
-
-    @objc private func saveTapped() {
-        dismiss(animated: true) { [weak self] in self?.delegate?.patternLibraryDidRequestSave() }
-    }
 
     // MARK: - Table
 

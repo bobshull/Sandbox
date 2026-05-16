@@ -9,6 +9,7 @@ struct SessionState: Codable {
     var volumes: [String: Float]
     var mutes: [String: Bool]
     var kitId: String?
+    var patternId: String?
 }
 
 enum PatternStore {

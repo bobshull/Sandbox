@@ -12,11 +12,17 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private lazy var toast = ToastPresenter(host: view)
 
     private let patternsButton = UIButton(type: .system)
+    private let kitsButton = UIButton(type: .system)
     private let quickSaveButton = UIButton(type: .system)
     private let undoButton = UIButton(type: .system)
     private let exportButton = UIButton(type: .system)
+    private var levelMeterStrip: LevelMeterStripView?
     private var cancellables = Set<AnyCancellable>()
     private var saveWork: DispatchWorkItem?
+
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
+    override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
+    override var shouldAutorotate: Bool { true }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,7 +46,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private func loadInitialPreset() {
         if let session = PatternStore.loadSession() {
             store.loadSession(session)
-        } else if let preset = Presets.all.first(where: { $0.id == "lofi-shuffle" }) {
+        } else if let preset = Presets.all.first(where: { $0.id == "floor-filler" }) {
             store.loadPattern(preset)
         }
         applyTrackVolumesToEngine()
@@ -70,6 +76,22 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         patternsButton.addTarget(self, action: #selector(showLibrary), for: .touchUpInside)
         patternsButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(patternsButton)
+
+        var kitsCfg = UIButton.Configuration.plain()
+        kitsCfg.title = "Kits"
+        kitsCfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var out = incoming; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
+        }
+        kitsCfg.baseForegroundColor = Theme.text
+        kitsCfg.background.backgroundColor = Theme.backgroundElevated2
+        kitsCfg.background.strokeColor = Theme.border
+        kitsCfg.background.strokeWidth = 1
+        kitsCfg.background.cornerRadius = 6
+        kitsCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
+        kitsButton.configuration = kitsCfg
+        kitsButton.addTarget(self, action: #selector(showKitPicker), for: .touchUpInside)
+        kitsButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(kitsButton)
 
         var saveCfg = UIButton.Configuration.plain()
         saveCfg.image = UIImage(systemName: "plus.circle",
@@ -131,7 +153,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             patternsButton.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
             patternsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
-            quickSaveButton.trailingAnchor.constraint(equalTo: patternsButton.leadingAnchor, constant: -8),
+            kitsButton.trailingAnchor.constraint(equalTo: patternsButton.leadingAnchor, constant: -8),
+            kitsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
+
+            quickSaveButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
             quickSaveButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
             undoButton.trailingAnchor.constraint(equalTo: quickSaveButton.leadingAnchor, constant: -6),
@@ -147,8 +172,31 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             sequencerView.topAnchor.constraint(equalTo: transportView.bottomAnchor, constant: 8),
             sequencerView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
             sequencerView.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
-            sequencerView.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+            // Cap height so cells stay square: derived from cell width formula
+            // cellWidth = (seqW - headerCol(150) - gap(4) - beatGaps(24)) / 16 = (W-178)/16
+            // squareHeight = header(18) + gap(4) + 8*cellWidth + 7*rowSpacing(4) = 0.5W - 39
+            sequencerView.heightAnchor.constraint(lessThanOrEqualTo: sequencerView.widthAnchor,
+                                                  multiplier: 0.5, constant: -39),
         ])
+
+        // High-priority fill-to-bottom: wins on iPhone (formula > available),
+        // yields on iPad (formula < available, capped by the required constraint above).
+        let fillBottom = sequencerView.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8)
+        fillBottom.priority = .defaultHigh
+        fillBottom.isActive = true
+
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            let strip = LevelMeterStripView()
+            strip.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(strip)
+            NSLayoutConstraint.activate([
+                strip.topAnchor.constraint(equalTo: sequencerView.bottomAnchor, constant: 8),
+                strip.leadingAnchor.constraint(equalTo: sequencerView.leadingAnchor),
+                strip.trailingAnchor.constraint(equalTo: sequencerView.trailingAnchor),
+                strip.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+            ])
+            levelMeterStrip = strip
+        }
     }
 
     // MARK: - Bindings
@@ -160,7 +208,15 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 switch event {
                 case .started: self?.transportView.setIsPlaying(true)
                 case .stopped: self?.transportView.setIsPlaying(false)
-                case .step(let s): self?.store.setActiveStep(s)
+                case .step(let s):
+                    self?.store.setActiveStep(s)
+                    if s >= 0, let strip = self?.levelMeterStrip, let self {
+                        for track in Tracks.all where
+                            self.store.rows[track.id]?[s] == true &&
+                            self.store.mutes[track.id] != true {
+                            strip.trigger(trackId: track.id)
+                        }
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -229,6 +285,17 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     // MARK: - Pattern library
 
+    @objc private func showKitPicker() {
+        let picker = KitPickerViewController(currentKitId: store.currentKitId)
+        picker.onSelect = { [weak self] kit in
+            guard let self else { return }
+            self.store.setKit(kit.id)
+            self.engine.reloadKit(kit.id)
+            self.toast.show("Kit: \(kit.name)", tone: .ok)
+        }
+        present(picker, animated: true)
+    }
+
     @objc private func showLibrary() {
         let lib = PatternLibraryViewController(currentName: store.patternName, currentKitId: store.currentKitId)
         lib.delegate = self
@@ -241,17 +308,12 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         }
         let alert = UIAlertController(
             title: "Unsaved Changes",
-            message: "Save \"\(store.patternName)\" before switching?",
+            message: "Switch patterns and lose changes to \"\(store.patternName)\"?",
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Don't Save", style: .destructive) { [weak self] _ in
-            self?.doLoadPattern(pattern)
-        })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
-            self?.promptSave { saved in
-                if saved { self?.doLoadPattern(pattern) }
-            }
+        alert.addAction(UIAlertAction(title: "Switch Anyway", style: .destructive) { [weak self] _ in
+            self?.doLoadPattern(pattern)
         })
         present(alert, animated: true)
     }
@@ -261,14 +323,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         applyTrackVolumesToEngine()
         engine.reloadKit(store.currentKitId)
         toast.show("Loaded \"\(pattern.name)\"", tone: .ok)
-    }
-
-    func patternLibraryDidRequestSave() { promptSave(completion: nil) }
-
-    func patternLibraryDidPickKit(_ kit: SampleKit) {
-        store.setKit(kit.id)
-        engine.reloadKit(kit.id)
-        toast.show("Kit: \(kit.name)", tone: .ok)
     }
 
     @objc private func undoTapped() {
@@ -313,7 +367,38 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func promptSave(completion: ((Bool) -> Void)?) {
-        let alert = UIAlertController(title: "Save pattern", message: nil, preferredStyle: .alert)
+        if store.isCurrentPatternUserSaved {
+            let name = store.patternName
+            let sheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            sheet.addAction(UIAlertAction(title: "Update \"\(name)\"", style: .default) { [weak self] _ in
+                self?.doUpdatePattern(completion: completion)
+            })
+            sheet.addAction(UIAlertAction(title: "Save as New…", style: .default) { [weak self] _ in
+                self?.promptSaveAsNew(completion: completion)
+            })
+            sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completion?(false) })
+            sheet.popoverPresentationController?.sourceView = quickSaveButton
+            present(sheet, animated: true)
+        } else {
+            promptSaveAsNew(completion: completion)
+        }
+    }
+
+    private func doUpdatePattern(completion: ((Bool) -> Void)?) {
+        var pattern = store.exportPattern()
+        pattern.id = store.currentPatternId
+        if PatternStore.save(pattern) {
+            store.markClean()
+            toast.show("Updated \"\(pattern.name)\"", tone: .ok)
+            completion?(true)
+        } else {
+            toast.show("Could not save pattern", tone: .warn)
+            completion?(false)
+        }
+    }
+
+    private func promptSaveAsNew(completion: ((Bool) -> Void)?) {
+        let alert = UIAlertController(title: "Save Pattern", message: nil, preferredStyle: .alert)
         alert.addTextField { tf in
             tf.placeholder = "Pattern name"
             tf.text = self.store.patternName == "Untitled" ? "" : self.store.patternName
@@ -328,6 +413,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             pattern.name = raw
             if PatternStore.save(pattern) {
                 self.store.setPatternName(raw)
+                self.store.setCurrentPatternId(pattern.id)
                 self.store.markClean()
                 self.toast.show("Saved \"\(raw)\"", tone: .ok)
                 completion?(true)

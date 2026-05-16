@@ -20,6 +20,14 @@ final class Store {
     private(set) var activeStep: Int = -1
     private(set) var patternName: String = "Untitled"
     private(set) var currentKitId: String = "studio"
+    private(set) var currentPatternId: String = ""
+
+    var isCurrentPatternPreset: Bool {
+        Presets.all.contains(where: { $0.id == currentPatternId })
+    }
+    var isCurrentPatternUserSaved: Bool {
+        !currentPatternId.isEmpty && !isCurrentPatternPreset
+    }
 
     // Undo / dirty
     private(set) var isDirty = false
@@ -140,6 +148,10 @@ final class Store {
         changes.send(.name)
     }
 
+    func setCurrentPatternId(_ id: String) {
+        currentPatternId = id
+    }
+
     func setKit(_ id: String) {
         pushUndo()
         currentKitId = id
@@ -158,16 +170,22 @@ final class Store {
     func loadPattern(_ pattern: Pattern) {
         pushUndo()
         patternName = pattern.name
+        currentPatternId = pattern.id
         tempo = pattern.tempo
         swing = pattern.swing
         rows = Presets.filledRows(from: pattern.rows)
+        for t in Tracks.all {
+            volumes[t.id] = pattern.volumes?[t.id] ?? 0.8
+            mutes[t.id] = pattern.mutes?[t.id] ?? false
+        }
         refreshSnapshot()
         isDirty = false
         changes.send(.load)
     }
 
     func exportPattern() -> Pattern {
-        Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing, rows: rows)
+        Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing,
+                rows: rows, volumes: volumes, mutes: mutes)
     }
 
     func sessionState() -> SessionState {
@@ -179,12 +197,14 @@ final class Store {
             rows: rows,
             volumes: volumes,
             mutes: mutes,
-            kitId: currentKitId
+            kitId: currentKitId,
+            patternId: currentPatternId
         )
     }
 
     func loadSession(_ session: SessionState) {
         patternName = session.patternName
+        currentPatternId = session.patternId ?? ""
         tempo = session.tempo
         swing = session.swing
         masterGain = session.masterGain

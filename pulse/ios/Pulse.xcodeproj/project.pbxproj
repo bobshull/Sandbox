@@ -20,8 +20,10 @@
 		841AADEA1BF7E0367AA736A2 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */; };
 		92528EF8C82B3D65914B5069 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD6248F10D8F97FB821D51E /* MainViewController.swift */; };
 		9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* KitPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */; };
 		A42EB5E151A566DA7D46C921 /* SampleKits.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB05F18EB784C467E9F52091 /* SampleKits.swift */; };
 		A4F508C5FF8E23F5C835CA8F /* PatternStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */; };
+		C3D4E5F6A7B8C9D0E1F2A3B4 /* LevelMeterStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */; };
 		E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */; };
 		F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE1C4767AB7667B0376366A /* CellButton.swift */; };
 		F1A5D42C877007077A318F45 /* SequencerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */; };
@@ -42,11 +44,13 @@
 		A51EDD8265DEB720F5F54516 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequencerView.swift; sourceTree = "<group>"; };
 		AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
 		B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		BFD6248F10D8F97FB821D51E /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		C227703998F168A936512CCB /* TrackHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackHeaderView.swift; sourceTree = "<group>"; };
 		C973180DE38EF31F813D0783 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStore.swift; sourceTree = "<group>"; };
+		D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
 		DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
 		EB05F18EB784C467E9F52091 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -77,6 +81,8 @@
 				C227703998F168A936512CCB /* TrackHeaderView.swift */,
 				896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */,
 				9E088E356C7F7907C090BCAA /* VolumePopoverViewController.swift */,
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */,
+				D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -229,6 +235,8 @@
 				E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */,
 				03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */,
 				5486FEE54B6E90C86105CA36 /* VolumePopoverViewController.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* KitPickerViewController.swift in Sources */,
+				C3D4E5F6A7B8C9D0E1F2A3B4 /* LevelMeterStripView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -302,15 +310,21 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -321,15 +335,21 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

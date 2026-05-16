@@ -13,5 +13,23 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = .dark
         self.window = window
         window.makeKeyAndVisible()
+        if #available(iOS 16.0, *) {
+            windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+            window.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
+    }
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        if #available(iOS 16.0, *) {
+            (scene as? UIWindowScene)?.requestGeometryUpdate(
+                .iOS(interfaceOrientations: .landscape)
+            )
+            window?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
+    }
+
+    func windowScene(_ windowScene: UIWindowScene,
+                     supportedInterfaceOrientationsFor window: UIWindow) -> UIInterfaceOrientationMask {
+        .landscape
     }
 }
