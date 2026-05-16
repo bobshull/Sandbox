@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 enum StateSection {
-    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo
+    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects
 }
 
 final class Store {
@@ -15,6 +15,7 @@ final class Store {
     private(set) var rows: [String: [Bool]] = Presets.emptyRows()
     private(set) var mutes: [String: Bool] = [:]
     private(set) var volumes: [String: Float] = [:]
+    private(set) var effects: [String: TrackEffects] = [:]
 
     // Transport
     private(set) var activeStep: Int = -1
@@ -36,7 +37,6 @@ final class Store {
 
     let changes = PassthroughSubject<StateSection, Never>()
 
-    /// Audio scheduler reads pattern + mute state from a non-main thread.
     struct AudioSnapshot {
         let rows: [String: [Bool]]
         let mutes: [String: Bool]
@@ -59,7 +59,8 @@ final class Store {
     init() {
         for t in Tracks.all {
             mutes[t.id] = false
-            volumes[t.id] = 0.8
+            volumes[t.id] = 1.0
+            effects[t.id] = .default
         }
         refreshSnapshot()
     }
@@ -80,8 +81,9 @@ final class Store {
         masterGain = snap.masterGain
         rows = Presets.filledRows(from: snap.rows)
         for t in Tracks.all {
-            volumes[t.id] = snap.volumes[t.id] ?? 0.8
+            volumes[t.id] = snap.volumes[t.id] ?? 1.0
             mutes[t.id] = snap.mutes[t.id] ?? false
+            effects[t.id] = snap.effects?[t.id] ?? .default
         }
         currentKitId = snap.kitId ?? "studio"
         refreshSnapshot()
@@ -138,6 +140,12 @@ final class Store {
         changes.send(.volumes)
     }
 
+    func setTrackEffects(trackId: String, _ fx: TrackEffects) {
+        effects[trackId] = fx
+        isDirty = true
+        changes.send(.effects)
+    }
+
     func setActiveStep(_ step: Int) {
         activeStep = step
         changes.send(.step)
@@ -168,24 +176,28 @@ final class Store {
     }
 
     func loadPattern(_ pattern: Pattern) {
-        pushUndo()
+        undoStack.removeAll()
         patternName = pattern.name
         currentPatternId = pattern.id
         tempo = pattern.tempo
         swing = pattern.swing
         rows = Presets.filledRows(from: pattern.rows)
         for t in Tracks.all {
-            volumes[t.id] = pattern.volumes?[t.id] ?? 0.8
+            volumes[t.id] = pattern.volumes?[t.id] ?? 1.0
             mutes[t.id] = pattern.mutes?[t.id] ?? false
+            effects[t.id] = pattern.effects?[t.id] ?? .default
         }
+        currentKitId = pattern.kitId ?? "studio"
         refreshSnapshot()
         isDirty = false
+        changes.send(.kit)
+        changes.send(.undo)
         changes.send(.load)
     }
 
     func exportPattern() -> Pattern {
         Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing,
-                rows: rows, volumes: volumes, mutes: mutes)
+                rows: rows, volumes: volumes, mutes: mutes, effects: effects, kitId: currentKitId)
     }
 
     func sessionState() -> SessionState {
@@ -198,7 +210,8 @@ final class Store {
             volumes: volumes,
             mutes: mutes,
             kitId: currentKitId,
-            patternId: currentPatternId
+            patternId: currentPatternId,
+            effects: effects
         )
     }
 
@@ -210,8 +223,9 @@ final class Store {
         masterGain = session.masterGain
         rows = Presets.filledRows(from: session.rows)
         for t in Tracks.all {
-            volumes[t.id] = session.volumes[t.id] ?? 0.8
+            volumes[t.id] = session.volumes[t.id] ?? 1.0
             mutes[t.id] = session.mutes[t.id] ?? false
+            effects[t.id] = session.effects?[t.id] ?? .default
         }
         currentKitId = session.kitId ?? "studio"
         refreshSnapshot()

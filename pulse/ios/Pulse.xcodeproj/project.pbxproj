@@ -14,7 +14,6 @@
 		1588E0A7A2CC232214B932DC /* Synths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F72C6BC8D90CE86D0586B3A /* Synths.swift */; };
 		2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C227703998F168A936512CCB /* TrackHeaderView.swift */; };
 		425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C973180DE38EF31F813D0783 /* SceneDelegate.swift */; };
-		5486FEE54B6E90C86105CA36 /* VolumePopoverViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E088E356C7F7907C090BCAA /* VolumePopoverViewController.swift */; };
 		5B1224B4A7B8F994B72217B7 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3905D7136357A9F65DDF822C /* Store.swift */; };
 		616B1E15A99B07B4D65A228F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */; };
 		841AADEA1BF7E0367AA736A2 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */; };
@@ -23,7 +22,11 @@
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* KitPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */; };
 		A42EB5E151A566DA7D46C921 /* SampleKits.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB05F18EB784C467E9F52091 /* SampleKits.swift */; };
 		A4F508C5FF8E23F5C835CA8F /* PatternStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */; };
+		A7B8C9D0E1F2A3B4C5D6E7F8 /* KnobControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C9D0E1F2A3B4C5D6E7F8A9 /* KnobControl.swift */; };
+		C1D2E3F4A5B6C7D8E9F0A1B2 /* FaderControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F4A5B6C7D8E9F0A1B2C3 /* FaderControl.swift */; };
 		C3D4E5F6A7B8C9D0E1F2A3B4 /* LevelMeterStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */; };
+		D5E6F7A8B9C0D1E2F3A4B5C6 /* TrackDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F6A7B8C9D0E1F2A3B4C5D6 /* TrackDetailViewController.swift */; };
+		E6F7A8B9C0D1E2F3A4B5C6D7 /* TrackEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A7B8C9D0E1F2A3B4C5D6E7 /* TrackEffects.swift */; };
 		E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */; };
 		F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE1C4767AB7667B0376366A /* CellButton.swift */; };
 		F1A5D42C877007077A318F45 /* SequencerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */; };
@@ -40,19 +43,22 @@
 		58107A90060A6D3A39ED5760 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
 		82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportView.swift; sourceTree = "<group>"; };
-		9E088E356C7F7907C090BCAA /* VolumePopoverViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumePopoverViewController.swift; sourceTree = "<group>"; };
 		A51EDD8265DEB720F5F54516 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequencerView.swift; sourceTree = "<group>"; };
 		AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
 		B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		B8C9D0E1F2A3B4C5D6E7F8A9 /* KnobControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnobControl.swift; sourceTree = "<group>"; };
 		BFD6248F10D8F97FB821D51E /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		C227703998F168A936512CCB /* TrackHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackHeaderView.swift; sourceTree = "<group>"; };
 		C973180DE38EF31F813D0783 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStore.swift; sourceTree = "<group>"; };
+		D2E3F4A5B6C7D8E9F0A1B2C3 /* FaderControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaderControl.swift; sourceTree = "<group>"; };
 		D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
 		DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
+		E5F6A7B8C9D0E1F2A3B4C5D6 /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
 		EB05F18EB784C467E9F52091 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
+		F6A7B8C9D0E1F2A3B4C5D6E7 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -80,7 +86,9 @@
 				42EC5B8C7893835120454B29 /* ToastView.swift */,
 				C227703998F168A936512CCB /* TrackHeaderView.swift */,
 				896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */,
-				9E088E356C7F7907C090BCAA /* VolumePopoverViewController.swift */,
+				E5F6A7B8C9D0E1F2A3B4C5D6 /* TrackDetailViewController.swift */,
+				B8C9D0E1F2A3B4C5D6E7F8A9 /* KnobControl.swift */,
+				D2E3F4A5B6C7D8E9F0A1B2C3 /* FaderControl.swift */,
 				B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */,
 				D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */,
 			);
@@ -135,6 +143,7 @@
 			children = (
 				AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */,
 				EB05F18EB784C467E9F52091 /* SampleKits.swift */,
+				F6A7B8C9D0E1F2A3B4C5D6E7 /* TrackEffects.swift */,
 				4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */,
 			);
 			path = Data;
@@ -176,7 +185,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					CF79B1BAD3D70F54153FE0B3 = {
 						ProvisioningStyle = Automatic;
@@ -234,7 +243,10 @@
 				2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */,
 				E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */,
 				03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */,
-				5486FEE54B6E90C86105CA36 /* VolumePopoverViewController.swift in Sources */,
+				D5E6F7A8B9C0D1E2F3A4B5C6 /* TrackDetailViewController.swift in Sources */,
+				A7B8C9D0E1F2A3B4C5D6E7F8 /* KnobControl.swift in Sources */,
+				C1D2E3F4A5B6C7D8E9F0A1B2 /* FaderControl.swift in Sources */,
+				E6F7A8B9C0D1E2F3A4B5C6D7 /* TrackEffects.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* KitPickerViewController.swift in Sources */,
 				C3D4E5F6A7B8C9D0E1F2A3B4 /* LevelMeterStripView.swift in Sources */,
 			);
@@ -279,10 +291,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = TX75WUA2RL;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -296,6 +309,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -311,7 +325,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
@@ -336,7 +349,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
@@ -390,10 +402,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = TX75WUA2RL;
 				ENABLE_PREVIEWS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -414,6 +427,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";

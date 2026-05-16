@@ -25,6 +25,13 @@ final class AudioEngine {
     private var buffers: [String: AVAudioPCMBuffer] = [:]
     private let masterMixer = AVAudioMixerNode()
 
+    private struct TrackFXChain {
+        let distortion: AVAudioUnitDistortion
+        let delay: AVAudioUnitDelay
+        let reverb: AVAudioUnitReverb
+    }
+    private var fxChains: [String: TrackFXChain] = [:]
+
     private(set) var isPlaying = false
 
     // Scheduling
@@ -56,9 +63,25 @@ final class AudioEngine {
 
         for track in Tracks.all {
             let player = AVAudioPlayerNode()
-            engine.attach(player)
-            engine.connect(player, to: masterMixer, format: format)
-            player.volume = store.volumes[track.id] ?? 0.8
+            let dist   = AVAudioUnitDistortion()
+            let delay  = AVAudioUnitDelay()
+            let reverb = AVAudioUnitReverb()
+
+            for node: AVAudioNode in [player, dist, delay, reverb] { engine.attach(node) }
+            engine.connect(player, to: dist,        format: format)
+            engine.connect(dist,   to: delay,       format: format)
+            engine.connect(delay,  to: reverb,      format: format)
+            engine.connect(reverb, to: masterMixer, format: format)
+
+            player.volume = store.volumes[track.id] ?? 1.0
+
+            dist.loadFactoryPreset(.multiDistortedFunk)
+            reverb.loadFactoryPreset(.mediumRoom)
+            let chain = TrackFXChain(distortion: dist, delay: delay, reverb: reverb)
+            applyFX(store.effects[track.id] ?? .default, chain: chain, tempo: store.tempo)
+
+            players[track.id]  = player
+            fxChains[track.id] = chain
 
             // Pre-render the voice once and reuse for every hit.
             let samples = Synths.render(track.voice, kit: store.currentKitId, sampleRate: sampleRate)
@@ -67,8 +90,6 @@ final class AudioEngine {
             samples.withUnsafeBufferPointer { src in
                 buf.floatChannelData!.pointee.update(from: src.baseAddress!, count: samples.count)
             }
-
-            players[track.id] = player
             buffers[track.id] = buf
         }
 
@@ -125,6 +146,30 @@ final class AudioEngine {
     func preview(trackId: String) {
         guard let player = players[trackId], let buf = buffers[trackId] else { return }
         player.scheduleBuffer(buf, at: nil, options: [.interrupts], completionHandler: nil)
+    }
+
+    // MARK: - FX
+
+    func setTrackEffects(_ id: String, _ fx: TrackEffects) {
+        guard let chain = fxChains[id] else { return }
+        applyFX(fx, chain: chain, tempo: store.tempo)
+    }
+
+    func updateDelayTimes(tempo: Double) {
+        for track in Tracks.all {
+            guard let chain = fxChains[track.id],
+                  let fx = store.effects[track.id] else { continue }
+            chain.delay.delayTime = min(fx.delaySyncDivision.quarterNoteMultiplier * (60.0 / tempo), 2.0)
+        }
+    }
+
+    private func applyFX(_ fx: TrackEffects, chain: TrackFXChain, tempo: Double) {
+        chain.distortion.wetDryMix = fx.distortionWet
+        chain.delay.wetDryMix      = fx.delayWet
+        chain.delay.delayTime      = min(fx.delaySyncDivision.quarterNoteMultiplier * (60.0 / tempo), 2.0)
+        chain.delay.feedback       = 25
+        chain.delay.lowPassCutoff  = 15000
+        chain.reverb.wetDryMix     = fx.reverbWet
     }
 
     // MARK: - Scheduler
@@ -229,7 +274,7 @@ final class AudioEngine {
                               row.indices.contains(patStep), row[patStep],
                               let buf = captured[track.id],
                               let data = buf.floatChannelData?.pointee else { continue }
-                        let vol   = Float(volumes[track.id] ?? 0.8)
+                        let vol   = Float(volumes[track.id] ?? 1.0)
                         let count = Int(buf.frameLength)
                         for i in 0..<count {
                             let idx = offset + i

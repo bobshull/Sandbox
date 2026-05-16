@@ -10,6 +10,7 @@ struct SessionState: Codable {
     var mutes: [String: Bool]
     var kitId: String?
     var patternId: String?
+    var effects: [String: TrackEffects]?
 }
 
 enum PatternStore {

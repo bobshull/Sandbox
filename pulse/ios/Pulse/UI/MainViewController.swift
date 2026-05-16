@@ -50,12 +50,17 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             store.loadPattern(preset)
         }
         applyTrackVolumesToEngine()
+        applyTrackEffectsToEngine()
         engine.reloadKit(store.currentKitId)
     }
 
     private func applyTrackVolumesToEngine() {
         for (id, v) in store.volumes { engine.setTrackGain(id, v) }
         engine.setMasterGain(store.masterGain)
+    }
+
+    private func applyTrackEffectsToEngine() {
+        for (id, fx) in store.effects { engine.setTrackEffects(id, fx) }
     }
 
     // MARK: - Layout
@@ -229,6 +234,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 guard let self else { return }
                 if section == .load {
                     self.applyTrackVolumesToEngine()
+                    self.applyTrackEffectsToEngine()
+                }
+                if section == .tempo {
+                    self.engine.updateDelayTimes(tempo: self.store.tempo)
                 }
                 if section == .undo || section == .load {
                     self.updateUndoButton()
@@ -321,6 +330,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private func doLoadPattern(_ pattern: Pattern) {
         store.loadPattern(pattern)
         applyTrackVolumesToEngine()
+        applyTrackEffectsToEngine()
         engine.reloadKit(store.currentKitId)
         toast.show("Loaded \"\(pattern.name)\"", tone: .ok)
     }
@@ -329,6 +339,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         store.undo()
         applyTrackVolumesToEngine()
+        applyTrackEffectsToEngine()
         engine.reloadKit(store.currentKitId)
     }
 

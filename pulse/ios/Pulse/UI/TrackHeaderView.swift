@@ -4,6 +4,7 @@ protocol TrackHeaderViewDelegate: AnyObject {
     func trackHeaderDidTapPreview(_ track: Track)
     func trackHeaderDidToggleMute(_ track: Track)
     func trackHeaderDidChangeVolume(_ track: Track, value: Float)
+    func trackHeaderDidChangeEffects(_ track: Track, effects: TrackEffects)
 }
 
 final class TrackHeaderView: UIView {
@@ -14,6 +15,7 @@ final class TrackHeaderView: UIView {
     private let muteButton = WideHitButton(type: .system)
     private let volumePill = VolumePillControl()
     private var currentVolume: Float = 0.8
+    private var currentEffects: TrackEffects = .default
 
     init(track: Track) {
         self.track = track
@@ -35,7 +37,17 @@ final class TrackHeaderView: UIView {
     func setVolume(_ value: Float) {
         currentVolume = value
         volumePill.progress = CGFloat(value)
-        volumePill.label.text = "\(Int((value * 100).rounded()))%"
+        updatePillLabel()
+    }
+
+    func setEffects(_ fx: TrackEffects) {
+        currentEffects = fx
+        updatePillLabel()
+    }
+
+    private func updatePillLabel() {
+        let pct = "\(Int((currentVolume * 100).rounded()))%"
+        volumePill.label.text = currentEffects.hasAnyActive ? "• \(pct)" : pct
     }
 
     // MARK: - Layout
@@ -107,11 +119,16 @@ final class TrackHeaderView: UIView {
 
     @objc private func volumeTapped() {
         guard let parentVC = parentViewController else { return }
-        let vc = VolumePopoverViewController(track: track, value: currentVolume)
-        vc.onChange = { [weak self] value in
+        let vc = TrackDetailViewController(track: track, volume: currentVolume, effects: currentEffects)
+        vc.onVolumeChange = { [weak self] value in
             guard let self else { return }
             self.setVolume(value)
             self.delegate?.trackHeaderDidChangeVolume(self.track, value: value)
+        }
+        vc.onEffectsChange = { [weak self] fx in
+            guard let self else { return }
+            self.setEffects(fx)
+            self.delegate?.trackHeaderDidChangeEffects(self.track, effects: fx)
         }
         parentVC.present(vc, animated: true)
     }

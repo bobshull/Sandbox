@@ -4,22 +4,31 @@ protocol PatternLibraryDelegate: AnyObject {
     func patternLibraryDidPick(_ pattern: Pattern)
 }
 
-final class PatternLibraryViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+final class PatternLibraryViewController: UIViewController,
+        UICollectionViewDataSource, UICollectionViewDelegate {
 
     weak var delegate: PatternLibraryDelegate?
 
-    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private typealias Category = (title: String, patterns: [Pattern])
-    private static let categoryOrder: [(String, [String])] = [
-        ("Electronic",     ["floor-filler", "dubstep", "house-pulse", "breakbeat"]),
-        ("Hip-Hop",        ["boom-bap", "half-time"]),
-        ("Chill / Lo-Fi",  ["lofi-shuffle", "chillhop", "tape-deck"]),
-        ("Minimal",        ["minimal", "empty"]),
+    private var collectionView: UICollectionView!
+    private typealias Category = (title: String, color: UIColor, patterns: [Pattern])
+
+    private static let presetMeta: [(String, UIColor, [String])] = [
+        ("Electronic",    Theme.accent,
+             ["floor-filler", "dubstep", "house-pulse", "breakbeat"]),
+        ("Hip-Hop",       UIColor(red: 1.00, green: 0.820, blue: 0.400, alpha: 1),
+             ["boom-bap", "half-time"]),
+        ("Chill / Lo-Fi", Theme.accent2,
+             ["lofi-shuffle", "chillhop", "tape-deck"]),
+        ("Minimal",       Theme.textDim,
+             ["minimal", "empty"]),
     ]
+    private static let userColor = Theme.ok
+
     private var categories: [Category] = []
     private var userPatterns: [Pattern] = []
     private let currentName: String
     private let currentKitId: String
+
     init(currentName: String, currentKitId: String = "studio") {
         self.currentName = currentName
         self.currentKitId = currentKitId
@@ -37,19 +46,53 @@ final class PatternLibraryViewController: UIViewController, UITableViewDataSourc
         super.viewDidLoad()
         view.backgroundColor = Theme.background
 
-        let header = UIView()
-        header.translatesAutoresizingMaskIntoConstraints = false
+        let header = buildHeader()
         view.addSubview(header)
 
-        // Now-playing pill
+        let layout = Self.makeLayout()
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.backgroundColor = .clear
+        collectionView.contentInset.bottom = 24
+        collectionView.dataSource = self
+        collectionView.delegate   = self
+        collectionView.register(MixCardCell.self,
+            forCellWithReuseIdentifier: MixCardCell.id)
+        collectionView.register(
+            LibrarySectionHeader.self,
+            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier: LibrarySectionHeader.id)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(collectionView)
+
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 58),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            header.leadingAnchor.constraint(equalTo: collectionView.layoutMarginsGuide.leadingAnchor, constant: 16),
+            header.trailingAnchor.constraint(equalTo: collectionView.layoutMarginsGuide.trailingAnchor, constant: -16),
+            header.heightAnchor.constraint(equalToConstant: 34),
+        ])
+
+        reload()
+    }
+
+    // MARK: - Header
+
+    private func buildHeader() -> UIView {
+        let header = UIView()
+        header.translatesAutoresizingMaskIntoConstraints = false
+
         let nowPill = UIButton(type: .custom)
         var pillCfg = UIButton.Configuration.plain()
         pillCfg.image = UIImage(systemName: "waveform",
-                                withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
         pillCfg.imagePadding = 6
         pillCfg.title = currentName
-        pillCfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
-            var out = attrs; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
+        pillCfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { a in
+            var out = a; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
         }
         pillCfg.baseForegroundColor = Theme.text
         pillCfg.background.backgroundColor = Theme.backgroundElevated
@@ -62,130 +105,140 @@ final class PatternLibraryViewController: UIViewController, UITableViewDataSourc
         nowPill.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(nowPill)
 
-        // iCloud sync icon — green checkmark when signed in, dim cloud when not
         let iCloudAvailable = FileManager.default.ubiquityIdentityToken != nil
-        let cloudSymbol = iCloudAvailable ? "checkmark.icloud.fill" : "icloud"
-        let cloudIcon = UIImageView(image: UIImage(systemName: cloudSymbol,
+        let cloudIcon = UIImageView(image: UIImage(systemName:
+            iCloudAvailable ? "checkmark.icloud.fill" : "icloud",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)))
         cloudIcon.tintColor = iCloudAvailable
-            ? UIColor(red: 0.2, green: 0.85, blue: 0.45, alpha: 1)
-            : Theme.textFaint
+            ? UIColor(red: 0.2, green: 0.85, blue: 0.45, alpha: 1) : Theme.textFaint
         cloudIcon.contentMode = .scaleAspectFit
         cloudIcon.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(cloudIcon)
 
-        // Action buttons
-        let closeButton = UIButton(type: .system)
-        configureActionButton(closeButton, label: "Close", primary: false, action: #selector(closeTapped))
-        let buttons = UIStackView(arrangedSubviews: [closeButton])
-        buttons.axis = .horizontal
-        buttons.spacing = 8
-        buttons.translatesAutoresizingMaskIntoConstraints = false
-        header.addSubview(buttons)
-
-        // Table
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.backgroundColor = .clear
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 60
-        tableView.register(MixCell.self, forCellReuseIdentifier: MixCell.id)
-        view.addSubview(tableView)
+        let closeBtn = UIButton(type: .system)
+        var closeCfg = UIButton.Configuration.plain()
+        closeCfg.title = "Close"
+        closeCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
+        closeCfg.background.cornerRadius = 6
+        closeCfg.baseForegroundColor = Theme.text
+        closeCfg.background.backgroundColor = Theme.backgroundElevated2
+        closeCfg.background.strokeColor = Theme.border
+        closeCfg.background.strokeWidth = 1
+        closeCfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { a in
+            var out = a; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
+        }
+        closeBtn.configuration = closeCfg
+        closeBtn.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        closeBtn.translatesAutoresizingMaskIntoConstraints = false
+        header.addSubview(closeBtn)
 
         NSLayoutConstraint.activate([
-            header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
-            header.leadingAnchor.constraint(equalTo: tableView.layoutMarginsGuide.leadingAnchor),
-            header.trailingAnchor.constraint(equalTo: tableView.layoutMarginsGuide.trailingAnchor),
-            header.heightAnchor.constraint(equalToConstant: 34),
-
             nowPill.leadingAnchor.constraint(equalTo: header.leadingAnchor),
             nowPill.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            nowPill.trailingAnchor.constraint(lessThanOrEqualTo: cloudIcon.leadingAnchor, constant: -8),
 
             cloudIcon.leadingAnchor.constraint(equalTo: nowPill.trailingAnchor, constant: 8),
             cloudIcon.centerYAnchor.constraint(equalTo: header.centerYAnchor),
             cloudIcon.widthAnchor.constraint(equalToConstant: 20),
             cloudIcon.heightAnchor.constraint(equalToConstant: 20),
-            cloudIcon.trailingAnchor.constraint(lessThanOrEqualTo: buttons.leadingAnchor, constant: -12),
 
-            buttons.trailingAnchor.constraint(equalTo: header.trailingAnchor),
-            buttons.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            buttons.heightAnchor.constraint(equalToConstant: 34),
-
-            tableView.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 10),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            closeBtn.trailingAnchor.constraint(equalTo: header.trailingAnchor),
+            closeBtn.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+            closeBtn.heightAnchor.constraint(equalToConstant: 34),
         ])
 
-        reload()
+        return header
     }
+
+    // MARK: - Layout
+
+    private static func makeLayout() -> UICollectionViewCompositionalLayout {
+        UICollectionViewCompositionalLayout { _, _ in
+            let item = NSCollectionLayoutItem(
+                layoutSize: .init(widthDimension: .fractionalWidth(0.5),
+                                  heightDimension: .estimated(148)))
+            let group = NSCollectionLayoutGroup.horizontal(
+                layoutSize: .init(widthDimension: .fractionalWidth(1.0),
+                                  heightDimension: .estimated(148)),
+                subitems: [item, item])
+            group.interItemSpacing = .fixed(10)
+
+            let section = NSCollectionLayoutSection(group: group)
+            section.interGroupSpacing = 10
+            section.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 16, bottom: 20, trailing: 16)
+
+            let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
+                                                    heightDimension: .absolute(36))
+            let sectionHeader = NSCollectionLayoutBoundarySupplementaryItem(
+                layoutSize: headerSize,
+                elementKind: UICollectionView.elementKindSectionHeader,
+                alignment: .top)
+            sectionHeader.pinToVisibleBounds = true
+            section.boundarySupplementaryItems = [sectionHeader]
+            return section
+        }
+    }
+
+    // MARK: - Data
 
     func reload() {
         let lookup = Dictionary(uniqueKeysWithValues: Presets.all.map { ($0.id, $0) })
-        categories = PatternLibraryViewController.categoryOrder.compactMap { title, ids in
+        categories = Self.presetMeta.compactMap { title, color, ids in
             let patterns = ids.compactMap { lookup[$0] }
-            return patterns.isEmpty ? nil : (title, patterns)
+            return patterns.isEmpty ? nil : (title, color, patterns)
         }
         userPatterns = PatternStore.userPatterns()
-        tableView.reloadData()
-    }
-
-    private func configureActionButton(_ button: UIButton, label: String, primary: Bool, action: Selector) {
-        var cfg = UIButton.Configuration.plain()
-        cfg.title = label
-        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
-        cfg.background.cornerRadius = 6
-        cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var out = incoming; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
-        }
-        if primary {
-            cfg.baseForegroundColor = UIColor(white: 0.1, alpha: 1)
-            cfg.background.backgroundColor = Theme.accent
-        } else {
-            cfg.baseForegroundColor = Theme.text
-            cfg.background.backgroundColor = Theme.backgroundElevated2
-            cfg.background.strokeColor = Theme.border
-            cfg.background.strokeWidth = 1
-        }
-        button.configuration = cfg
-        button.addTarget(self, action: action, for: .touchUpInside)
+        collectionView?.reloadData()
     }
 
     @objc private func closeTapped() { dismiss(animated: true) }
 
-    // MARK: - Table
+    // MARK: - DataSource
 
     private var userSection: Int { categories.count }
 
-    func numberOfSections(in tableView: UITableView) -> Int { categories.count + 1 }
-
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        section < categories.count ? categories[section].title : "My Mixes"
+    func numberOfSections(in collectionView: UICollectionView) -> Int {
+        categories.count + 1
     }
 
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section < categories.count ? categories[section].patterns.count : max(userPatterns.count, 1)
+    func collectionView(_ collectionView: UICollectionView,
+                        numberOfItemsInSection section: Int) -> Int {
+        section < categories.count ? categories[section].patterns.count : userPatterns.count
     }
 
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: MixCell.id, for: indexPath) as! MixCell
+    func collectionView(_ collectionView: UICollectionView,
+                        cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(
+            withReuseIdentifier: MixCardCell.id, for: indexPath) as! MixCardCell
+        let pattern: Pattern
+        let color: UIColor
         if indexPath.section < categories.count {
-            cell.configure(with: categories[indexPath.section].patterns[indexPath.row])
-            cell.selectionStyle = .default
-        } else if userPatterns.isEmpty {
-            cell.configureEmpty()
-            cell.selectionStyle = .none
+            pattern = categories[indexPath.section].patterns[indexPath.row]
+            color   = categories[indexPath.section].color
         } else {
-            cell.configure(with: userPatterns[indexPath.row])
-            cell.selectionStyle = .default
+            pattern = userPatterns[indexPath.row]
+            color   = Self.userColor
         }
+        cell.configure(with: pattern, color: color, isActive: pattern.name == currentName)
         return cell
     }
 
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+    func collectionView(_ collectionView: UICollectionView,
+                        viewForSupplementaryElementOfKind kind: String,
+                        at indexPath: IndexPath) -> UICollectionReusableView {
+        let v = collectionView.dequeueReusableSupplementaryView(
+            ofKind: kind, withReuseIdentifier: LibrarySectionHeader.id,
+            for: indexPath) as! LibrarySectionHeader
+        if indexPath.section < categories.count {
+            v.configure(title: categories[indexPath.section].title,
+                        color: categories[indexPath.section].color)
+        } else {
+            v.configure(title: "My Mixes", color: Self.userColor)
+        }
+        return v
+    }
+
+    func collectionView(_ collectionView: UICollectionView,
+                        didSelectItemAt indexPath: IndexPath) {
         let pattern: Pattern
         if indexPath.section < categories.count {
             pattern = categories[indexPath.section].patterns[indexPath.row]
@@ -196,103 +249,208 @@ final class PatternLibraryViewController: UIViewController, UITableViewDataSourc
         dismiss(animated: true) { [weak self] in self?.delegate?.patternLibraryDidPick(pattern) }
     }
 
-    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        indexPath.section == userSection && !userPatterns.isEmpty
-    }
-
-    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        guard editingStyle == .delete, indexPath.section == userSection else { return }
-        PatternStore.delete(id: userPatterns[indexPath.row].id)
-        reload()
+    func collectionView(_ collectionView: UICollectionView,
+                        contextMenuConfigurationForItemAt indexPath: IndexPath,
+                        point: CGPoint) -> UIContextMenuConfiguration? {
+        guard indexPath.section == userSection, !userPatterns.isEmpty else { return nil }
+        let pattern = userPatterns[indexPath.row]
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+            let delete = UIAction(title: "Delete",
+                                  image: UIImage(systemName: "trash"),
+                                  attributes: .destructive) { [weak self] _ in
+                PatternStore.delete(id: pattern.id)
+                self?.reload()
+            }
+            return UIMenu(title: pattern.name, children: [delete])
+        }
     }
 }
 
-// MARK: - MixCell
+// MARK: - MixCardCell
 
-final class MixCell: UITableViewCell {
-    static let id = "MixCell"
+final class MixCardCell: UICollectionViewCell {
+    static let id = "MixCardCell"
 
-    private let nameLabel = UILabel()
-    private let bpmPill = PaddedLabel()
-    private let swingLabel = PaddedLabel()
-    private let beatGrid = BeatGridView()
+    private let accentBar  = UIView()
+    private let nameLabel  = UILabel()
+    private let activeIcon = UIImageView()
+    private let beatGrid   = BeatGridView()
+    private let bpmPill    = PaddedLabel()
+    private let swingPill  = PaddedLabel()
 
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
+    override init(frame: CGRect) {
+        super.init(frame: frame)
 
-        var bg = UIBackgroundConfiguration.listGroupedCell()
-        bg.backgroundColor = Theme.backgroundElevated
-        backgroundConfiguration = bg
+        contentView.backgroundColor    = Theme.backgroundElevated
+        contentView.layer.cornerRadius = Theme.cornerMedium
+        contentView.layer.masksToBounds = true
 
-        let sel = UIView()
-        sel.backgroundColor = Theme.backgroundElevated2
-        selectedBackgroundView = sel
+        layer.cornerRadius   = Theme.cornerMedium
+        layer.masksToBounds  = false
+        layer.shadowColor    = UIColor.black.cgColor
+        layer.shadowOpacity  = 0.3
+        layer.shadowOffset   = CGSize(width: 0, height: 3)
+        layer.shadowRadius   = 6
 
-        nameLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        nameLabel.textColor = Theme.text
+        accentBar.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(accentBar)
+
+        nameLabel.font          = .systemFont(ofSize: 14, weight: .semibold)
+        nameLabel.textColor     = Theme.text
+        nameLabel.numberOfLines = 2
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(nameLabel)
 
-        bpmPill.font = .monospacedSystemFont(ofSize: 10, weight: .medium)
-        bpmPill.textColor = Theme.accent
-        bpmPill.backgroundColor = Theme.accent.withAlphaComponent(0.12)
-        bpmPill.layer.cornerRadius = 4
-        bpmPill.layer.masksToBounds = true
-        bpmPill.textAlignment = .center
-        bpmPill.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(bpmPill)
-
-        swingLabel.font = .monospacedSystemFont(ofSize: 10, weight: .medium)
-        swingLabel.textColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 1)
-        swingLabel.backgroundColor = UIColor(red: 0.608, green: 0.965, blue: 1.0, alpha: 1)
-        swingLabel.layer.cornerRadius = 4
-        swingLabel.layer.masksToBounds = true
-        swingLabel.textAlignment = .center
-        swingLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(swingLabel)
-
-        // height constraints removed — PaddedLabel intrinsicContentSize handles it
+        activeIcon.image = UIImage(systemName: "waveform",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
+        activeIcon.contentMode = .scaleAspectFit
+        activeIcon.translatesAutoresizingMaskIntoConstraints = false
+        activeIcon.isHidden = true
+        contentView.addSubview(activeIcon)
 
         beatGrid.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(beatGrid)
 
+        bpmPill.font              = .monospacedSystemFont(ofSize: 10, weight: .medium)
+        bpmPill.textColor         = Theme.accent
+        bpmPill.backgroundColor   = Theme.accent.withAlphaComponent(0.12)
+        bpmPill.layer.cornerRadius = 4
+        bpmPill.layer.masksToBounds = true
+        bpmPill.textAlignment     = .center
+        bpmPill.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(bpmPill)
+
+        swingPill.font              = .monospacedSystemFont(ofSize: 10, weight: .medium)
+        swingPill.textColor         = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 1)
+        swingPill.backgroundColor   = UIColor(red: 0.608, green: 0.965, blue: 1.0, alpha: 1)
+        swingPill.layer.cornerRadius = 4
+        swingPill.layer.masksToBounds = true
+        swingPill.textAlignment     = .center
+        swingPill.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(swingPill)
+
         NSLayoutConstraint.activate([
-            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+            accentBar.topAnchor.constraint(equalTo: contentView.topAnchor),
+            accentBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            accentBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            accentBar.heightAnchor.constraint(equalToConstant: 4),
 
-            bpmPill.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
-            bpmPill.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 6),
-            bpmPill.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
+            nameLabel.topAnchor.constraint(equalTo: accentBar.bottomAnchor, constant: 10),
+            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            nameLabel.trailingAnchor.constraint(equalTo: activeIcon.leadingAnchor, constant: -4),
 
-            swingLabel.leadingAnchor.constraint(equalTo: bpmPill.trailingAnchor, constant: 6),
-            swingLabel.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
+            activeIcon.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
+            activeIcon.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            activeIcon.widthAnchor.constraint(equalToConstant: 16),
+            activeIcon.heightAnchor.constraint(equalToConstant: 16),
 
-            beatGrid.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            beatGrid.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            beatGrid.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 10),
+            beatGrid.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             beatGrid.widthAnchor.constraint(equalToConstant: BeatGridView.W),
             beatGrid.heightAnchor.constraint(equalToConstant: BeatGridView.H),
+
+            bpmPill.topAnchor.constraint(equalTo: beatGrid.bottomAnchor, constant: 10),
+            bpmPill.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            bpmPill.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
+
+            swingPill.leadingAnchor.constraint(equalTo: bpmPill.trailingAnchor, constant: 6),
+            swingPill.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
         ])
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(with pattern: Pattern) {
-        nameLabel.text = pattern.name
-        nameLabel.textColor = Theme.text
-        bpmPill.text = "\(Int(pattern.tempo)) BPM"
-        bpmPill.isHidden = false
-        swingLabel.text = "swing \(Int((pattern.swing * 100).rounded()))%"
-        swingLabel.isHidden = false
-        beatGrid.configure(rows: pattern.rows)
-        beatGrid.isHidden = false
+    override var isHighlighted: Bool {
+        didSet {
+            UIView.animate(withDuration: 0.12, delay: 0,
+                           options: [.beginFromCurrentState, .allowUserInteraction]) {
+                self.transform = self.isHighlighted
+                    ? CGAffineTransform(scaleX: 0.95, y: 0.95) : .identity
+                self.contentView.alpha = self.isHighlighted ? 0.75 : 1.0
+            }
+        }
     }
 
-    func configureEmpty() {
-        nameLabel.text = "No mixes saved yet"
-        nameLabel.textColor = Theme.textFaint
-        bpmPill.isHidden = true
-        swingLabel.isHidden = true
-        beatGrid.isHidden = true
+    func configure(with pattern: Pattern, color: UIColor, isActive: Bool) {
+        nameLabel.text = pattern.name
+        bpmPill.text   = "\(Int(pattern.tempo)) BPM"
+        swingPill.text = "swing \(Int((pattern.swing * 100).rounded()))%"
+        beatGrid.configure(rows: pattern.rows)
+        accentBar.backgroundColor = color
+
+        activeIcon.isHidden = !isActive
+        activeIcon.tintColor = color
+
+        if isActive {
+            contentView.backgroundColor   = Theme.backgroundElevated2
+            contentView.layer.borderWidth = 1.5
+            contentView.layer.borderColor = color.withAlphaComponent(0.75).cgColor
+            layer.shadowColor             = color.cgColor
+            layer.shadowOpacity           = 0.35
+            layer.shadowRadius            = 12
+        } else {
+            contentView.backgroundColor   = Theme.backgroundElevated
+            contentView.layer.borderWidth = 1
+            contentView.layer.borderColor = Theme.border.cgColor
+            layer.shadowColor             = UIColor.black.cgColor
+            layer.shadowOpacity           = 0.28
+            layer.shadowRadius            = 6
+        }
+    }
+}
+
+// MARK: - Section header
+
+final class LibrarySectionHeader: UICollectionReusableView {
+    static let id = "LibrarySectionHeader"
+
+    private let pill  = UIView()
+    private let dot   = UIView()
+    private let label = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = Theme.background
+
+        pill.backgroundColor    = Theme.backgroundElevated
+        pill.layer.cornerRadius = 10
+        pill.layer.borderWidth  = 1
+        pill.layer.borderColor  = Theme.border.cgColor
+        pill.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(pill)
+
+        dot.layer.cornerRadius = 3
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        pill.addSubview(dot)
+
+        label.font      = .systemFont(ofSize: 10, weight: .bold)
+        label.textColor = Theme.textDim
+        label.translatesAutoresizingMaskIntoConstraints = false
+        pill.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            pill.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            pill.centerYAnchor.constraint(equalTo: centerYAnchor),
+            pill.heightAnchor.constraint(equalToConstant: 22),
+
+            dot.widthAnchor.constraint(equalToConstant: 6),
+            dot.heightAnchor.constraint(equalToConstant: 6),
+            dot.leadingAnchor.constraint(equalTo: pill.leadingAnchor, constant: 10),
+            dot.centerYAnchor.constraint(equalTo: pill.centerYAnchor),
+
+            label.leadingAnchor.constraint(equalTo: dot.trailingAnchor, constant: 6),
+            label.trailingAnchor.constraint(equalTo: pill.trailingAnchor, constant: -10),
+            label.centerYAnchor.constraint(equalTo: pill.centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(title: String, color: UIColor) {
+        label.text  = title.uppercased()
+        label.textColor = color
+        dot.backgroundColor = color
+        pill.layer.borderColor = color.withAlphaComponent(0.3).cgColor
     }
 }
 
@@ -300,14 +458,14 @@ final class MixCell: UITableViewCell {
 
 final class BeatGridView: UIView {
     static let dotSize: CGFloat = 5
-    static let dotGap: CGFloat  = 2
-    static let rowGap: CGFloat  = 5
-    static let steps = 16
+    static let dotGap:  CGFloat = 2
+    static let rowGap:  CGFloat = 5
+    static let steps   = 16
     static let trackIds  = ["kick", "snare", "hat"]
     static let colors: [(CGFloat, CGFloat, CGFloat)] = [
-        (1.00,  0.478, 0.349),  // kick  #ff7a59
-        (1.00,  0.820, 0.400),  // snare #ffd166
-        (0.608, 0.965, 1.00 ),  // hat   #9bf6ff
+        (1.00, 0.478, 0.349),
+        (1.00, 0.820, 0.400),
+        (0.608, 0.965, 1.00),
     ]
     static let W = CGFloat(steps) * dotSize + CGFloat(steps - 1) * dotGap
     static let H = CGFloat(trackIds.count) * dotSize + CGFloat(trackIds.count - 1) * rowGap
@@ -353,11 +511,11 @@ final class BeatGridView: UIView {
     }
 }
 
+// MARK: - PaddedLabel
+
 private final class PaddedLabel: UILabel {
     private let insets = UIEdgeInsets(top: 3, left: 8, bottom: 3, right: 8)
-    override func drawText(in rect: CGRect) {
-        super.drawText(in: rect.inset(by: insets))
-    }
+    override func drawText(in rect: CGRect) { super.drawText(in: rect.inset(by: insets)) }
     override var intrinsicContentSize: CGSize {
         let s = super.intrinsicContentSize
         return CGSize(width: s.width + insets.left + insets.right,

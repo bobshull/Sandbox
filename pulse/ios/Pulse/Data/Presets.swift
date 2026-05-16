@@ -8,6 +8,8 @@ struct Pattern: Codable {
     var rows: [String: [Bool]]   // trackId -> 16 booleans
     var volumes: [String: Float]?
     var mutes: [String: Bool]?
+    var effects: [String: TrackEffects]?
+    var kitId: String?
 }
 
 enum Presets {

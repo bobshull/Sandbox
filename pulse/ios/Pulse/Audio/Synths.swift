@@ -52,6 +52,7 @@ private extension Synths {
         case "808":         len = 0.80; startF = 80;  endF = 28; sweepT = 0.35; decayT = 0.55
         case "jazz":        len = 0.35; startF = 100; endF = 50; sweepT = 0.20; decayT = 0.22; peak = 0.75
         case "rainy-night": len = 0.50; startF = 90;  endF = 32; sweepT = 0.30; decayT = 0.30; peak = 0.60
+        case "music-box":   len = 0.22; startF = 420; endF = 405; sweepT = 0.012; decayT = 0.10; peak = 0.38
         default: break
         }
         let count = Int(sampleRate * len)
@@ -89,12 +90,15 @@ private extension Synths {
         case "rainy-night":
             len = 0.40; hpAlpha = 0.78; noiseDecay = 0.25; noisePeak = 0.30
             bodyFreq = 140; bodyDecay = 0.20; bodyPeak = 0.15
+        case "music-box":
+            // Almost no noise — just a high pure tine ping
+            len = 0.24; hpAlpha = 0.95; noiseDecay = 0.004; noisePeak = 0.04
+            bodyFreq = 1318.5; bodyDecay = 0.14; bodyPeak = 0.58
         default: break
         }
         let count = Int(sampleRate * len)
         var out = [Float](repeating: 0, count: count)
 
-        // HP-filtered noise body
         var prevIn: Float = 0, prevOut: Float = 0
         for i in 0..<count {
             let t = Double(i) / sampleRate
@@ -104,7 +108,6 @@ private extension Synths {
             out[i] += hp * ad(t, attack: 0.001, decay: noiseDecay, peak: noisePeak)
         }
 
-        // Pitched sine body
         var phase = 0.0
         for i in 0..<count {
             let t = Double(i) / sampleRate
@@ -127,6 +130,7 @@ private extension Synths {
         case "808":         len = 0.05; decayT = 0.018; peak = 0.45
         case "jazz":        len = 0.15; decayT = 0.100; peak = 0.28
         case "rainy-night": len = 0.20; decayT = 0.150; peak = 0.16
+        case "music-box":   len = 0.025; decayT = 0.008; peak = 0.18  // tiny spring-mechanism tick
         default: break
         }
         let count = Int(sampleRate * len)
@@ -153,6 +157,7 @@ private extension Synths {
         case "808":         len = 0.20; peak = 0.75; finalDecay = 0.08
         case "jazz":        len = 0.25; peak = 0.40; finalDecay = 0.10
         case "rainy-night": len = 0.35; peak = 0.25; finalDecay = 0.22
+        case "music-box":   len = 0.16; peak = 0.28; finalDecay = 0.07  // chime shimmer
         default: break
         }
         let count = Int(sampleRate * len)
@@ -186,6 +191,9 @@ private extension Synths {
             len = 0.40; freq = 49; lpStart = 900;  lpEnd = 200; sweepT = 0.15; decayT = 0.25; peak = 0.55; useSine = true
         case "rainy-night":
             len = 0.45; freq = 55; lpStart = 600;  lpEnd = 100; sweepT = 0.35; decayT = 0.28; peak = 0.45; useSine = true
+        case "music-box":
+            // Clean mid-register tine — G4, pure sine, no LP sweep
+            len = 0.48; freq = 392; lpStart = 12000; lpEnd = 11000; sweepT = 0.01; decayT = 0.28; peak = 0.38; useSine = true
         default: break
         }
         let count = Int(sampleRate * len)
@@ -205,7 +213,7 @@ private extension Synths {
             let dt = 1 / sampleRate
             let alpha = Float(dt / (rc + dt))
             lpPrev = lpPrev + alpha * (raw - lpPrev)
-            out[i] = lpPrev * ad(t, attack: 0.005, decay: decayT, peak: peak)
+            out[i] = lpPrev * ad(t, attack: 0.003, decay: decayT, peak: peak)
         }
         return out
     }
@@ -222,19 +230,30 @@ private extension Synths {
         case "808":         len = 0.42; startF = 480; endF = 380; sweepT = 0.15; decayT = 0.20; peak = 0.52
         case "jazz":        len = 0.35; startF = 659; endF = 587; sweepT = 0.15; decayT = 0.14; peak = 0.45
         case "rainy-night": len = 0.50; startF = 740; endF = 659; sweepT = 0.25; decayT = 0.28; peak = 0.35
+        // C6 tine: sine fundamental + inharmonic partial at 2.756× (real music box overtone ratio)
+        case "music-box":   len = 0.75; startF = 1046.5; endF = 1030.0; sweepT = 0.018; decayT = 0.50; peak = 0.50
         default: break
         }
         let count = Int(sampleRate * len)
         var out = [Float](repeating: 0, count: count)
         var phase = 0.0
+        var phase2 = 0.0  // inharmonic partial, only used for music-box
         for i in 0..<count {
             let t = Double(i) / sampleRate
             let freq = startF * pow(endF / startF, min(t / sweepT, 1))
             phase += 2 * .pi * freq / sampleRate
-            let normalized = phase / (2 * .pi)
-            let frac = normalized - floor(normalized)
-            let tri = Float(4 * abs(frac - 0.5) - 1)
-            out[i] = tri * ad(t, attack: 0.002, decay: decayT, peak: peak)
+            if kit == "music-box" {
+                // Inharmonic partial decays 2.5× faster, 22% amplitude
+                phase2 += 2 * .pi * freq * 2.756 / sampleRate
+                let env1 = ad(t, attack: 0.001, decay: decayT,       peak: peak)
+                let env2 = ad(t, attack: 0.001, decay: decayT * 0.4, peak: peak * 0.22)
+                out[i] = Float(sin(phase)) * env1 + Float(sin(phase2)) * env2
+            } else {
+                let normalized = phase / (2 * .pi)
+                let frac = normalized - floor(normalized)
+                let tri = Float(4 * abs(frac - 0.5) - 1)
+                out[i] = tri * ad(t, attack: 0.002, decay: decayT, peak: peak)
+            }
         }
         return out
     }
@@ -262,6 +281,10 @@ private extension Synths {
         case "rainy-night":
             len = 1.20; baseFreq = 220.00; detuneCents = 15; lpCutoff = 900
             attack = 0.15; decayT = 0.60; sustain = 0.50; releaseT = 0.60; peak = 0.25
+        case "music-box":
+            // Two detuned pure sines — delicate bell shimmer
+            len = 0.90; baseFreq = 659.26; detuneCents = 2; lpCutoff = 20000
+            attack = 0.012; decayT = 0.38; sustain = 0.50; releaseT = 0.38; peak = 0.30
         default: break
         }
         let count = Int(sampleRate * len)
@@ -280,8 +303,12 @@ private extension Synths {
             var sample: Float = 0
             for (j, f) in freqs.enumerated() {
                 phases[j] += 2 * .pi * f / sampleRate
-                let frac = phases[j] / (2 * .pi) - floor(phases[j] / (2 * .pi))
-                sample += Float(2 * frac - 1)
+                if kit == "music-box" {
+                    sample += Float(sin(phases[j]))
+                } else {
+                    let frac = phases[j] / (2 * .pi) - floor(phases[j] / (2 * .pi))
+                    sample += Float(2 * frac - 1)
+                }
             }
             sample *= 0.5
             lpPrev += alpha * (sample - lpPrev)
@@ -303,6 +330,7 @@ private extension Synths {
         case "808":         len = 0.18; startF = 1760; endF = 880; sweepT = 0.12; decayT = 0.12; peak = 0.38
         case "jazz":        len = 0.10; startF = 600;  endF = 350; sweepT = 0.06; decayT = 0.06; peak = 0.38
         case "rainy-night": len = 0.16; startF = 320;  endF = 160; sweepT = 0.12; decayT = 0.12; peak = 0.22
+        case "music-box":   len = 0.09; startF = 2637; endF = 2500; sweepT = 0.010; decayT = 0.032; peak = 0.33
         default: break
         }
         let count = Int(sampleRate * len)

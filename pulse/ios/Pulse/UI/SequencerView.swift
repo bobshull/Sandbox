@@ -224,9 +224,11 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                     self.syncPattern()
                     self.syncMutes()
                     self.syncVolumes()
+                    self.syncEffects()
                 case .step: self.syncPlayhead()
                 case .mutes: self.syncMutes()
                 case .volumes: self.syncVolumes()
+                case .effects: self.syncEffects()
                 default: break
                 }
             }
@@ -237,6 +239,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         syncPattern()
         syncMutes()
         syncVolumes()
+        syncEffects()
     }
 
     private func syncPattern() {
@@ -277,6 +280,12 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         }
     }
 
+    private func syncEffects() {
+        for row in rows {
+            row.header.setEffects(store.effects[row.track.id] ?? .default)
+        }
+    }
+
     // MARK: - Cell tap
 
     @objc private func cellTapped(_ sender: CellButton) {
@@ -298,6 +307,11 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     func trackHeaderDidChangeVolume(_ track: Track, value: Float) {
         store.setVolume(trackId: track.id, value: value)
         engine.setTrackGain(track.id, value)
+    }
+
+    func trackHeaderDidChangeEffects(_ track: Track, effects: TrackEffects) {
+        store.setTrackEffects(trackId: track.id, effects)
+        engine.setTrackEffects(track.id, effects)
     }
 
     // MARK: - Scroll sync
