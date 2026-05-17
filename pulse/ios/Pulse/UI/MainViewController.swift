@@ -12,13 +12,21 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private lazy var toast = ToastPresenter(host: view)
 
     private let patternsButton = UIButton(type: .system)
-    private let kitsButton = UIButton(type: .system)
-    private let quickSaveButton = UIButton(type: .system)
-    private let undoButton = UIButton(type: .system)
-    private let exportButton = UIButton(type: .system)
+    private let kitsButton     = UIButton(type: .system)
+    private let moreButton     = UIButton(type: .system)
+    private let saveButton     = UIButton(type: .system)
+    private let undoButton     = UIButton(type: .system)
+    private let exportButton   = UIButton(type: .system)
+    private let actionStack    = UIStackView()
+
+    // Swap these to move transportView's trailing anchor between the two right-side groups
+    private var transportTrailingToMore:    NSLayoutConstraint!
+    private var transportTrailingToActions: NSLayoutConstraint!
+
     private var levelMeterStrip: LevelMeterStripView?
     private var cancellables = Set<AnyCancellable>()
     private var saveWork: DispatchWorkItem?
+    private var inlineActionsVisible = false  // start in ••• mode
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
@@ -34,13 +42,14 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         loadInitialPreset()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateControlsLayout()
+    }
+
     private func prepareAudio() {
-        do {
-            try engine.prepare()
-        } catch {
-            toast.show("Audio engine failed to start", tone: .warn)
-            print("[Pulse] audio prepare failed: \(error)")
-        }
+        do { try engine.prepare() }
+        catch { toast.show("Audio engine failed to start", tone: .warn) }
     }
 
     private func loadInitialPreset() {
@@ -63,129 +72,159 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         for (id, fx) in store.effects { engine.setTrackEffects(id, fx) }
     }
 
+    // MARK: - Responsive layout
+
+    private func updateControlsLayout() {
+        // iPhone 16 landscape = 852pt; 900pt threshold puts Pro Max+ and iPad in inline mode
+        let shouldShowInline = view.bounds.width >= 900
+        guard shouldShowInline != inlineActionsVisible else { return }
+        inlineActionsVisible = shouldShowInline
+
+        transportTrailingToMore.isActive    = !shouldShowInline
+        transportTrailingToActions.isActive = shouldShowInline
+
+        UIView.animate(withDuration: 0.2) {
+            self.moreButton.alpha  = shouldShowInline ? 0 : 1
+            self.actionStack.alpha = shouldShowInline ? 1 : 0
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.moreButton.isHidden  = shouldShowInline
+            self.actionStack.isHidden = !shouldShowInline
+            self.updateUndoState()
+        }
+    }
+
     // MARK: - Layout
 
     private func configureBody() {
-        var cfg = UIButton.Configuration.plain()
-        cfg.title = "Library"
-        cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var out = incoming; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
-        }
-        cfg.baseForegroundColor = Theme.text
-        cfg.background.backgroundColor = Theme.backgroundElevated2
-        cfg.background.strokeColor = Theme.border
-        cfg.background.strokeWidth = 1
-        cfg.background.cornerRadius = 6
-        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
-        patternsButton.configuration = cfg
+        // ── Library button ────────────────────────────────────────────────
+        patternsButton.configuration = headerButtonConfig(title: "Library")
         patternsButton.addTarget(self, action: #selector(showLibrary), for: .touchUpInside)
         patternsButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(patternsButton)
 
-        var kitsCfg = UIButton.Configuration.plain()
-        kitsCfg.title = "Kits"
-        kitsCfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var out = incoming; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
-        }
-        kitsCfg.baseForegroundColor = Theme.text
-        kitsCfg.background.backgroundColor = Theme.backgroundElevated2
-        kitsCfg.background.strokeColor = Theme.border
-        kitsCfg.background.strokeWidth = 1
-        kitsCfg.background.cornerRadius = 6
-        kitsCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
-        kitsButton.configuration = kitsCfg
+        // ── Kits button ───────────────────────────────────────────────────
+        kitsButton.configuration = headerButtonConfig(title: "Kits")
         kitsButton.addTarget(self, action: #selector(showKitPicker), for: .touchUpInside)
         kitsButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(kitsButton)
 
-        var saveCfg = UIButton.Configuration.plain()
-        saveCfg.image = UIImage(systemName: "plus.circle",
-                                withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .medium))
-        saveCfg.baseForegroundColor = Theme.text
-        saveCfg.background.backgroundColor = Theme.backgroundElevated2
-        saveCfg.background.strokeColor = Theme.border
-        saveCfg.background.strokeWidth = 1
-        saveCfg.background.cornerRadius = 6
-        saveCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
-        quickSaveButton.configuration = saveCfg
-        quickSaveButton.addTarget(self, action: #selector(quickSaveTapped), for: .touchUpInside)
-        quickSaveButton.accessibilityLabel = "Save pattern"
-        quickSaveButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(quickSaveButton)
+        // ── ••• menu button ───────────────────────────────────────────────
+        var moreCfg = UIButton.Configuration.plain()
+        moreCfg.image = UIImage(systemName: "ellipsis",
+                                withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .medium))
+        moreCfg.baseForegroundColor = Theme.textDim
+        moreCfg.background.backgroundColor = Theme.backgroundElevated2
+        moreCfg.background.strokeColor = Theme.border
+        moreCfg.background.strokeWidth = 1
+        moreCfg.background.cornerRadius = 6
+        moreCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+        moreButton.configuration = moreCfg
+        moreButton.showsMenuAsPrimaryAction = true
+        moreButton.menu = UIMenu(children: [
+            UIDeferredMenuElement.uncached { [weak self] completion in
+                guard let self else { completion([]); return }
+                let save = UIAction(title: "Save Mix",
+                                    image: UIImage(systemName: "plus.circle")) { [weak self] _ in
+                    self?.quickSaveTapped()
+                }
+                let undo = UIAction(title: "Undo",
+                                    image: UIImage(systemName: "arrow.uturn.backward"),
+                                    attributes: self.store.canUndo ? [] : .disabled) { [weak self] _ in
+                    self?.undoTapped()
+                }
+                let export = UIAction(title: "Export",
+                                      image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                    self?.exportTapped()
+                }
+                completion([save, undo, export])
+            }
+        ])
+        moreButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(moreButton)
 
-        var undoCfg = UIButton.Configuration.plain()
-        undoCfg.image = UIImage(systemName: "arrow.uturn.backward",
-                                withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium))
-        undoCfg.baseForegroundColor = Theme.textFaint
-        undoCfg.background.backgroundColor = Theme.backgroundElevated2
-        undoCfg.background.strokeColor = Theme.border
-        undoCfg.background.strokeWidth = 1
-        undoCfg.background.cornerRadius = 6
-        undoCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
-        undoButton.configuration = undoCfg
+        // ── Inline action buttons ─────────────────────────────────────────
+        saveButton.addTarget(self, action: #selector(quickSaveTapped), for: .touchUpInside)
         undoButton.addTarget(self, action: #selector(undoTapped), for: .touchUpInside)
-        undoButton.accessibilityLabel = "Undo"
-        undoButton.isEnabled = false
-        undoButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(undoButton)
-
-        var exportCfg = UIButton.Configuration.plain()
-        exportCfg.image = UIImage(systemName: "square.and.arrow.up",
-                                  withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium))
-        exportCfg.baseForegroundColor = Theme.textDim
-        exportCfg.background.backgroundColor = Theme.backgroundElevated2
-        exportCfg.background.strokeColor = Theme.border
-        exportCfg.background.strokeWidth = 1
-        exportCfg.background.cornerRadius = 6
-        exportCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
-        exportButton.configuration = exportCfg
         exportButton.addTarget(self, action: #selector(exportTapped), for: .touchUpInside)
-        exportButton.accessibilityLabel = "Export mix"
-        exportButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(exportButton)
 
+        for (btn, icon, size) in [(saveButton,   "plus.circle",         CGFloat(17)),
+                                  (undoButton,   "arrow.uturn.backward", CGFloat(14)),
+                                  (exportButton, "square.and.arrow.up",  CGFloat(14))] {
+            var cfg = UIButton.Configuration.plain()
+            cfg.image = UIImage(systemName: icon,
+                                withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .medium))
+            cfg.baseForegroundColor = Theme.textDim
+            cfg.background.backgroundColor = Theme.backgroundElevated2
+            cfg.background.strokeColor = Theme.border
+            cfg.background.strokeWidth = 1
+            cfg.background.cornerRadius = 6
+            cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+            btn.configuration = cfg
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            btn.widthAnchor.constraint(equalToConstant: 34).isActive = true
+            btn.heightAnchor.constraint(equalToConstant: 38).isActive = true
+        }
+
+        actionStack.axis = .horizontal
+        actionStack.spacing = 6
+        actionStack.isHidden = true
+        actionStack.alpha = 0
+        actionStack.addArrangedSubview(saveButton)
+        actionStack.addArrangedSubview(undoButton)
+        actionStack.addArrangedSubview(exportButton)
+        actionStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(actionStack)
+
+        // ── Transport ─────────────────────────────────────────────────────
         transportView.delegate = self
         transportView.observe(store)
         transportView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(transportView)
 
+        // ── Sequencer ─────────────────────────────────────────────────────
         sequencerView.delegate = self
         sequencerView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(sequencerView)
 
+        // ── Constraints ───────────────────────────────────────────────────
         let safe = view.safeAreaLayoutGuide
+
+        // transportView trailing swaps between these two:
+        transportTrailingToMore    = transportView.trailingAnchor.constraint(equalTo: moreButton.leadingAnchor, constant: -10)
+        transportTrailingToActions = transportView.trailingAnchor.constraint(equalTo: actionStack.leadingAnchor, constant: -10)
+        transportTrailingToMore.isActive    = true   // start in ••• mode
+        transportTrailingToActions.isActive = false
+
         NSLayoutConstraint.activate([
+            // Right side anchors
             patternsButton.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
             patternsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
             kitsButton.trailingAnchor.constraint(equalTo: patternsButton.leadingAnchor, constant: -8),
             kitsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
-            quickSaveButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
-            quickSaveButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
+            // ••• button — trailing anchored to kitsButton; leading drives transportView.trailing
+            moreButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
+            moreButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
+            moreButton.heightAnchor.constraint(equalToConstant: 38),
 
-            undoButton.trailingAnchor.constraint(equalTo: quickSaveButton.leadingAnchor, constant: -6),
-            undoButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
+            // Inline action stack — trailing anchored to kitsButton; leading drives transportView.trailing
+            actionStack.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
+            actionStack.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
-            exportButton.trailingAnchor.constraint(equalTo: undoButton.leadingAnchor, constant: -6),
-            exportButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
-
+            // Transport left side
             transportView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
             transportView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
-            transportView.trailingAnchor.constraint(equalTo: exportButton.leadingAnchor, constant: -10),
 
+            // Sequencer
             sequencerView.topAnchor.constraint(equalTo: transportView.bottomAnchor, constant: 8),
             sequencerView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
             sequencerView.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
-            // Cap height so cells stay square: derived from cell width formula
-            // cellWidth = (seqW - headerCol(150) - gap(4) - beatGaps(24)) / 16 = (W-178)/16
-            // squareHeight = header(18) + gap(4) + 8*cellWidth + 7*rowSpacing(4) = 0.5W - 39
             sequencerView.heightAnchor.constraint(lessThanOrEqualTo: sequencerView.widthAnchor,
                                                   multiplier: 0.5, constant: -39),
         ])
 
-        // High-priority fill-to-bottom: wins on iPhone (formula > available),
-        // yields on iPad (formula < available, capped by the required constraint above).
         let fillBottom = sequencerView.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8)
         fillBottom.priority = .defaultHigh
         fillBottom.isActive = true
@@ -202,6 +241,21 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             ])
             levelMeterStrip = strip
         }
+    }
+
+    private func headerButtonConfig(title: String) -> UIButton.Configuration {
+        var cfg = UIButton.Configuration.plain()
+        cfg.title = title
+        cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var out = incoming; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
+        }
+        cfg.baseForegroundColor = Theme.text
+        cfg.background.backgroundColor = Theme.backgroundElevated2
+        cfg.background.strokeColor = Theme.border
+        cfg.background.strokeWidth = 1
+        cfg.background.cornerRadius = 6
+        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
+        return cfg
     }
 
     // MARK: - Bindings
@@ -240,7 +294,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                     self.engine.updateDelayTimes(tempo: self.store.tempo)
                 }
                 if section == .undo || section == .load {
-                    self.updateUndoButton()
+                    self.updateUndoState()
                 }
                 if section != .step {
                     self.scheduleSessionSave()
@@ -249,12 +303,11 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             .store(in: &cancellables)
     }
 
-    private func updateUndoButton() {
-        let canUndo = store.canUndo
-        undoButton.isEnabled = canUndo
-        var cfg = undoButton.configuration ?? UIButton.Configuration.plain()
-        cfg.baseForegroundColor = canUndo ? Theme.text : Theme.textFaint
-        undoButton.configuration = cfg
+    private func updateUndoState() {
+        let enabled = store.canUndo
+        undoButton.isEnabled = enabled
+        undoButton.alpha = enabled ? 1 : 0.4
+        // moreButton menu rebuilds fresh via UIDeferredMenuElement.uncached
     }
 
     private func scheduleSessionSave() {
@@ -273,14 +326,8 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         if engine.isPlaying { engine.stop() } else { engine.start() }
     }
 
-    func transportSetTempo(_ value: Double) {
-        store.setTempo(value)
-    }
-
-    func transportSetSwing(_ value: Double) {
-        store.setSwing(value)
-    }
-
+    func transportSetTempo(_ value: Double) { store.setTempo(value) }
+    func transportSetSwing(_ value: Double) { store.setSwing(value) }
     func transportSetMaster(_ value: Float) {
         store.setMasterGain(value)
         engine.setMasterGain(value)
@@ -312,14 +359,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     func patternLibraryDidPick(_ pattern: Pattern) {
-        guard store.isDirty else {
-            doLoadPattern(pattern); return
-        }
-        let alert = UIAlertController(
-            title: "Unsaved Changes",
-            message: "Switch patterns and lose changes to \"\(store.patternName)\"?",
-            preferredStyle: .alert
-        )
+        guard store.isDirty else { doLoadPattern(pattern); return }
+        let alert = UIAlertController(title: "Unsaved Changes",
+                                      message: "Switch patterns and lose changes to \"\(store.patternName)\"?",
+                                      preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         alert.addAction(UIAlertAction(title: "Switch Anyway", style: .destructive) { [weak self] _ in
             self?.doLoadPattern(pattern)
@@ -346,6 +389,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     @objc private func quickSaveTapped() { promptSave(completion: nil) }
 
     @objc private func exportTapped() {
+        let source = inlineActionsVisible ? exportButton : moreButton
         let sheet = UIAlertController(title: "Export Mix", message: nil, preferredStyle: .actionSheet)
         let labels = ["Short Loop", "Medium Loop", "Long Loop", "Extended Loop"]
         for (i, bars) in [4, 8, 16, 32].enumerated() {
@@ -355,7 +399,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             })
         }
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        sheet.popoverPresentationController?.sourceView = exportButton
+        sheet.popoverPresentationController?.sourceView = source
         present(sheet, animated: true)
     }
 
@@ -368,7 +412,8 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 switch result {
                 case .success(let url):
                     let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-                    share.popoverPresentationController?.sourceView = self.exportButton
+                    share.popoverPresentationController?.sourceView =
+                        self.inlineActionsVisible ? self.exportButton : self.moreButton
                     self.present(share, animated: true)
                 case .failure(let err):
                     self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)
@@ -378,6 +423,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func promptSave(completion: ((Bool) -> Void)?) {
+        let source = inlineActionsVisible ? saveButton : moreButton
         if store.isCurrentPatternUserSaved {
             let name = store.patternName
             let sheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
@@ -388,7 +434,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 self?.promptSaveAsNew(completion: completion)
             })
             sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completion?(false) })
-            sheet.popoverPresentationController?.sourceView = quickSaveButton
+            sheet.popoverPresentationController?.sourceView = source
             present(sheet, animated: true)
         } else {
             promptSaveAsNew(completion: completion)
@@ -435,5 +481,4 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         })
         present(alert, animated: true)
     }
-
 }

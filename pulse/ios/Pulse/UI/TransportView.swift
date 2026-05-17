@@ -12,10 +12,10 @@ final class TransportView: UIView {
 
     weak var delegate: TransportViewDelegate?
 
-    private let playButton   = UIButton(type: .system)
-    private let tempoChip    = UIButton(type: .system)
-    private let swingChip    = UIButton(type: .system)
-    private let masterChip   = UIButton(type: .system)
+    private let playButton  = UIButton(type: .system)
+    private let tempoChip   = UIButton(type: .system)
+    private let swingChip   = UIButton(type: .system)
+    private let masterChip  = UIButton(type: .system)
 
     private var cancellables = Set<AnyCancellable>()
     private let store: Store
@@ -72,9 +72,9 @@ final class TransportView: UIView {
         setIsPlaying(false)
         addSubview(playButton)
 
-        setupChip(tempoChip, tag: 0)
-        setupChip(swingChip, tag: 1)
-        setupChip(masterChip, tag: 2)
+        setupChip(tempoChip, tag: 0, width: 120)
+        setupChip(swingChip, tag: 1, width: 105)
+        setupChip(masterChip, tag: 2, width: 90)
 
         NSLayoutConstraint.activate([
             playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -84,27 +84,23 @@ final class TransportView: UIView {
 
             tempoChip.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 10),
             tempoChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
-            tempoChip.heightAnchor.constraint(equalToConstant: 38),
-            tempoChip.widthAnchor.constraint(equalToConstant: 120),
 
             swingChip.leadingAnchor.constraint(equalTo: tempoChip.trailingAnchor, constant: 8),
             swingChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
-            swingChip.heightAnchor.constraint(equalToConstant: 38),
-            swingChip.widthAnchor.constraint(equalToConstant: 105),
 
             masterChip.leadingAnchor.constraint(equalTo: swingChip.trailingAnchor, constant: 8),
             masterChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
-            masterChip.heightAnchor.constraint(equalToConstant: 38),
-            masterChip.widthAnchor.constraint(equalToConstant: 90),
 
             bottomAnchor.constraint(equalTo: playButton.bottomAnchor),
         ])
     }
 
-    private func setupChip(_ button: UIButton, tag: Int) {
+    private func setupChip(_ button: UIButton, tag: Int, width: CGFloat) {
         button.tag = tag
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
+        button.widthAnchor.constraint(equalToConstant: width).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 38).isActive = true
         addSubview(button)
     }
 
