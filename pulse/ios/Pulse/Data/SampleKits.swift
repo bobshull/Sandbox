@@ -14,6 +14,13 @@ enum SampleKits {
         SampleKit(id: "jazz",        name: "Jazz"),
         SampleKit(id: "rainy-night", name: "Rainy Night"),
         SampleKit(id: "music-box",   name: "Music Box"),
+        SampleKit(id: "wind-chimes", name: "Wind Chimes"),
+        SampleKit(id: "marimba",     name: "Marimba"),
+        SampleKit(id: "arcade",      name: "Arcade"),
+        SampleKit(id: "glass",       name: "Glass"),
+        SampleKit(id: "toy-piano",   name: "Toy Piano"),
+        SampleKit(id: "jungle",      name: "Jungle"),
+        SampleKit(id: "space",       name: "Space"),
     ]
 
     static func find(_ id: String) -> SampleKit {
