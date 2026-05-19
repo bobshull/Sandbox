@@ -6,11 +6,15 @@ struct SessionState: Codable {
     var swing: Double
     var masterGain: Float
     var rows: [String: [Bool]]
-    var volumes: [String: Float]
+    var volumes: [String: Float]       // bar 0 (backward compat)
     var mutes: [String: Bool]
     var kitId: String?
     var patternId: String?
-    var effects: [String: TrackEffects]?
+    var effects: [String: TrackEffects]?   // bar 0 (backward compat)
+    var patternLength: Int?
+    var enabledBars: [Bool]?
+    var bar2Volumes: [String: Float]?      // nil → copy bar 0
+    var bar2Effects: [String: TrackEffects]?  // nil → copy bar 0
 }
 
 enum PatternStore {

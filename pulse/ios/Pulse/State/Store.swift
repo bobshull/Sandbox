@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 enum StateSection {
-    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects
+    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects, patternLength
 }
 
 final class Store {
@@ -14,14 +14,44 @@ final class Store {
     // Pattern + per-track state
     private(set) var rows: [String: [Bool]] = Presets.emptyRows()
     private(set) var mutes: [String: Bool] = [:]
-    private(set) var volumes: [String: Float] = [:]
-    private(set) var effects: [String: TrackEffects] = [:]
+    // Per-bar volumes and effects (index 0 = Bar 1, index 1 = Bar 2)
+    private(set) var barVolumes: [[String: Float]] = [[:], [:]]
+    private(set) var barEffects: [[String: TrackEffects]] = [[:], [:]]
+
+    var volumes: [String: Float] { barVolumes[0] }
+    var effects: [String: TrackEffects] { barEffects[0] }
+    func volumes(for bar: Int) -> [String: Float] { bar == 1 ? barVolumes[1] : barVolumes[0] }
+    func effects(for bar: Int) -> [String: TrackEffects] { bar == 1 ? barEffects[1] : barEffects[0] }
 
     // Transport
     private(set) var activeStep: Int = -1
     private(set) var patternName: String = "Untitled"
     private(set) var currentKitId: String = "studio"
     private(set) var currentPatternId: String = ""
+
+    // Pattern length (16 or 32 steps)
+    private(set) var patternLength: Int = 16
+
+    // Which bars are active in the playback loop (index 0 = Bar 1, 1 = Bar 2).
+    // Only meaningful in 32-step mode; always [true] in 16-step mode.
+    private(set) var enabledBars: [Bool] = [true]
+
+    // Derived: first step and length of the currently active sequence.
+    var sequenceStart: Int {
+        guard patternLength == 32 else { return 0 }
+        return (enabledBars.first == true) ? 0 : 16
+    }
+    var sequenceLength: Int {
+        guard patternLength == 32 else { return 16 }
+        let count = enabledBars.filter { $0 }.count
+        return max(count, 1) * 16   // at least one bar always plays
+    }
+
+    var hasBar2Content: Bool {
+        patternLength == 32 && rows.values.contains { arr in
+            arr.count == 32 && arr[16...].contains(true)
+        }
+    }
 
     var isCurrentPatternPreset: Bool {
         Presets.all.contains(where: { $0.id == currentPatternId })
@@ -40,9 +70,12 @@ final class Store {
     struct AudioSnapshot {
         let rows: [String: [Bool]]
         let mutes: [String: Bool]
+        let patternLength: Int
+        let sequenceStart: Int
+        let sequenceLength: Int
     }
     private let snapshotLock = NSLock()
-    private var snapshot = AudioSnapshot(rows: [:], mutes: [:])
+    private var snapshot = AudioSnapshot(rows: [:], mutes: [:], patternLength: 16, sequenceStart: 0, sequenceLength: 16)
 
     func audioSnapshot() -> AudioSnapshot {
         snapshotLock.lock()
@@ -52,15 +85,18 @@ final class Store {
 
     private func refreshSnapshot() {
         snapshotLock.lock()
-        snapshot = AudioSnapshot(rows: rows, mutes: mutes)
+        snapshot = AudioSnapshot(rows: rows, mutes: mutes, patternLength: patternLength,
+                                 sequenceStart: sequenceStart, sequenceLength: sequenceLength)
         snapshotLock.unlock()
     }
 
     init() {
         for t in Tracks.all {
             mutes[t.id] = false
-            volumes[t.id] = 1.0
-            effects[t.id] = .default
+            barVolumes[0][t.id] = 1.0
+            barVolumes[1][t.id] = 1.0
+            barEffects[0][t.id] = .default
+            barEffects[1][t.id] = .default
         }
         refreshSnapshot()
     }
@@ -79,11 +115,20 @@ final class Store {
         tempo = snap.tempo
         swing = snap.swing
         masterGain = snap.masterGain
-        rows = Presets.filledRows(from: snap.rows)
+        let prevLength = snap.patternLength ?? 16
+        let prevBars = snap.enabledBars ?? (prevLength == 32 ? [true, true] : [true])
+        if prevLength != patternLength || prevBars != enabledBars {
+            patternLength = prevLength
+            enabledBars = prevBars
+            changes.send(.patternLength)
+        }
+        rows = Presets.filledRows(from: snap.rows, length: patternLength)
         for t in Tracks.all {
-            volumes[t.id] = snap.volumes[t.id] ?? 1.0
+            barVolumes[0][t.id] = snap.volumes[t.id] ?? 1.0
+            barVolumes[1][t.id] = snap.bar2Volumes?[t.id] ?? 1.0
             mutes[t.id] = snap.mutes[t.id] ?? false
-            effects[t.id] = snap.effects?[t.id] ?? .default
+            barEffects[0][t.id] = snap.effects?[t.id] ?? .default
+            barEffects[1][t.id] = snap.bar2Effects?[t.id] ?? .default
         }
         currentKitId = snap.kitId ?? "studio"
         refreshSnapshot()
@@ -134,14 +179,14 @@ final class Store {
         changes.send(.mutes)
     }
 
-    func setVolume(trackId: String, value: Float) {
-        volumes[trackId] = min(max(value, 0), 1)
+    func setVolume(trackId: String, value: Float, bar: Int = 0) {
+        barVolumes[bar][trackId] = min(max(value, 0), 1)
         isDirty = true
         changes.send(.volumes)
     }
 
-    func setTrackEffects(trackId: String, _ fx: TrackEffects) {
-        effects[trackId] = fx
+    func setTrackEffects(trackId: String, _ fx: TrackEffects, bar: Int = 0) {
+        barEffects[bar][trackId] = fx
         isDirty = true
         changes.send(.effects)
     }
@@ -167,9 +212,61 @@ final class Store {
         changes.send(.kit)
     }
 
+    func setPatternLength(_ length: Int) {
+        guard length == 16 || length == 32, length != patternLength else { return }
+        pushUndo()
+        patternLength = length
+        if length == 32 {
+            enabledBars = [true, true]
+            for t in Tracks.all {
+                let current = rows[t.id] ?? Array(repeating: false, count: 16)
+                let bar1 = Array(current.prefix(16))
+                rows[t.id] = bar1 + Array(repeating: false, count: 16)
+            }
+        } else {
+            enabledBars = [true]
+            for t in Tracks.all {
+                rows[t.id] = Array((rows[t.id] ?? []).prefix(16))
+            }
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.patternLength)
+        changes.send(.pattern)
+    }
+
+    func toggleBar(_ index: Int) {
+        guard patternLength == 32, index < 2 else { return }
+        // Don't allow disabling the only remaining active bar
+        let wouldDisable = enabledBars[index]
+        if wouldDisable && enabledBars.filter({ $0 }).count == 1 { return }
+        enabledBars[index].toggle()
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.patternLength)   // reuses existing section; SequencerView listens to it
+    }
+
+    func duplicateBar1() {
+        guard patternLength == 32 else { return }
+        pushUndo()
+        for t in Tracks.all {
+            guard var arr = rows[t.id], arr.count == 32 else { continue }
+            let bar1 = Array(arr.prefix(16))
+            arr.replaceSubrange(16..., with: bar1)
+            rows[t.id] = arr
+            barVolumes[1][t.id] = barVolumes[0][t.id]
+            barEffects[1][t.id] = barEffects[0][t.id]
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+        changes.send(.volumes)
+        changes.send(.effects)
+    }
+
     func clearPattern() {
         pushUndo()
-        rows = Presets.emptyRows()
+        rows = Presets.emptyRows(length: patternLength)
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
@@ -181,23 +278,30 @@ final class Store {
         currentPatternId = pattern.id
         tempo = pattern.tempo
         swing = pattern.swing
-        rows = Presets.filledRows(from: pattern.rows)
+        patternLength = pattern.patternLength ?? 16
+        enabledBars = patternLength == 32 ? [true, true] : [true]
+        rows = Presets.filledRows(from: pattern.rows, length: patternLength)
         for t in Tracks.all {
-            volumes[t.id] = pattern.volumes?[t.id] ?? 1.0
+            barVolumes[0][t.id] = pattern.volumes?[t.id] ?? 1.0
+            barVolumes[1][t.id] = pattern.bar2Volumes?[t.id] ?? 1.0
             mutes[t.id] = pattern.mutes?[t.id] ?? false
-            effects[t.id] = pattern.effects?[t.id] ?? .default
+            barEffects[0][t.id] = pattern.effects?[t.id] ?? .default
+            barEffects[1][t.id] = pattern.bar2Effects?[t.id] ?? .default
         }
         currentKitId = pattern.kitId ?? "studio"
         refreshSnapshot()
         isDirty = false
         changes.send(.kit)
         changes.send(.undo)
+        changes.send(.patternLength)
         changes.send(.load)
     }
 
     func exportPattern() -> Pattern {
         Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing,
-                rows: rows, volumes: volumes, mutes: mutes, effects: effects, kitId: currentKitId)
+                rows: rows, volumes: barVolumes[0], mutes: mutes, effects: barEffects[0],
+                kitId: currentKitId, patternLength: patternLength,
+                bar2Volumes: barVolumes[1], bar2Effects: barEffects[1])
     }
 
     func sessionState() -> SessionState {
@@ -207,11 +311,15 @@ final class Store {
             swing: swing,
             masterGain: masterGain,
             rows: rows,
-            volumes: volumes,
+            volumes: barVolumes[0],
             mutes: mutes,
             kitId: currentKitId,
             patternId: currentPatternId,
-            effects: effects
+            effects: barEffects[0],
+            patternLength: patternLength,
+            enabledBars: enabledBars,
+            bar2Volumes: barVolumes[1],
+            bar2Effects: barEffects[1]
         )
     }
 
@@ -221,15 +329,20 @@ final class Store {
         tempo = session.tempo
         swing = session.swing
         masterGain = session.masterGain
-        rows = Presets.filledRows(from: session.rows)
+        patternLength = session.patternLength ?? 16
+        enabledBars = session.enabledBars ?? (patternLength == 32 ? [true, true] : [true])
+        rows = Presets.filledRows(from: session.rows, length: patternLength)
         for t in Tracks.all {
-            volumes[t.id] = session.volumes[t.id] ?? 1.0
+            barVolumes[0][t.id] = session.volumes[t.id] ?? 1.0
+            barVolumes[1][t.id] = session.bar2Volumes?[t.id] ?? 1.0
             mutes[t.id] = session.mutes[t.id] ?? false
-            effects[t.id] = session.effects?[t.id] ?? .default
+            barEffects[0][t.id] = session.effects?[t.id] ?? .default
+            barEffects[1][t.id] = session.bar2Effects?[t.id] ?? .default
         }
         currentKitId = session.kitId ?? "studio"
         refreshSnapshot()
         isDirty = false
+        changes.send(.patternLength)
         changes.send(.load)
     }
 }

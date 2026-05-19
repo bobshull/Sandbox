@@ -14,19 +14,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private let patternsButton = UIButton(type: .system)
     private let kitsButton     = UIButton(type: .system)
     private let moreButton     = UIButton(type: .system)
-    private let saveButton     = UIButton(type: .system)
-    private let undoButton     = UIButton(type: .system)
-    private let exportButton   = UIButton(type: .system)
-    private let actionStack    = UIStackView()
-
-    // Swap these to move transportView's trailing anchor between the two right-side groups
-    private var transportTrailingToMore:    NSLayoutConstraint!
-    private var transportTrailingToActions: NSLayoutConstraint!
 
     private var levelMeterStrip: LevelMeterStripView?
     private var cancellables = Set<AnyCancellable>()
     private var saveWork: DispatchWorkItem?
-    private var inlineActionsVisible = false  // start in ••• mode
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
@@ -40,11 +31,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         bindStore()
         prepareAudio()
         loadInitialPreset()
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        updateControlsLayout()
     }
 
     private func prepareAudio() {
@@ -70,28 +56,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     private func applyTrackEffectsToEngine() {
         for (id, fx) in store.effects { engine.setTrackEffects(id, fx) }
-    }
-
-    // MARK: - Responsive layout
-
-    private func updateControlsLayout() {
-        // iPhone 16 landscape = 852pt; 900pt threshold puts Pro Max+ and iPad in inline mode
-        let shouldShowInline = view.bounds.width >= 900
-        guard shouldShowInline != inlineActionsVisible else { return }
-        inlineActionsVisible = shouldShowInline
-
-        transportTrailingToMore.isActive    = !shouldShowInline
-        transportTrailingToActions.isActive = shouldShowInline
-
-        UIView.animate(withDuration: 0.2) {
-            self.moreButton.alpha  = shouldShowInline ? 0 : 1
-            self.actionStack.alpha = shouldShowInline ? 1 : 0
-            self.view.layoutIfNeeded()
-        } completion: { _ in
-            self.moreButton.isHidden  = shouldShowInline
-            self.actionStack.isHidden = !shouldShowInline
-            self.updateUndoState()
-        }
     }
 
     // MARK: - Layout
@@ -143,39 +107,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         moreButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(moreButton)
 
-        // ── Inline action buttons ─────────────────────────────────────────
-        saveButton.addTarget(self, action: #selector(quickSaveTapped), for: .touchUpInside)
-        undoButton.addTarget(self, action: #selector(undoTapped), for: .touchUpInside)
-        exportButton.addTarget(self, action: #selector(exportTapped), for: .touchUpInside)
-
-        for (btn, icon, size) in [(saveButton,   "plus.circle",         CGFloat(17)),
-                                  (undoButton,   "arrow.uturn.backward", CGFloat(14)),
-                                  (exportButton, "square.and.arrow.up",  CGFloat(14))] {
-            var cfg = UIButton.Configuration.plain()
-            cfg.image = UIImage(systemName: icon,
-                                withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .medium))
-            cfg.baseForegroundColor = Theme.textDim
-            cfg.background.backgroundColor = Theme.backgroundElevated2
-            cfg.background.strokeColor = Theme.border
-            cfg.background.strokeWidth = 1
-            cfg.background.cornerRadius = 6
-            cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
-            btn.configuration = cfg
-            btn.translatesAutoresizingMaskIntoConstraints = false
-            btn.widthAnchor.constraint(equalToConstant: 34).isActive = true
-            btn.heightAnchor.constraint(equalToConstant: 38).isActive = true
-        }
-
-        actionStack.axis = .horizontal
-        actionStack.spacing = 6
-        actionStack.isHidden = true
-        actionStack.alpha = 0
-        actionStack.addArrangedSubview(saveButton)
-        actionStack.addArrangedSubview(undoButton)
-        actionStack.addArrangedSubview(exportButton)
-        actionStack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(actionStack)
-
         // ── Transport ─────────────────────────────────────────────────────
         transportView.delegate = self
         transportView.observe(store)
@@ -190,32 +121,22 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         // ── Constraints ───────────────────────────────────────────────────
         let safe = view.safeAreaLayoutGuide
 
-        // transportView trailing swaps between these two:
-        transportTrailingToMore    = transportView.trailingAnchor.constraint(equalTo: moreButton.leadingAnchor, constant: -10)
-        transportTrailingToActions = transportView.trailingAnchor.constraint(equalTo: actionStack.leadingAnchor, constant: -10)
-        transportTrailingToMore.isActive    = true   // start in ••• mode
-        transportTrailingToActions.isActive = false
-
         NSLayoutConstraint.activate([
-            // Right side anchors
+            // Right side: Library → Kits → ••• (fixed, no responsive swap)
             patternsButton.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
             patternsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
             kitsButton.trailingAnchor.constraint(equalTo: patternsButton.leadingAnchor, constant: -8),
             kitsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
-            // ••• button — trailing anchored to kitsButton; leading drives transportView.trailing
             moreButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
             moreButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
             moreButton.heightAnchor.constraint(equalToConstant: 38),
 
-            // Inline action stack — trailing anchored to kitsButton; leading drives transportView.trailing
-            actionStack.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
-            actionStack.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
-
-            // Transport left side
+            // Transport fills from left edge to ••• button
             transportView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
             transportView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
+            transportView.trailingAnchor.constraint(equalTo: moreButton.leadingAnchor, constant: -10),
 
             // Sequencer
             sequencerView.topAnchor.constraint(equalTo: transportView.bottomAnchor, constant: 8),
@@ -304,10 +225,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func updateUndoState() {
-        let enabled = store.canUndo
-        undoButton.isEnabled = enabled
-        undoButton.alpha = enabled ? 1 : 0.4
-        // moreButton menu rebuilds fresh via UIDeferredMenuElement.uncached
+        // moreButton menu rebuilds fresh via UIDeferredMenuElement.uncached — nothing else to update
     }
 
     private func scheduleSessionSave() {
@@ -332,11 +250,36 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         store.setMasterGain(value)
         engine.setMasterGain(value)
     }
+    func transportDidRequestPatternLength(_ length: Int) {
+        sequencerDidRequestPatternLength(length)
+    }
 
     // MARK: - SequencerViewDelegate
 
     func sequencer(toggleStep trackId: String, step: Int) {
         store.toggleStep(trackId: trackId, step: step)
+    }
+
+    func sequencerDidRequestPatternLength(_ length: Int) {
+        if length == 16 && store.hasBar2Content {
+            let alert = UIAlertController(
+                title: "Switch to 1 Bar?",
+                message: "Bar 2 has steps programmed. Switching to 16 steps / 1 bar will remove them.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "Keep 2 Bars", style: .cancel))
+            alert.addAction(UIAlertAction(title: "Switch to 1 Bar", style: .destructive) { [weak self] _ in
+                self?.store.setPatternLength(16)
+            })
+            present(alert, animated: true)
+        } else {
+            store.setPatternLength(length)
+        }
+    }
+
+    func sequencerDidRequestDuplicateBar1() {
+        store.duplicateBar1()
+        toast.show("Bar 1 duplicated into Bar 2", tone: .ok)
     }
 
     // MARK: - Pattern library
@@ -389,7 +332,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     @objc private func quickSaveTapped() { promptSave(completion: nil) }
 
     @objc private func exportTapped() {
-        let source = inlineActionsVisible ? exportButton : moreButton
         let sheet = UIAlertController(title: "Export Mix", message: nil, preferredStyle: .actionSheet)
         let labels = ["Short Loop", "Medium Loop", "Long Loop", "Extended Loop"]
         for (i, bars) in [4, 8, 16, 32].enumerated() {
@@ -399,7 +341,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             })
         }
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        sheet.popoverPresentationController?.sourceView = source
+        sheet.popoverPresentationController?.sourceView = moreButton
         present(sheet, animated: true)
     }
 
@@ -412,8 +354,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 switch result {
                 case .success(let url):
                     let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-                    share.popoverPresentationController?.sourceView =
-                        self.inlineActionsVisible ? self.exportButton : self.moreButton
+                    share.popoverPresentationController?.sourceView = self.moreButton
                     self.present(share, animated: true)
                 case .failure(let err):
                     self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)
@@ -423,7 +364,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func promptSave(completion: ((Bool) -> Void)?) {
-        let source = inlineActionsVisible ? saveButton : moreButton
         if store.isCurrentPatternUserSaved {
             let name = store.patternName
             let sheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
@@ -434,7 +374,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 self?.promptSaveAsNew(completion: completion)
             })
             sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completion?(false) })
-            sheet.popoverPresentationController?.sourceView = source
+            sheet.popoverPresentationController?.sourceView = moreButton
             present(sheet, animated: true)
         } else {
             promptSaveAsNew(completion: completion)

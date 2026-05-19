@@ -73,7 +73,7 @@ final class AudioEngine {
             engine.connect(delay,  to: reverb,      format: format)
             engine.connect(reverb, to: masterMixer, format: format)
 
-            player.volume = store.volumes[track.id] ?? 1.0
+            player.volume = store.volumes(for: 0)[track.id] ?? 1.0
 
             dist.loadFactoryPreset(.multiDistortedFunk)
             reverb.loadFactoryPreset(.mediumRoom)
@@ -197,10 +197,25 @@ final class AudioEngine {
         }
     }
 
+    func applyBarSettings(barIndex: Int) {
+        let vols = store.volumes(for: barIndex)
+        let efxs = store.effects(for: barIndex)
+        for track in Tracks.all {
+            players[track.id]?.volume = vols[track.id] ?? 1.0
+            if let chain = fxChains[track.id] {
+                applyFX(efxs[track.id] ?? .default, chain: chain, tempo: store.tempo)
+            }
+        }
+    }
+
     private func schedule(step: Int, atHostSeconds hostSeconds: Double) {
-        // Read a lock-protected snapshot so we don't race with main-thread
-        // mutations of the pattern/mutes dictionaries.
         let snap = store.audioSnapshot()
+
+        // Switch to the correct bar's settings at each bar boundary
+        if step == snap.sequenceStart || (snap.sequenceLength == 32 && step == snap.sequenceStart + 16) {
+            let barIndex = (step - snap.sequenceStart) / 16
+            applyBarSettings(barIndex: barIndex)
+        }
 
         for track in Tracks.all {
             guard snap.mutes[track.id] != true,
@@ -222,7 +237,10 @@ final class AudioEngine {
 
     private func advance() {
         let base = stepDuration()
-        let nextStep = (currentStep + 1) % Tracks.stepCount
+        let snap = store.audioSnapshot()
+        let seqStart = snap.sequenceStart
+        let seqLen   = snap.sequenceLength
+        let nextStep = seqStart + ((currentStep - seqStart + 1) % seqLen)
         // Swing: delay offbeats by swing*base, compensate on the following downbeat.
         let nextIsOff = (nextStep % 2 == 1)
         let factor = nextIsOff ? (1 + store.swing) : (1 - store.swing)
@@ -239,13 +257,15 @@ final class AudioEngine {
             completion(.failure(ExportError.notPrepared)); return
         }
 
-        let snap       = store.audioSnapshot()
-        let volumes    = store.volumes
-        let master     = store.masterGain
-        let tempo      = store.tempo
-        let swing      = store.swing
-        let captured   = buffers
-        let sr         = sampleRate
+        let snap          = store.audioSnapshot()
+        let bar0Volumes   = store.volumes(for: 0)
+        let bar1Volumes   = store.volumes(for: 1)
+        let master        = store.masterGain
+        let tempo         = store.tempo
+        let swing         = store.swing
+        let patternLength = snap.patternLength
+        let captured      = buffers
+        let sr            = sampleRate
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
@@ -266,7 +286,7 @@ final class AudioEngine {
                 // 2 — mix tracks into a mono float array
                 var out = [Float](repeating: 0, count: totalFrames)
                 for step in 0..<total {
-                    let patStep = step % Tracks.stepCount
+                    let patStep = step % patternLength
                     let offset  = Int(times[step] * sr)
                     for track in Tracks.all {
                         guard snap.mutes[track.id] != true,
@@ -274,7 +294,8 @@ final class AudioEngine {
                               row.indices.contains(patStep), row[patStep],
                               let buf = captured[track.id],
                               let data = buf.floatChannelData?.pointee else { continue }
-                        let vol   = Float(volumes[track.id] ?? 1.0)
+                        let barIdx = patStep / 16
+                        let vol   = Float((barIdx == 1 ? bar1Volumes : bar0Volumes)[track.id] ?? 1.0)
                         let count = Int(buf.frameLength)
                         for i in 0..<count {
                             let idx = offset + i

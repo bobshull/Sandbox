@@ -5,17 +5,26 @@ struct Pattern: Codable {
     var name: String
     var tempo: Double
     var swing: Double
-    var rows: [String: [Bool]]   // trackId -> 16 booleans
-    var volumes: [String: Float]?
+    var rows: [String: [Bool]]   // trackId -> 16 or 32 booleans
+    var volumes: [String: Float]?        // bar 0
     var mutes: [String: Bool]?
-    var effects: [String: TrackEffects]?
+    var effects: [String: TrackEffects]? // bar 0
     var kitId: String?
+    var patternLength: Int?              // nil decodes as 16 (backward compat)
+    var bar2Volumes: [String: Float]?    // nil → copy bar 0 on load
+    var bar2Effects: [String: TrackEffects]? // nil → copy bar 0 on load
 }
 
 enum Presets {
     private static func row(_ positions: Int...) -> [Bool] {
         var r = Array(repeating: false, count: Tracks.stepCount)
         for p in positions where (0..<Tracks.stepCount).contains(p) { r[p] = true }
+        return r
+    }
+
+    private static func row2(_ positions: Int...) -> [Bool] {
+        var r = Array(repeating: false, count: 32)
+        for p in positions where (0..<32).contains(p) { r[p] = true }
         return r
     }
 
@@ -132,17 +141,17 @@ enum Presets {
         Pattern(id: "empty", name: "Empty", tempo: 96, swing: 0.0, rows: [:]),
     ]
 
-    static func emptyRows() -> [String: [Bool]] {
+    static func emptyRows(length: Int = Tracks.stepCount) -> [String: [Bool]] {
         var dict: [String: [Bool]] = [:]
         for t in Tracks.all {
-            dict[t.id] = Array(repeating: false, count: Tracks.stepCount)
+            dict[t.id] = Array(repeating: false, count: length)
         }
         return dict
     }
 
-    static func filledRows(from rows: [String: [Bool]]) -> [String: [Bool]] {
-        var out = emptyRows()
-        for (k, v) in rows where out[k] != nil && v.count == Tracks.stepCount {
+    static func filledRows(from rows: [String: [Bool]], length: Int = Tracks.stepCount) -> [String: [Bool]] {
+        var out = emptyRows(length: length)
+        for (k, v) in rows where out[k] != nil && v.count == length {
             out[k] = v
         }
         return out

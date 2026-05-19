@@ -6,6 +6,7 @@ protocol TransportViewDelegate: AnyObject {
     func transportSetTempo(_ value: Double)
     func transportSetSwing(_ value: Double)
     func transportSetMaster(_ value: Float)
+    func transportDidRequestPatternLength(_ length: Int)
 }
 
 final class TransportView: UIView {
@@ -16,6 +17,7 @@ final class TransportView: UIView {
     private let tempoChip   = UIButton(type: .system)
     private let swingChip   = UIButton(type: .system)
     private let masterChip  = UIButton(type: .system)
+    private let lengthChip  = UIButton(type: .system)
 
     private var cancellables = Set<AnyCancellable>()
     private let store: Store
@@ -33,15 +35,14 @@ final class TransportView: UIView {
 
     func setIsPlaying(_ playing: Bool) {
         var cfg = UIButton.Configuration.filled()
-        cfg.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
         cfg.background.cornerRadius = 19
         cfg.background.backgroundColor = playing ? Theme.backgroundElevated2 : Theme.accent
         cfg.background.strokeColor = playing ? Theme.accent.withAlphaComponent(0.4) : .clear
         cfg.background.strokeWidth = 1
-        var attrs = AttributeContainer()
-        attrs.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        attrs.foregroundColor = playing ? Theme.accent : UIColor(white: 0.1, alpha: 1)
-        cfg.attributedTitle = AttributedString(playing ? "■ Stop" : "▶ Play", attributes: attrs)
+        cfg.image = UIImage(systemName: playing ? "stop.fill" : "play.fill",
+                            withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold))
+        cfg.baseForegroundColor = playing ? Theme.accent : UIColor(white: 0.1, alpha: 1)
+        cfg.contentInsets = .zero
         playButton.configuration = cfg
     }
 
@@ -54,10 +55,12 @@ final class TransportView: UIView {
                 case .tempo:  self.setChip(self.tempoChip, value: store.tempo, suffix: " BPM", icon: "metronome")
                 case .swing:  self.setChip(self.swingChip, value: store.swing * 100, suffix: "%", icon: "waveform.path")
                 case .master: self.setChip(self.masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
+                case .patternLength: self.syncLengthChip()
                 case .load:
                     self.setChip(self.tempoChip, value: store.tempo, suffix: " BPM", icon: "metronome")
                     self.setChip(self.swingChip, value: store.swing * 100, suffix: "%", icon: "waveform.path")
                     self.setChip(self.masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
+                    self.syncLengthChip()
                 default: break
                 }
             }
@@ -75,12 +78,13 @@ final class TransportView: UIView {
         setupChip(tempoChip, tag: 0, width: 120)
         setupChip(swingChip, tag: 1, width: 105)
         setupChip(masterChip, tag: 2, width: 90)
+        setupChip(lengthChip, tag: 3, width: 90)
 
         NSLayoutConstraint.activate([
             playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
             playButton.topAnchor.constraint(equalTo: topAnchor),
             playButton.heightAnchor.constraint(equalToConstant: 38),
-            playButton.widthAnchor.constraint(equalToConstant: 100),
+            playButton.widthAnchor.constraint(equalToConstant: 38),
 
             tempoChip.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 10),
             tempoChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
@@ -90,6 +94,9 @@ final class TransportView: UIView {
 
             masterChip.leadingAnchor.constraint(equalTo: swingChip.trailingAnchor, constant: 8),
             masterChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
+
+            lengthChip.leadingAnchor.constraint(equalTo: masterChip.trailingAnchor, constant: 8),
+            lengthChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
 
             bottomAnchor.constraint(equalTo: playButton.bottomAnchor),
         ])
@@ -128,6 +135,25 @@ final class TransportView: UIView {
         setChip(tempoChip,  value: store.tempo,              suffix: " BPM", icon: "metronome")
         setChip(swingChip,  value: store.swing * 100,        suffix: "%",    icon: "waveform.path")
         setChip(masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
+        syncLengthChip()
+    }
+
+    private func syncLengthChip() {
+        let is32 = store.patternLength == 32
+        var cfg = UIButton.Configuration.plain()
+        cfg.title = is32 ? "2 Bars" : "1 Bar"
+        cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
+            var out = attrs
+            out.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
+            return out
+        }
+        cfg.baseForegroundColor = is32 ? Theme.accent : Theme.text
+        cfg.background.backgroundColor = Theme.backgroundElevated
+        cfg.background.strokeColor = is32 ? Theme.accent.withAlphaComponent(0.5) : Theme.border
+        cfg.background.strokeWidth = 1
+        cfg.background.cornerRadius = 19
+        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
+        lengthChip.configuration = cfg
     }
 
     // MARK: - Actions
@@ -153,13 +179,26 @@ final class TransportView: UIView {
                 self.setChip(self.swingChip, value: v, suffix: "%", icon: "waveform.path")
                 self.delegate?.transportSetSwing(v / 100)
             }
-        } else {
+        } else if sender.tag == 2 {
             showSlider(from: sender, title: "Master", min: 0, max: 100, step: 1,
                        value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2") { [weak self] v in
                 guard let self else { return }
                 self.setChip(self.masterChip, value: v, suffix: "%", icon: "speaker.wave.2")
                 self.delegate?.transportSetMaster(Float(v / 100))
             }
+        } else {
+            // Length chip — show 1 Bar / 2 Bars picker
+            guard let parentVC = parentViewController else { return }
+            let sheet = UIAlertController(title: "Pattern Length", message: nil, preferredStyle: .actionSheet)
+            sheet.addAction(UIAlertAction(title: "16 steps / 1 bar", style: store.patternLength == 16 ? .destructive : .default) { [weak self] _ in
+                self?.delegate?.transportDidRequestPatternLength(16)
+            })
+            sheet.addAction(UIAlertAction(title: "32 steps / 2 bars", style: store.patternLength == 32 ? .destructive : .default) { [weak self] _ in
+                self?.delegate?.transportDidRequestPatternLength(32)
+            })
+            sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            sheet.popoverPresentationController?.sourceView = sender
+            parentVC.present(sheet, animated: true)
         }
     }
 
