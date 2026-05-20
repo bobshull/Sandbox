@@ -155,10 +155,10 @@ final class PatternLibraryViewController: UIViewController,
         UICollectionViewCompositionalLayout { _, _ in
             let item = NSCollectionLayoutItem(
                 layoutSize: .init(widthDimension: .fractionalWidth(0.5),
-                                  heightDimension: .estimated(148)))
+                                  heightDimension: .estimated(130)))
             let group = NSCollectionLayoutGroup.horizontal(
                 layoutSize: .init(widthDimension: .fractionalWidth(1.0),
-                                  heightDimension: .estimated(148)),
+                                  heightDimension: .estimated(130)),
                 subitems: [item, item])
             group.interItemSpacing = .fixed(10)
 
@@ -271,12 +271,15 @@ final class PatternLibraryViewController: UIViewController,
 final class MixCardCell: UICollectionViewCell {
     static let id = "MixCardCell"
 
-    private let accentBar  = UIView()
-    private let nameLabel  = UILabel()
-    private let activeIcon = UIImageView()
-    private let beatGrid   = BeatGridView()
-    private let bpmPill    = PaddedLabel()
-    private let swingPill  = PaddedLabel()
+    private let accentBar    = UIView()
+    private let nameLabel    = UILabel()
+    private let activeIcon   = UIImageView()
+    private let beatGrid     = BeatGridView()
+    private let activityBars = BeatActivityView()
+    private let bpmPill      = PaddedLabel()
+    private let swingPill    = PaddedLabel()
+    private let kitPill      = PaddedLabel()
+    private let barPill      = PaddedLabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -285,12 +288,12 @@ final class MixCardCell: UICollectionViewCell {
         contentView.layer.cornerRadius = Theme.cornerMedium
         contentView.layer.masksToBounds = true
 
-        layer.cornerRadius   = Theme.cornerMedium
-        layer.masksToBounds  = false
-        layer.shadowColor    = UIColor.black.cgColor
-        layer.shadowOpacity  = 0.3
-        layer.shadowOffset   = CGSize(width: 0, height: 3)
-        layer.shadowRadius   = 6
+        layer.cornerRadius  = Theme.cornerMedium
+        layer.masksToBounds = false
+        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowOpacity = 0.3
+        layer.shadowOffset  = CGSize(width: 0, height: 3)
+        layer.shadowRadius  = 6
 
         accentBar.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(accentBar)
@@ -304,30 +307,52 @@ final class MixCardCell: UICollectionViewCell {
         activeIcon.image = UIImage(systemName: "waveform",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
         activeIcon.contentMode = .scaleAspectFit
+        activeIcon.isHidden    = true
         activeIcon.translatesAutoresizingMaskIntoConstraints = false
-        activeIcon.isHidden = true
         contentView.addSubview(activeIcon)
 
         beatGrid.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(beatGrid)
 
-        bpmPill.font              = .monospacedSystemFont(ofSize: 10, weight: .medium)
-        bpmPill.textColor         = Theme.accent
-        bpmPill.backgroundColor   = Theme.accent.withAlphaComponent(0.12)
+        activityBars.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(activityBars)
+
+        bpmPill.font               = .monospacedSystemFont(ofSize: 10, weight: .medium)
+        bpmPill.textColor          = Theme.accent
+        bpmPill.backgroundColor    = Theme.accent.withAlphaComponent(0.12)
         bpmPill.layer.cornerRadius = 4
         bpmPill.layer.masksToBounds = true
-        bpmPill.textAlignment     = .center
+        bpmPill.textAlignment      = .center
         bpmPill.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(bpmPill)
 
-        swingPill.font              = .monospacedSystemFont(ofSize: 10, weight: .medium)
-        swingPill.textColor         = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 1)
-        swingPill.backgroundColor   = UIColor(red: 0.608, green: 0.965, blue: 1.0, alpha: 1)
+        swingPill.font               = .monospacedSystemFont(ofSize: 10, weight: .medium)
+        swingPill.textColor          = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 1)
+        swingPill.backgroundColor    = UIColor(red: 0.608, green: 0.965, blue: 1.0, alpha: 1)
         swingPill.layer.cornerRadius = 4
         swingPill.layer.masksToBounds = true
-        swingPill.textAlignment     = .center
+        swingPill.textAlignment      = .center
         swingPill.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(swingPill)
+
+        let kitColor = UIColor(red: 1.0, green: 0.82, blue: 0.40, alpha: 1)
+        kitPill.font               = .monospacedSystemFont(ofSize: 10, weight: .medium)
+        kitPill.textColor          = kitColor
+        kitPill.backgroundColor    = kitColor.withAlphaComponent(0.12)
+        kitPill.layer.cornerRadius = 4
+        kitPill.layer.masksToBounds = true
+        kitPill.textAlignment      = .center
+        kitPill.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(kitPill)
+
+        barPill.font               = .monospacedSystemFont(ofSize: 10, weight: .medium)
+        barPill.textColor          = Theme.ok
+        barPill.backgroundColor    = Theme.ok.withAlphaComponent(0.12)
+        barPill.layer.cornerRadius = 4
+        barPill.layer.masksToBounds = true
+        barPill.textAlignment      = .center
+        barPill.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(barPill)
 
         NSLayoutConstraint.activate([
             accentBar.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -344,17 +369,31 @@ final class MixCardCell: UICollectionViewCell {
             activeIcon.widthAnchor.constraint(equalToConstant: 16),
             activeIcon.heightAnchor.constraint(equalToConstant: 16),
 
+            // Beat grid: original left-aligned position
             beatGrid.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 10),
             beatGrid.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             beatGrid.widthAnchor.constraint(equalToConstant: BeatGridView.W),
             beatGrid.heightAnchor.constraint(equalToConstant: BeatGridView.H),
 
+            // Activity chart: right side, vertically centered on beat grid
+            activityBars.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            activityBars.centerYAnchor.constraint(equalTo: beatGrid.centerYAnchor),
+            activityBars.widthAnchor.constraint(equalToConstant: BeatActivityView.W),
+            activityBars.heightAnchor.constraint(equalToConstant: BeatActivityView.H),
+
+            // Single pill row: BPM · swing · kit · bar
             bpmPill.topAnchor.constraint(equalTo: beatGrid.bottomAnchor, constant: 10),
             bpmPill.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             bpmPill.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
 
             swingPill.leadingAnchor.constraint(equalTo: bpmPill.trailingAnchor, constant: 6),
             swingPill.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
+
+            kitPill.leadingAnchor.constraint(equalTo: swingPill.trailingAnchor, constant: 6),
+            kitPill.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
+
+            barPill.leadingAnchor.constraint(equalTo: kitPill.trailingAnchor, constant: 6),
+            barPill.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
         ])
     }
 
@@ -376,9 +415,14 @@ final class MixCardCell: UICollectionViewCell {
         bpmPill.text   = "\(Int(pattern.tempo)) BPM"
         swingPill.text = "swing \(Int((pattern.swing * 100).rounded()))%"
         beatGrid.configure(rows: pattern.rows)
-        accentBar.backgroundColor = color
+        activityBars.configure(rows: pattern.rows, color: color)
+        accentBar.backgroundColor = color.withAlphaComponent(0.78)
 
-        activeIcon.isHidden = !isActive
+        kitPill.text = SampleKits.find(pattern.kitId ?? "studio").name
+        let bars = max(1, (pattern.patternLength ?? 16) / 16)
+        barPill.text = bars == 1 ? "1 Bar" : "\(bars) Bars"
+
+        activeIcon.isHidden  = !isActive
         activeIcon.tintColor = color
 
         if isActive {
@@ -507,6 +551,58 @@ final class BeatGridView: UIView {
                     ? UIColor(red: tc.0, green: tc.1, blue: tc.2, alpha: 1)
                     : UIColor(white: 1, alpha: 0.08)
             }
+        }
+    }
+}
+
+// MARK: - BeatActivityView
+
+final class BeatActivityView: UIView {
+    static let barW:  CGFloat = 6
+    static let barGap: CGFloat = 4
+    static let W = 4 * barW + 3 * barGap   // 36pt
+    static let H = BeatGridView.H           // matches beat grid height
+
+    private let bars: [UIView] = (0..<4).map { _ in UIView() }
+    private var heights: [NSLayoutConstraint] = []
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        var cs: [NSLayoutConstraint] = []
+        for (i, bar) in bars.enumerated() {
+            bar.layer.cornerRadius = Self.barW / 2
+            bar.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(bar)
+            let hc = bar.heightAnchor.constraint(equalToConstant: 2)
+            heights.append(hc)
+            cs += [
+                bar.widthAnchor.constraint(equalToConstant: Self.barW),
+                bar.bottomAnchor.constraint(equalTo: bottomAnchor),
+                bar.leadingAnchor.constraint(equalTo: leadingAnchor,
+                    constant: CGFloat(i) * (Self.barW + Self.barGap)),
+                hc,
+            ]
+        }
+        NSLayoutConstraint.activate(cs)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(rows: [String: [Bool]], color: UIColor) {
+        var counts = [0, 0, 0, 0]
+        for steps in rows.values {
+            for beat in 0..<4 {
+                for step in 0..<4 {
+                    let idx = beat * 4 + step
+                    if idx < steps.count && steps[idx] { counts[beat] += 1 }
+                }
+            }
+        }
+        let peak = max(1, counts.max() ?? 1)
+        for (i, bar) in bars.enumerated() {
+            let ratio = CGFloat(counts[i]) / CGFloat(peak)
+            heights[i].constant = 2 + ratio * (Self.H - 2)
+            bar.backgroundColor = color.withAlphaComponent(0.25 + 0.55 * ratio)
         }
     }
 }
