@@ -100,6 +100,9 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
             var out = attrs; out.font = .systemFont(ofSize: 12, weight: .semibold); return out
         }
+        cfg.image = UIImage(systemName: "speaker.wave.2.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .semibold))
+        cfg.imagePlacement = .leading
+        cfg.imagePadding = 4
         cfg.background.cornerRadius = 6
         cfg.background.strokeWidth = 1
         cfg.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8)
@@ -114,6 +117,8 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         for (idx, button) in [(0, bar1Button), (1, bar2Button)] {
             let isEnabled = idx < enabled.count && enabled[idx]
             var cfg = button.configuration ?? .plain()
+            let iconName = isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill"
+            cfg.image = UIImage(systemName: iconName, withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .semibold))
             cfg.background.backgroundColor = isEnabled ? Theme.accent.withAlphaComponent(0.22) : Theme.backgroundElevated
             cfg.background.strokeColor     = isEnabled ? Theme.accent : Theme.border
             cfg.baseForegroundColor        = isEnabled ? Theme.accent : Theme.textFaint
