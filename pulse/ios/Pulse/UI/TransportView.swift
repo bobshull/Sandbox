@@ -35,14 +35,14 @@ final class TransportView: UIView {
 
     func setIsPlaying(_ playing: Bool) {
         var cfg = UIButton.Configuration.filled()
-        cfg.background.cornerRadius = 19
+        cfg.background.cornerRadius = 8
         cfg.background.backgroundColor = playing ? Theme.backgroundElevated2 : Theme.accent
-        cfg.background.strokeColor = playing ? Theme.accent.withAlphaComponent(0.4) : .clear
-        cfg.background.strokeWidth = 1
+        cfg.background.strokeColor = playing ? Theme.accent : .clear
+        cfg.background.strokeWidth = playing ? 1.5 : 0
         cfg.image = UIImage(systemName: playing ? "stop.fill" : "play.fill",
                             withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold))
         cfg.baseForegroundColor = playing ? Theme.accent : UIColor(white: 0.1, alpha: 1)
-        cfg.contentInsets = .zero
+        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
         playButton.configuration = cfg
     }
 
@@ -84,7 +84,7 @@ final class TransportView: UIView {
             playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
             playButton.topAnchor.constraint(equalTo: topAnchor),
             playButton.heightAnchor.constraint(equalToConstant: 38),
-            playButton.widthAnchor.constraint(equalToConstant: 38),
+            playButton.widthAnchor.constraint(equalToConstant: 54),
 
             tempoChip.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 10),
             tempoChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),

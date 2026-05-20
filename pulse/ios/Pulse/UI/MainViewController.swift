@@ -11,9 +11,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private lazy var sequencerView = SequencerView(store: store, engine: engine)
     private lazy var toast = ToastPresenter(host: view)
 
-    private let patternsButton = UIButton(type: .system)
-    private let kitsButton     = UIButton(type: .system)
-    private let moreButton     = UIButton(type: .system)
+    private let patternsButton  = UIButton(type: .system)
+    private let kitsButton      = UIButton(type: .system)
+    private let moreButton      = UIButton(type: .system)
+    private let headerSeparator = UIView()
 
     private var levelMeterStrip: LevelMeterStripView?
     private var cancellables = Set<AnyCancellable>()
@@ -41,7 +42,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private func loadInitialPreset() {
         if let session = PatternStore.loadSession() {
             store.loadSession(session)
-        } else if let preset = Presets.all.first(where: { $0.id == "floor-filler" }) {
+        } else if let preset = Presets.all.first(where: { $0.id != "empty" }) {
             store.loadPattern(preset)
         }
         applyTrackVolumesToEngine()
@@ -113,6 +114,12 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         transportView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(transportView)
 
+        // ── Header separator ──────────────────────────────────────────────
+        headerSeparator.backgroundColor = UIColor.white.withAlphaComponent(0.05)
+        headerSeparator.isUserInteractionEnabled = false
+        headerSeparator.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(headerSeparator)
+
         // ── Sequencer ─────────────────────────────────────────────────────
         sequencerView.delegate = self
         sequencerView.translatesAutoresizingMaskIntoConstraints = false
@@ -132,6 +139,12 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             moreButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
             moreButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
             moreButton.heightAnchor.constraint(equalToConstant: 38),
+
+            // Header separator — centered in the 8pt gap between header and grid
+            headerSeparator.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
+            headerSeparator.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
+            headerSeparator.heightAnchor.constraint(equalToConstant: 1),
+            headerSeparator.topAnchor.constraint(equalTo: transportView.bottomAnchor, constant: 4),
 
             // Transport fills from left edge to ••• button
             transportView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),

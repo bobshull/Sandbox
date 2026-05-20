@@ -14,13 +14,13 @@ final class PatternLibraryViewController: UIViewController,
 
     private static let presetMeta: [(String, UIColor, [String])] = [
         ("Electronic",    Theme.accent,
-             ["floor-filler", "dubstep", "house-pulse", "breakbeat"]),
+             ["jungle-chop", "808-memphis", "arcade-rush", "space-drift"]),
         ("Hip-Hop",       UIColor(red: 1.00, green: 0.820, blue: 0.400, alpha: 1),
-             ["boom-bap", "half-time"]),
+             ["boom-bap-classic", "dusty-breaks", "jazz-brush"]),
         ("Chill / Lo-Fi", Theme.accent2,
-             ["lofi-shuffle", "chillhop", "tape-deck"]),
-        ("Minimal",       Theme.textDim,
-             ["minimal", "empty"]),
+             ["rainy-lofi", "marimba-groove", "wind-garden"]),
+        ("Ambient",       Theme.textDim,
+             ["music-box-fantasy", "glass-ritual", "empty"]),
     ]
     private static let userColor = Theme.ok
 
