@@ -33,7 +33,6 @@ final class PatternLibraryViewController: UIViewController,
 
     private var categories: [Category] = []
     private var userPatterns: [Pattern] = []
-    private var selectedBarLength: [String: Int] = [:]
     private let currentName: String
     private let currentPatternId: String
     private let currentKitId: String
@@ -87,7 +86,6 @@ final class PatternLibraryViewController: UIViewController,
         ])
 
         reload()
-        initSelectedBarLengths()
     }
 
     // MARK: - Header
@@ -166,10 +164,10 @@ final class PatternLibraryViewController: UIViewController,
         UICollectionViewCompositionalLayout { _, _ in
             let item = NSCollectionLayoutItem(
                 layoutSize: .init(widthDimension: .fractionalWidth(0.5),
-                                  heightDimension: .estimated(145)))
+                                  heightDimension: .estimated(130)))
             let group = NSCollectionLayoutGroup.horizontal(
                 layoutSize: .init(widthDimension: .fractionalWidth(1.0),
-                                  heightDimension: .estimated(145)),
+                                  heightDimension: .estimated(130)),
                 subitems: [item, item])
             group.interItemSpacing = .fixed(10)
 
@@ -213,16 +211,6 @@ final class PatternLibraryViewController: UIViewController,
         collectionView?.reloadData()
     }
 
-    private func initSelectedBarLengths() {
-        for category in categories {
-            for group in category.groups {
-                if group.twoBar?.id == currentPatternId {
-                    selectedBarLength[group.baseId] = 2
-                }
-            }
-        }
-    }
-
     @objc private func closeTapped() { dismiss(animated: true) }
 
     // MARK: - DataSource
@@ -246,25 +234,15 @@ final class PatternLibraryViewController: UIViewController,
         if indexPath.section < categories.count {
             let group = categories[indexPath.section].groups[indexPath.row]
             let color = categories[indexPath.section].color
-            let selLen = selectedBarLength[group.baseId] ?? 1
             let isActive = group.oneBar.id == currentPatternId
                         || group.twoBar?.id == currentPatternId
-            cell.configure(with: group, selectedBarLength: selLen, color: color, isActive: isActive)
-            cell.onBarLengthChanged = { [weak self] length in
-                guard let self else { return }
-                self.selectedBarLength[group.baseId] = length
-                let pattern = length == 2 ? (group.twoBar ?? group.oneBar) : group.oneBar
-                self.dismiss(animated: true) { [weak self] in
-                    self?.delegate?.patternLibraryDidPick(pattern)
-                }
-            }
+            cell.configure(with: group, color: color, isActive: isActive)
         } else {
             let pattern = userPatterns[indexPath.row]
             let wrapped = PresetGroup(baseId: pattern.id, name: pattern.name,
                                       oneBar: pattern, twoBar: nil)
-            let isActive = pattern.id == currentPatternId
-            cell.configure(with: wrapped, selectedBarLength: 1, color: Self.userColor, isActive: isActive)
-            cell.onBarLengthChanged = nil
+            cell.configure(with: wrapped, color: Self.userColor,
+                           isActive: pattern.id == currentPatternId)
         }
         return cell
     }
@@ -288,9 +266,7 @@ final class PatternLibraryViewController: UIViewController,
                         didSelectItemAt indexPath: IndexPath) {
         let pattern: Pattern
         if indexPath.section < categories.count {
-            let group = categories[indexPath.section].groups[indexPath.row]
-            let length = selectedBarLength[group.baseId] ?? 1
-            pattern = length == 2 ? (group.twoBar ?? group.oneBar) : group.oneBar
+            pattern = categories[indexPath.section].groups[indexPath.row].oneBar
         } else {
             guard !userPatterns.isEmpty else { return }
             pattern = userPatterns[indexPath.row]
@@ -320,8 +296,6 @@ final class PatternLibraryViewController: UIViewController,
 final class MixCardCell: UICollectionViewCell {
     static let id = "MixCardCell"
 
-    var onBarLengthChanged: ((Int) -> Void)?
-
     private let accentBar    = UIView()
     private let nameLabel    = UILabel()
     private let activeIcon   = UIImageView()
@@ -330,11 +304,7 @@ final class MixCardCell: UICollectionViewCell {
     private let bpmPill      = PaddedLabel()
     private let swingPill    = PaddedLabel()
     private let kitPill      = PaddedLabel()
-    private let barSelector  = UISegmentedControl(items: ["1 Bar", "2 Bars"])
-
-    private var pillsBottomC:    NSLayoutConstraint!
-    private var selectorTopC:    NSLayoutConstraint!
-    private var selectorBottomC: NSLayoutConstraint!
+    private let barPill      = PaddedLabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -400,16 +370,14 @@ final class MixCardCell: UICollectionViewCell {
         kitPill.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(kitPill)
 
-        let smallFont = UIFont.systemFont(ofSize: 11, weight: .medium)
-        barSelector.setTitleTextAttributes([.font: smallFont], for: .normal)
-        barSelector.setTitleTextAttributes([.font: smallFont], for: .selected)
-        barSelector.addTarget(self, action: #selector(barSelectorChanged), for: .valueChanged)
-        barSelector.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(barSelector)
-
-        pillsBottomC    = bpmPill.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
-        selectorTopC    = barSelector.topAnchor.constraint(equalTo: bpmPill.bottomAnchor, constant: 6)
-        selectorBottomC = barSelector.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
+        barPill.font               = .monospacedSystemFont(ofSize: 10, weight: .medium)
+        barPill.textColor          = Theme.ok
+        barPill.backgroundColor    = Theme.ok.withAlphaComponent(0.12)
+        barPill.layer.cornerRadius = 4
+        barPill.layer.masksToBounds = true
+        barPill.textAlignment      = .center
+        barPill.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(barPill)
 
         NSLayoutConstraint.activate([
             accentBar.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -438,6 +406,7 @@ final class MixCardCell: UICollectionViewCell {
 
             bpmPill.topAnchor.constraint(equalTo: beatGrid.bottomAnchor, constant: 10),
             bpmPill.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            bpmPill.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
 
             swingPill.leadingAnchor.constraint(equalTo: bpmPill.trailingAnchor, constant: 6),
             swingPill.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
@@ -445,19 +414,12 @@ final class MixCardCell: UICollectionViewCell {
             kitPill.leadingAnchor.constraint(equalTo: swingPill.trailingAnchor, constant: 6),
             kitPill.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
 
-            barSelector.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            barSelector.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-
-            pillsBottomC,
+            barPill.leadingAnchor.constraint(equalTo: kitPill.trailingAnchor, constant: 6),
+            barPill.centerYAnchor.constraint(equalTo: bpmPill.centerYAnchor),
         ])
     }
 
     required init?(coder: NSCoder) { fatalError() }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        onBarLengthChanged = nil
-    }
 
     override var isHighlighted: Bool {
         didSet {
@@ -470,32 +432,18 @@ final class MixCardCell: UICollectionViewCell {
         }
     }
 
-    fileprivate func configure(with group: PresetGroup, selectedBarLength: Int, color: UIColor, isActive: Bool) {
+    fileprivate func configure(with group: PresetGroup, color: UIColor, isActive: Bool) {
+        let pattern = group.oneBar
         nameLabel.text = group.name
-        bpmPill.text   = "\(Int(group.oneBar.tempo)) BPM"
-        swingPill.text = "swing \(Int((group.oneBar.swing * 100).rounded()))%"
-        kitPill.text   = SampleKits.find(group.oneBar.kitId ?? "studio").name
+        bpmPill.text   = "\(Int(pattern.tempo)) BPM"
+        swingPill.text = "swing \(Int((pattern.swing * 100).rounded()))%"
+        kitPill.text   = SampleKits.find(pattern.kitId ?? "studio").name
+        let bars = max(1, (pattern.patternLength ?? 16) / 16)
+        barPill.text   = bars == 1 ? "1 Bar" : "\(bars) Bars"
         accentBar.backgroundColor = color.withAlphaComponent(0.78)
 
-        let displayPattern = selectedBarLength == 2 ? (group.twoBar ?? group.oneBar) : group.oneBar
-        beatGrid.configure(rows: displayPattern.rows)
-        activityBars.configure(rows: displayPattern.rows, color: color)
-
-        if let _ = group.twoBar {
-            barSelector.isHidden = false
-            barSelector.selectedSegmentIndex = selectedBarLength == 2 ? 1 : 0
-            barSelector.selectedSegmentTintColor = color.withAlphaComponent(0.75)
-
-            if pillsBottomC.isActive    { pillsBottomC.isActive    = false }
-            if !selectorTopC.isActive   { selectorTopC.isActive    = true  }
-            if !selectorBottomC.isActive { selectorBottomC.isActive = true  }
-        } else {
-            barSelector.isHidden = true
-
-            if !pillsBottomC.isActive   { pillsBottomC.isActive    = true  }
-            if selectorTopC.isActive    { selectorTopC.isActive    = false }
-            if selectorBottomC.isActive { selectorBottomC.isActive = false }
-        }
+        beatGrid.configure(rows: pattern.rows)
+        activityBars.configure(rows: pattern.rows, color: color)
 
         activeIcon.isHidden  = !isActive
         activeIcon.tintColor = color
@@ -515,11 +463,6 @@ final class MixCardCell: UICollectionViewCell {
             layer.shadowOpacity           = 0.28
             layer.shadowRadius            = 6
         }
-    }
-
-    @objc private func barSelectorChanged(_ sender: UISegmentedControl) {
-        let length = sender.selectedSegmentIndex == 1 ? 2 : 1
-        onBarLengthChanged?(length)
     }
 }
 
