@@ -530,10 +530,13 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     // MARK: - Scroll sync
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if scrollView.contentOffset.y != 0 {
+            scrollView.contentOffset.y = 0
+        }
         guard !syncing else { return }
         syncing = true
         defer { syncing = false }
-        let offset = scrollView.contentOffset
+        let offset = CGPoint(x: scrollView.contentOffset.x, y: 0)
         if scrollView !== headerScrollView {
             headerScrollView.contentOffset = offset
         }
@@ -565,7 +568,7 @@ private final class HorizontalOnlyScrollView: UIScrollView {
         guard let pan = gr as? UIPanGestureRecognizer else {
             return super.gestureRecognizerShouldBegin(gr)
         }
-        let v = pan.velocity(in: self)
-        return abs(v.x) >= abs(v.y)
+        let t = pan.translation(in: self)
+        return abs(t.x) > abs(t.y) * 1.5
     }
 }
