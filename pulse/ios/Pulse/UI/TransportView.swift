@@ -13,7 +13,7 @@ final class TransportView: UIView {
 
     weak var delegate: TransportViewDelegate?
 
-    private let playButton  = UIButton(type: .system)
+    private let playButton  = PlayButton()
     private let tempoChip   = UIButton(type: .system)
     private let swingChip   = UIButton(type: .system)
     private let masterChip  = UIButton(type: .system)
@@ -346,6 +346,45 @@ final class SliderPopoverViewController: UIViewController {
 
     private func format(_ v: Double) -> String {
         "\(Int(v.rounded()))\(suffix)"
+    }
+}
+
+// MARK: - PlayButton
+
+private final class PlayButton: UIButton {
+    private let shineLayer  = CAGradientLayer()
+    private let shadowLayer = CAGradientLayer()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        shineLayer.startPoint    = CGPoint(x: 0.5, y: 0.0)
+        shineLayer.endPoint      = CGPoint(x: 0.5, y: 1.0)
+        shineLayer.colors        = [UIColor.white.withAlphaComponent(0.30).cgColor,
+                                    UIColor.white.withAlphaComponent(0.10).cgColor,
+                                    UIColor.clear.cgColor]
+        shineLayer.locations     = [0, 0.35, 0.65]
+        shineLayer.cornerRadius  = 8
+        shineLayer.cornerCurve   = .continuous
+        shineLayer.masksToBounds = true
+
+        shadowLayer.startPoint    = CGPoint(x: 0.5, y: 0.4)
+        shadowLayer.endPoint      = CGPoint(x: 0.5, y: 1.0)
+        shadowLayer.colors        = [UIColor.clear.cgColor,
+                                     UIColor.black.withAlphaComponent(0.28).cgColor]
+        shadowLayer.cornerRadius  = 8
+        shadowLayer.cornerCurve   = .continuous
+        shadowLayer.masksToBounds = true
+
+        layer.addSublayer(shineLayer)
+        layer.addSublayer(shadowLayer)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        shineLayer.frame  = bounds
+        shadowLayer.frame = bounds
     }
 }
 

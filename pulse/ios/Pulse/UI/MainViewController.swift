@@ -146,7 +146,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
             moreButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
             moreButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
-            moreButton.heightAnchor.constraint(equalToConstant: 38),
 
             // Header separator — centered in the 8pt gap between header and grid
             headerSeparator.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
