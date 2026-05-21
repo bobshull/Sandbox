@@ -452,6 +452,10 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         for (i, label) in stepLabels.enumerated() {
             label.textColor = (i == active) ? Theme.accent : ((i % 4 == 0) ? Theme.text : Theme.textFaint)
         }
+        if engine.isPlaying, store.patternLength == 32, active >= 0 {
+            let bar = active / 16
+            if bar != activePage { scrollToPage(bar, animated: true) }
+        }
     }
 
     private func syncMutes() {
