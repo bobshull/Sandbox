@@ -296,10 +296,12 @@ final class PatternLibraryViewController: UIViewController,
 final class MixCardCell: UICollectionViewCell {
     static let id = "MixCardCell"
 
-    private let accentBar    = UIView()
-    private let nameLabel    = UILabel()
-    private let activeIcon   = UIImageView()
-    private let beatGrid     = BeatGridView()
+    private let accentBar       = UIView()
+    private let nameLabel       = UILabel()
+    private let nowPlayingPill  = UIView()
+    private let nowPlayingIcon  = UIImageView()
+    private let nowPlayingLabel = UILabel()
+    private let beatGrid        = BeatGridView()
     private let activityBars = BeatActivityView()
     private let bpmPill      = PaddedLabel()
     private let swingPill    = PaddedLabel()
@@ -329,12 +331,22 @@ final class MixCardCell: UICollectionViewCell {
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(nameLabel)
 
-        activeIcon.image = UIImage(systemName: "waveform",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
-        activeIcon.contentMode = .scaleAspectFit
-        activeIcon.isHidden    = true
-        activeIcon.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(activeIcon)
+        nowPlayingPill.layer.cornerRadius  = 10
+        nowPlayingPill.layer.borderWidth   = 1.5
+        nowPlayingPill.isHidden            = true
+        nowPlayingPill.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(nowPlayingPill)
+
+        nowPlayingIcon.image = UIImage(systemName: "speaker.wave.2.fill",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 9, weight: .bold))
+        nowPlayingIcon.contentMode = .scaleAspectFit
+        nowPlayingIcon.translatesAutoresizingMaskIntoConstraints = false
+        nowPlayingPill.addSubview(nowPlayingIcon)
+
+        nowPlayingLabel.text = "Now Playing"
+        nowPlayingLabel.font = .systemFont(ofSize: 9, weight: .bold)
+        nowPlayingLabel.translatesAutoresizingMaskIntoConstraints = false
+        nowPlayingPill.addSubview(nowPlayingLabel)
 
         beatGrid.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(beatGrid)
@@ -382,20 +394,28 @@ final class MixCardCell: UICollectionViewCell {
         NSLayoutConstraint.activate([
             accentBar.topAnchor.constraint(equalTo: contentView.topAnchor),
             accentBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            accentBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            accentBar.heightAnchor.constraint(equalToConstant: 4),
+            accentBar.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            accentBar.widthAnchor.constraint(equalToConstant: 4),
 
-            nameLabel.topAnchor.constraint(equalTo: accentBar.bottomAnchor, constant: 10),
-            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
-            nameLabel.trailingAnchor.constraint(equalTo: activeIcon.leadingAnchor, constant: -4),
+            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            nameLabel.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 12),
+            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
 
-            activeIcon.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
-            activeIcon.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            activeIcon.widthAnchor.constraint(equalToConstant: 16),
-            activeIcon.heightAnchor.constraint(equalToConstant: 16),
+            nowPlayingPill.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
+            nowPlayingPill.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -6),
+            nowPlayingPill.heightAnchor.constraint(equalToConstant: 20),
+
+            nowPlayingIcon.leadingAnchor.constraint(equalTo: nowPlayingPill.leadingAnchor, constant: 6),
+            nowPlayingIcon.centerYAnchor.constraint(equalTo: nowPlayingPill.centerYAnchor),
+            nowPlayingIcon.widthAnchor.constraint(equalToConstant: 10),
+            nowPlayingIcon.heightAnchor.constraint(equalToConstant: 10),
+
+            nowPlayingLabel.leadingAnchor.constraint(equalTo: nowPlayingIcon.trailingAnchor, constant: 4),
+            nowPlayingLabel.trailingAnchor.constraint(equalTo: nowPlayingPill.trailingAnchor, constant: -7),
+            nowPlayingLabel.centerYAnchor.constraint(equalTo: nowPlayingPill.centerYAnchor),
 
             beatGrid.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 10),
-            beatGrid.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            beatGrid.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 12),
             beatGrid.widthAnchor.constraint(equalToConstant: BeatGridView.W),
             beatGrid.heightAnchor.constraint(equalToConstant: BeatGridView.H),
 
@@ -405,7 +425,7 @@ final class MixCardCell: UICollectionViewCell {
             activityBars.heightAnchor.constraint(equalToConstant: BeatActivityView.H),
 
             bpmPill.topAnchor.constraint(equalTo: beatGrid.bottomAnchor, constant: 10),
-            bpmPill.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            bpmPill.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 12),
             bpmPill.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
 
             swingPill.leadingAnchor.constraint(equalTo: bpmPill.trailingAnchor, constant: 6),
@@ -445,24 +465,24 @@ final class MixCardCell: UICollectionViewCell {
         beatGrid.configure(rows: pattern.rows)
         activityBars.configure(rows: pattern.rows, color: color)
 
-        activeIcon.isHidden  = !isActive
-        activeIcon.tintColor = color
+        nowPlayingPill.isHidden            = !isActive
+        nowPlayingPill.backgroundColor     = color.withAlphaComponent(0.12)
+        nowPlayingPill.layer.borderColor   = color.withAlphaComponent(0.7).cgColor
+        nowPlayingIcon.tintColor           = color
+        nowPlayingLabel.textColor          = color
 
         if isActive {
             contentView.backgroundColor   = Theme.backgroundElevated2
             contentView.layer.borderWidth = 1.5
             contentView.layer.borderColor = color.withAlphaComponent(0.75).cgColor
-            layer.shadowColor             = color.cgColor
-            layer.shadowOpacity           = 0.35
-            layer.shadowRadius            = 12
         } else {
             contentView.backgroundColor   = Theme.backgroundElevated
             contentView.layer.borderWidth = 1
             contentView.layer.borderColor = Theme.border.cgColor
-            layer.shadowColor             = UIColor.black.cgColor
-            layer.shadowOpacity           = 0.28
-            layer.shadowRadius            = 6
         }
+        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowOpacity = 0.28
+        layer.shadowRadius  = 6
     }
 }
 

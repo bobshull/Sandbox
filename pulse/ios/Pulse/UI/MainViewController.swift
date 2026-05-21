@@ -308,13 +308,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             sheet.addAction(UIAlertAction(title: "Start with Blank Bar 2", style: .default) { [weak self] _ in
                 self?.store.setPatternLength(32)
             })
-            if let preset = matchingPreset {
-                sheet.addAction(UIAlertAction(
-                    title: "Load \"\(preset.name)\" 2-Bar — replaces unsaved changes",
-                    style: .destructive) { [weak self] _ in
-                    self?.doLoadPattern(preset)
-                })
-            }
         } else {
             if let preset = matchingPreset {
                 sheet.addAction(UIAlertAction(title: "Use Matching 2-Bar Preset", style: .default) { [weak self] _ in
@@ -334,7 +327,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         sheet.popoverPresentationController?.sourceRect = CGRect(
             x: transportView.bounds.midX, y: transportView.bounds.minY, width: 0, height: 0)
 
-        DispatchQueue.main.async { [weak self] in self?.present(sheet, animated: true) }
+        presentWhenReady(sheet)
     }
 
     private func expandDuplicate() {
@@ -354,9 +347,22 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             alert.addAction(UIAlertAction(title: "Switch to 1 Bar", style: .default) { [weak self] _ in
                 self?.store.setPatternLength(16)
             })
-            DispatchQueue.main.async { [weak self] in self?.present(alert, animated: true) }
+            presentWhenReady(alert)
         } else {
             store.setPatternLength(16)
+        }
+    }
+
+    // Waits for any in-flight dismissal to complete before presenting, so we never
+    // call present while a previous sheet's dismiss animation is still running.
+    private func presentWhenReady(_ vc: UIViewController, attempt: Int = 0) {
+        guard attempt < 10 else { return }
+        if presentedViewController != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.presentWhenReady(vc, attempt: attempt + 1)
+            }
+        } else {
+            present(vc, animated: true)
         }
     }
 
@@ -413,10 +419,13 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func doLoadPattern(_ pattern: Pattern) {
+        let wasPlaying = engine.isPlaying
+        if wasPlaying { engine.stop() }
         store.loadPattern(pattern)
         applyTrackVolumesToEngine()
         applyTrackEffectsToEngine()
         engine.reloadKit(store.currentKitId)
+        if wasPlaying { engine.start() }
         toast.show("Loaded \"\(pattern.name)\"", tone: .ok)
     }
 

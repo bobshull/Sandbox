@@ -197,7 +197,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         updateBarButtonsVisible()
         syncBarButtons()
 
-        if flashScrollbar && is32 {
+        if flashScrollbar && is32 && !engine.isPlaying {
             // Briefly peek into Bar 2 so the user knows it's there
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 guard let self else { return }
@@ -452,6 +452,10 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         for (i, label) in stepLabels.enumerated() {
             label.textColor = (i == active) ? Theme.accent : ((i % 4 == 0) ? Theme.text : Theme.textFaint)
         }
+        if engine.isPlaying, store.patternLength == 32, active >= 0 {
+            let bar = active / 16
+            if bar != activePage { scrollToPage(bar, animated: true) }
+        }
     }
 
     private func syncMutes() {
@@ -530,10 +534,13 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     // MARK: - Scroll sync
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if scrollView.contentOffset.y != 0 {
+            scrollView.contentOffset.y = 0
+        }
         guard !syncing else { return }
         syncing = true
         defer { syncing = false }
-        let offset = scrollView.contentOffset
+        let offset = CGPoint(x: scrollView.contentOffset.x, y: 0)
         if scrollView !== headerScrollView {
             headerScrollView.contentOffset = offset
         }
@@ -565,7 +572,7 @@ private final class HorizontalOnlyScrollView: UIScrollView {
         guard let pan = gr as? UIPanGestureRecognizer else {
             return super.gestureRecognizerShouldBegin(gr)
         }
-        let v = pan.velocity(in: self)
-        return abs(v.x) >= abs(v.y)
+        let t = pan.translation(in: self)
+        return abs(t.x) > abs(t.y) * 1.5
     }
 }
