@@ -308,13 +308,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             sheet.addAction(UIAlertAction(title: "Start with Blank Bar 2", style: .default) { [weak self] _ in
                 self?.store.setPatternLength(32)
             })
-            if let preset = matchingPreset {
-                sheet.addAction(UIAlertAction(
-                    title: "Load \"\(preset.name)\" 2-Bar — replaces unsaved changes",
-                    style: .destructive) { [weak self] _ in
-                    self?.doLoadPattern(preset)
-                })
-            }
         } else {
             if let preset = matchingPreset {
                 sheet.addAction(UIAlertAction(title: "Use Matching 2-Bar Preset", style: .default) { [weak self] _ in
