@@ -394,11 +394,11 @@ final class MixCardCell: UICollectionViewCell {
         NSLayoutConstraint.activate([
             accentBar.topAnchor.constraint(equalTo: contentView.topAnchor),
             accentBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            accentBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            accentBar.heightAnchor.constraint(equalToConstant: 4),
+            accentBar.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            accentBar.widthAnchor.constraint(equalToConstant: 4),
 
-            nameLabel.topAnchor.constraint(equalTo: accentBar.bottomAnchor, constant: 10),
-            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            nameLabel.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 12),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
 
             nowPlayingPill.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
@@ -415,7 +415,7 @@ final class MixCardCell: UICollectionViewCell {
             nowPlayingLabel.centerYAnchor.constraint(equalTo: nowPlayingPill.centerYAnchor),
 
             beatGrid.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 10),
-            beatGrid.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            beatGrid.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 12),
             beatGrid.widthAnchor.constraint(equalToConstant: BeatGridView.W),
             beatGrid.heightAnchor.constraint(equalToConstant: BeatGridView.H),
 
@@ -425,7 +425,7 @@ final class MixCardCell: UICollectionViewCell {
             activityBars.heightAnchor.constraint(equalToConstant: BeatActivityView.H),
 
             bpmPill.topAnchor.constraint(equalTo: beatGrid.bottomAnchor, constant: 10),
-            bpmPill.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            bpmPill.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 12),
             bpmPill.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
 
             swingPill.leadingAnchor.constraint(equalTo: bpmPill.trailingAnchor, constant: 6),
@@ -475,17 +475,14 @@ final class MixCardCell: UICollectionViewCell {
             contentView.backgroundColor   = Theme.backgroundElevated2
             contentView.layer.borderWidth = 1.5
             contentView.layer.borderColor = color.withAlphaComponent(0.75).cgColor
-            layer.shadowColor             = color.cgColor
-            layer.shadowOpacity           = 0.35
-            layer.shadowRadius            = 12
         } else {
             contentView.backgroundColor   = Theme.backgroundElevated
             contentView.layer.borderWidth = 1
             contentView.layer.borderColor = Theme.border.cgColor
-            layer.shadowColor             = UIColor.black.cgColor
-            layer.shadowOpacity           = 0.28
-            layer.shadowRadius            = 6
         }
+        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowOpacity = 0.28
+        layer.shadowRadius  = 6
     }
 }
 

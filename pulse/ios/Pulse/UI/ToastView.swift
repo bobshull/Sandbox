@@ -5,7 +5,7 @@ enum ToastTone {
     var borderColor: UIColor {
         switch self {
         case .info: return Theme.border
-        case .ok: return Theme.ok.withAlphaComponent(0.4)
+        case .ok: return Theme.accent.withAlphaComponent(0.4)
         case .warn: return Theme.danger.withAlphaComponent(0.4)
         }
     }

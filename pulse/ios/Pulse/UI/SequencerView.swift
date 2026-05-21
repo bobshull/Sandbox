@@ -197,7 +197,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         updateBarButtonsVisible()
         syncBarButtons()
 
-        if flashScrollbar && is32 {
+        if flashScrollbar && is32 && !engine.isPlaying {
             // Briefly peek into Bar 2 so the user knows it's there
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 guard let self else { return }

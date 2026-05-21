@@ -426,10 +426,13 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func doLoadPattern(_ pattern: Pattern) {
+        let wasPlaying = engine.isPlaying
+        if wasPlaying { engine.stop() }
         store.loadPattern(pattern)
         applyTrackVolumesToEngine()
         applyTrackEffectsToEngine()
         engine.reloadKit(store.currentKitId)
+        if wasPlaying { engine.start() }
         toast.show("Loaded \"\(pattern.name)\"", tone: .ok)
     }
 
