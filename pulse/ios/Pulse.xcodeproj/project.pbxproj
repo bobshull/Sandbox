@@ -11,22 +11,22 @@
 		03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */; };
 		0695C41C5BFCD2213CD18550 /* PatternLibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */; };
 		0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51EDD8265DEB720F5F54516 /* Theme.swift */; };
+		108DA7F180F50C9BD4C7F4A8 /* KitPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */; };
 		1588E0A7A2CC232214B932DC /* Synths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F72C6BC8D90CE86D0586B3A /* Synths.swift */; };
 		2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C227703998F168A936512CCB /* TrackHeaderView.swift */; };
 		425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C973180DE38EF31F813D0783 /* SceneDelegate.swift */; };
 		5B1224B4A7B8F994B72217B7 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3905D7136357A9F65DDF822C /* Store.swift */; };
 		616B1E15A99B07B4D65A228F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */; };
+		7D03AE0E0B1816039E741BA5 /* TrackDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */; };
+		829BF53E5B5B3892A3D5EBB5 /* FaderControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */; };
 		841AADEA1BF7E0367AA736A2 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */; };
 		92528EF8C82B3D65914B5069 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD6248F10D8F97FB821D51E /* MainViewController.swift */; };
+		957541AD298144CE3AEFA793 /* KnobControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479A58EEA48C73B1C82F82DC /* KnobControl.swift */; };
 		9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */; };
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* KitPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */; };
 		A42EB5E151A566DA7D46C921 /* SampleKits.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB05F18EB784C467E9F52091 /* SampleKits.swift */; };
 		A4F508C5FF8E23F5C835CA8F /* PatternStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */; };
-		A7B8C9D0E1F2A3B4C5D6E7F8 /* KnobControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C9D0E1F2A3B4C5D6E7F8A9 /* KnobControl.swift */; };
-		C1D2E3F4A5B6C7D8E9F0A1B2 /* FaderControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F4A5B6C7D8E9F0A1B2C3 /* FaderControl.swift */; };
-		C3D4E5F6A7B8C9D0E1F2A3B4 /* LevelMeterStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */; };
-		D5E6F7A8B9C0D1E2F3A4B5C6 /* TrackDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F6A7B8C9D0E1F2A3B4C5D6 /* TrackDetailViewController.swift */; };
-		E6F7A8B9C0D1E2F3A4B5C6D7 /* TrackEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A7B8C9D0E1F2A3B4C5D6E7 /* TrackEffects.swift */; };
+		B16E1AF171034F853892913B /* LevelMeterStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */; };
+		DD600448B5D57F1D8F25DF5B /* TrackEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */; };
 		E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */; };
 		F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE1C4767AB7667B0376366A /* CellButton.swift */; };
 		F1A5D42C877007077A318F45 /* SequencerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */; };
@@ -34,37 +34,39 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
 		13FEF2D2118D74C3572DF349 /* Pulse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
+		1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
 		2AE1C4767AB7667B0376366A /* CellButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellButton.swift; sourceTree = "<group>"; };
 		2F72C6BC8D90CE86D0586B3A /* Synths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Synths.swift; sourceTree = "<group>"; };
 		3905D7136357A9F65DDF822C /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		42EC5B8C7893835120454B29 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		479A58EEA48C73B1C82F82DC /* KnobControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnobControl.swift; sourceTree = "<group>"; };
+		48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaderControl.swift; sourceTree = "<group>"; };
 		4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tracks.swift; sourceTree = "<group>"; };
 		58107A90060A6D3A39ED5760 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
 		82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportView.swift; sourceTree = "<group>"; };
 		A51EDD8265DEB720F5F54516 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequencerView.swift; sourceTree = "<group>"; };
 		AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
-		B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
 		B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		B8C9D0E1F2A3B4C5D6E7F8A9 /* KnobControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnobControl.swift; sourceTree = "<group>"; };
 		BFD6248F10D8F97FB821D51E /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		C227703998F168A936512CCB /* TrackHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackHeaderView.swift; sourceTree = "<group>"; };
 		C973180DE38EF31F813D0783 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		CBC8AE5BF7C0419018C1192A /* Pulse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulse.entitlements; sourceTree = "<group>"; };
 		CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStore.swift; sourceTree = "<group>"; };
-		D2E3F4A5B6C7D8E9F0A1B2C3 /* FaderControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaderControl.swift; sourceTree = "<group>"; };
-		D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
 		DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
-		E5F6A7B8C9D0E1F2A3B4C5D6 /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
 		EB05F18EB784C467E9F52091 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
-		F6A7B8C9D0E1F2A3B4C5D6E7 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		16C8605271C6A45188D07E13 /* Pulse */ = {
 			isa = PBXGroup;
 			children = (
+				CBC8AE5BF7C0419018C1192A /* Pulse.entitlements */,
 				38F29541A06B8A159C0EFF06 /* App */,
 				337EB2FF220AC70DA7D45FF2 /* Audio */,
 				E31E8EE4F6E747CECB6884AD /* Data */,
@@ -79,18 +81,18 @@
 			isa = PBXGroup;
 			children = (
 				2AE1C4767AB7667B0376366A /* CellButton.swift */,
+				48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */,
+				0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */,
+				479A58EEA48C73B1C82F82DC /* KnobControl.swift */,
+				18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */,
 				BFD6248F10D8F97FB821D51E /* MainViewController.swift */,
 				DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */,
 				AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */,
 				A51EDD8265DEB720F5F54516 /* Theme.swift */,
 				42EC5B8C7893835120454B29 /* ToastView.swift */,
+				702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */,
 				C227703998F168A936512CCB /* TrackHeaderView.swift */,
 				896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */,
-				E5F6A7B8C9D0E1F2A3B4C5D6 /* TrackDetailViewController.swift */,
-				B8C9D0E1F2A3B4C5D6E7F8A9 /* KnobControl.swift */,
-				D2E3F4A5B6C7D8E9F0A1B2C3 /* FaderControl.swift */,
-				B2C3D4E5F6A7B8C9D0E1F2A3 /* KitPickerViewController.swift */,
-				D4E5F6A7B8C9D0E1F2A3B4C5 /* LevelMeterStripView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -143,7 +145,7 @@
 			children = (
 				AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */,
 				EB05F18EB784C467E9F52091 /* SampleKits.swift */,
-				F6A7B8C9D0E1F2A3B4C5D6E7 /* TrackEffects.swift */,
+				1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */,
 				4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */,
 			);
 			path = Data;
@@ -185,7 +187,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2650;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					CF79B1BAD3D70F54153FE0B3 = {
 						ProvisioningStyle = Automatic;
@@ -229,6 +231,10 @@
 				9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */,
 				FB61F8B02D4E5452965B1AF2 /* AudioEngine.swift in Sources */,
 				F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */,
+				829BF53E5B5B3892A3D5EBB5 /* FaderControl.swift in Sources */,
+				108DA7F180F50C9BD4C7F4A8 /* KitPickerViewController.swift in Sources */,
+				957541AD298144CE3AEFA793 /* KnobControl.swift in Sources */,
+				B16E1AF171034F853892913B /* LevelMeterStripView.swift in Sources */,
 				92528EF8C82B3D65914B5069 /* MainViewController.swift in Sources */,
 				0695C41C5BFCD2213CD18550 /* PatternLibraryViewController.swift in Sources */,
 				A4F508C5FF8E23F5C835CA8F /* PatternStore.swift in Sources */,
@@ -240,15 +246,11 @@
 				1588E0A7A2CC232214B932DC /* Synths.swift in Sources */,
 				0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */,
 				02EABD489A957AEAA7991EF8 /* ToastView.swift in Sources */,
+				7D03AE0E0B1816039E741BA5 /* TrackDetailViewController.swift in Sources */,
+				DD600448B5D57F1D8F25DF5B /* TrackEffects.swift in Sources */,
 				2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */,
 				E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */,
 				03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */,
-				D5E6F7A8B9C0D1E2F3A4B5C6 /* TrackDetailViewController.swift in Sources */,
-				A7B8C9D0E1F2A3B4C5D6E7F8 /* KnobControl.swift in Sources */,
-				C1D2E3F4A5B6C7D8E9F0A1B2 /* FaderControl.swift in Sources */,
-				E6F7A8B9C0D1E2F3A4B5C6D7 /* TrackEffects.swift in Sources */,
-				A1B2C3D4E5F6A7B8C9D0E1F2 /* KitPickerViewController.swift in Sources */,
-				C3D4E5F6A7B8C9D0E1F2A3B4 /* LevelMeterStripView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -291,11 +293,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = TX75WUA2RL;
+				DEVELOPMENT_TEAM = "Bob Shull";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -309,7 +310,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -323,8 +323,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = Pulse/Pulse.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
@@ -335,9 +337,6 @@
 				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse;
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -347,8 +346,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = Pulse/Pulse.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
@@ -359,9 +360,6 @@
 				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse;
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -402,11 +400,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = TX75WUA2RL;
+				DEVELOPMENT_TEAM = "Bob Shull";
 				ENABLE_PREVIEWS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -427,7 +424,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";

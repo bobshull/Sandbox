@@ -102,7 +102,15 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                                       image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                     self?.exportTapped()
                 }
-                completion([save, undo, export])
+                var items: [UIMenuElement] = [save, undo, export]
+                if self.store.patternLength == 32 {
+                    let copy = UIAction(title: "Copy Bar 1 to Bar 2",
+                                        image: UIImage(systemName: "doc.on.doc")) { [weak self] _ in
+                        self?.copyBar1ToBar2()
+                    }
+                    items.append(copy)
+                }
+                completion(items)
             }
         ])
         moreButton.translatesAutoresizingMaskIntoConstraints = false
@@ -274,25 +282,103 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     func sequencerDidRequestPatternLength(_ length: Int) {
-        if length == 16 && store.hasBar2Content {
+        if length == 32 { handleExpandToTwoBars() } else { handleCollapseToOneBar() }
+    }
+
+    private func handleExpandToTwoBars() {
+        guard store.patternLength == 16 else { return }
+
+        // If 32-step rows are already preserved in memory, restore them silently.
+        if store.hasPreservedBar2 {
+            store.setPatternLength(32)
+            return
+        }
+
+        // Find the matching built-in 2-bar preset variant
+        let matchingPreset = Presets.all.first {
+            $0.basePresetId == store.currentPatternId && ($0.barLength ?? 1) == 2
+        }
+
+        let sheet = UIAlertController(title: "Add Second Bar", message: nil, preferredStyle: .actionSheet)
+
+        if store.isDirty {
+            sheet.addAction(UIAlertAction(title: "Duplicate Current Bar 1", style: .default) { [weak self] _ in
+                self?.expandDuplicate()
+            })
+            sheet.addAction(UIAlertAction(title: "Start with Blank Bar 2", style: .default) { [weak self] _ in
+                self?.store.setPatternLength(32)
+            })
+            if let preset = matchingPreset {
+                sheet.addAction(UIAlertAction(
+                    title: "Load \"\(preset.name)\" 2-Bar — replaces unsaved changes",
+                    style: .destructive) { [weak self] _ in
+                    self?.doLoadPattern(preset)
+                })
+            }
+        } else {
+            if let preset = matchingPreset {
+                sheet.addAction(UIAlertAction(title: "Use Matching 2-Bar Preset", style: .default) { [weak self] _ in
+                    self?.doLoadPattern(preset)
+                })
+            }
+            sheet.addAction(UIAlertAction(title: "Duplicate Bar 1", style: .default) { [weak self] _ in
+                self?.expandDuplicate()
+            })
+            sheet.addAction(UIAlertAction(title: "Start with Blank Bar 2", style: .default) { [weak self] _ in
+                self?.store.setPatternLength(32)
+            })
+        }
+
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.popoverPresentationController?.sourceView = transportView
+        sheet.popoverPresentationController?.sourceRect = CGRect(
+            x: transportView.bounds.midX, y: transportView.bounds.minY, width: 0, height: 0)
+
+        DispatchQueue.main.async { [weak self] in self?.present(sheet, animated: true) }
+    }
+
+    private func expandDuplicate() {
+        store.expandToTwoBarsDuplicate()
+        applyTrackVolumesToEngine()
+        applyTrackEffectsToEngine()
+    }
+
+    private func handleCollapseToOneBar() {
+        guard store.patternLength == 32 else { return }
+        if store.hasBar2Content {
             let alert = UIAlertController(
                 title: "Switch to 1 Bar?",
-                message: "Bar 2 has steps programmed. Switching to 16 steps / 1 bar will remove them.",
-                preferredStyle: .alert
-            )
+                message: "Bar 2 will be hidden. Switch back to 2 Bars anytime to restore it.",
+                preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Keep 2 Bars", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Switch to 1 Bar", style: .destructive) { [weak self] _ in
+            alert.addAction(UIAlertAction(title: "Switch to 1 Bar", style: .default) { [weak self] _ in
                 self?.store.setPatternLength(16)
             })
-            present(alert, animated: true)
+            DispatchQueue.main.async { [weak self] in self?.present(alert, animated: true) }
         } else {
-            store.setPatternLength(length)
+            store.setPatternLength(16)
         }
     }
 
-    func sequencerDidRequestDuplicateBar1() {
-        store.duplicateBar1()
-        toast.show("Bar 1 duplicated into Bar 2", tone: .ok)
+    private func copyBar1ToBar2() {
+        let bar2HasContent = store.rows.values.contains { arr in
+            arr.count == 32 && arr[16...].contains(true)
+        }
+        guard bar2HasContent else {
+            store.duplicateBar1()
+            toast.show("Bar 1 copied to Bar 2", tone: .ok)
+            return
+        }
+        let alert = UIAlertController(
+            title: "Overwrite Bar 2?",
+            message: "Bar 2 has steps. This will replace them with Bar 1.",
+            preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Copy", style: .destructive) { [weak self] _ in
+            self?.store.duplicateBar1()
+            self?.toast.show("Bar 1 copied to Bar 2", tone: .ok)
+        })
+        present(alert, animated: true)
     }
 
     // MARK: - Pattern library
@@ -309,7 +395,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     @objc private func showLibrary() {
-        let lib = PatternLibraryViewController(currentName: store.patternName, currentKitId: store.currentKitId)
+        let lib = PatternLibraryViewController(currentName: store.patternName, currentPatternId: store.currentPatternId, currentKitId: store.currentKitId)
         lib.delegate = self
         present(lib, animated: true)
     }
@@ -349,7 +435,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         let labels = ["Short Loop", "Medium Loop", "Long Loop", "Extended Loop"]
         for (i, bars) in [4, 8, 16, 32].enumerated() {
             let secs = Int(Double(bars) * 4.0 * 60.0 / store.tempo)
-            sheet.addAction(UIAlertAction(title: "\(labels[i])  —  \(bars) bars / ~\(secs)s", style: .default) { [weak self] _ in
+            sheet.addAction(UIAlertAction(title: "\(labels[i])  —  ~\(secs)s", style: .default) { [weak self] _ in
                 self?.runExport(bars: bars)
             })
         }

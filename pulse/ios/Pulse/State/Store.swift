@@ -48,9 +48,14 @@ final class Store {
     }
 
     var hasBar2Content: Bool {
-        patternLength == 32 && rows.values.contains { arr in
+        rows.values.contains { arr in
             arr.count == 32 && arr[16...].contains(true)
         }
+    }
+
+    // True when 32-step rows are in memory (Bar 2 preserved from a previous 2-bar session).
+    var hasPreservedBar2: Bool {
+        rows.values.contains { $0.count == 32 }
     }
 
     var isCurrentPatternPreset: Bool {
@@ -220,19 +225,41 @@ final class Store {
             enabledBars = [true, true]
             for t in Tracks.all {
                 let current = rows[t.id] ?? Array(repeating: false, count: 16)
-                let bar1 = Array(current.prefix(16))
-                rows[t.id] = bar1 + Array(repeating: false, count: 16)
+                if current.count < 32 {
+                    // Pad with blank Bar 2 only when not already 32 steps
+                    rows[t.id] = Array(current.prefix(16)) + Array(repeating: false, count: 16)
+                }
+                // If rows are already 32 steps, keep them (restores preserved Bar 2)
             }
         } else {
+            // Switching to 1 bar: keep rows as-is so Bar 2 is preserved in memory.
+            // The audio engine and sequencer respect patternLength, so Bar 2 is
+            // silently skipped. Switching back to 2 bars restores it automatically.
             enabledBars = [true]
-            for t in Tracks.all {
-                rows[t.id] = Array((rows[t.id] ?? []).prefix(16))
-            }
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.patternLength)
         changes.send(.pattern)
+    }
+
+    func expandToTwoBarsDuplicate() {
+        guard patternLength == 16 else { return }
+        pushUndo()
+        patternLength = 32
+        enabledBars = [true, true]
+        for t in Tracks.all {
+            let bar1 = Array((rows[t.id] ?? Array(repeating: false, count: 16)).prefix(16))
+            rows[t.id] = bar1 + bar1
+            barVolumes[1][t.id] = barVolumes[0][t.id]
+            barEffects[1][t.id] = barEffects[0][t.id]
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.patternLength)
+        changes.send(.pattern)
+        changes.send(.volumes)
+        changes.send(.effects)
     }
 
     func toggleBar(_ index: Int) {
@@ -298,19 +325,25 @@ final class Store {
     }
 
     func exportPattern() -> Pattern {
-        Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing,
-                rows: rows, volumes: barVolumes[0], mutes: mutes, effects: barEffects[0],
+        let exportRows = patternLength == 16
+            ? rows.mapValues { Array($0.prefix(16)) }
+            : rows
+        return Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing,
+                rows: exportRows, volumes: barVolumes[0], mutes: mutes, effects: barEffects[0],
                 kitId: currentKitId, patternLength: patternLength,
                 bar2Volumes: barVolumes[1], bar2Effects: barEffects[1])
     }
 
     func sessionState() -> SessionState {
-        SessionState(
+        let snapRows = patternLength == 16
+            ? rows.mapValues { Array($0.prefix(16)) }
+            : rows
+        return SessionState(
             patternName: patternName,
             tempo: tempo,
             swing: swing,
             masterGain: masterGain,
-            rows: rows,
+            rows: snapRows,
             volumes: barVolumes[0],
             mutes: mutes,
             kitId: currentKitId,

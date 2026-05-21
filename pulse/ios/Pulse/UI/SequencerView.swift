@@ -4,7 +4,6 @@ import Combine
 protocol SequencerViewDelegate: AnyObject {
     func sequencer(toggleStep trackId: String, step: Int)
     func sequencerDidRequestPatternLength(_ length: Int)
-    func sequencerDidRequestDuplicateBar1()
 }
 
 /// Scrolling grid where each row pins its track header to the leading edge
@@ -244,10 +243,6 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         configureBarButton(bar1Button, title: "Bar 1", index: 0)
         configureBarButton(bar2Button, title: "Bar 2", index: 1)
 
-        let lp = UILongPressGestureRecognizer(target: self, action: #selector(bar2LongPress(_:)))
-        lp.minimumPressDuration = 0.5
-        bar2Button.addGestureRecognizer(lp)
-
         barButtonStack.axis = .horizontal
         barButtonStack.spacing = 6
         barButtonStack.translatesAutoresizingMaskIntoConstraints = false
@@ -316,7 +311,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         header.delegate = self
         row.addSubview(header)
 
-        let scroll = UIScrollView()
+        let scroll = HorizontalOnlyScrollView()
         scroll.showsHorizontalScrollIndicator = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
         scroll.delegate = self
@@ -510,12 +505,6 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         scrollToPage(target, animated: true)
     }
 
-    @objc private func bar2LongPress(_ gr: UILongPressGestureRecognizer) {
-        guard gr.state == .began else { return }
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        delegate?.sequencerDidRequestDuplicateBar1()
-    }
-
     // MARK: - TrackHeaderViewDelegate
 
     func trackHeaderDidTapPreview(_ track: Track) {
@@ -568,5 +557,15 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         scrollViewDidEndDecelerating(scrollView)
+    }
+}
+
+private final class HorizontalOnlyScrollView: UIScrollView {
+    override func gestureRecognizerShouldBegin(_ gr: UIGestureRecognizer) -> Bool {
+        guard let pan = gr as? UIPanGestureRecognizer else {
+            return super.gestureRecognizerShouldBegin(gr)
+        }
+        let v = pan.velocity(in: self)
+        return abs(v.x) >= abs(v.y)
     }
 }

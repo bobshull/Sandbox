@@ -190,10 +190,12 @@ final class TransportView: UIView {
             // Length chip — show 1 Bar / 2 Bars picker
             guard let parentVC = parentViewController else { return }
             let sheet = UIAlertController(title: "Pattern Length", message: nil, preferredStyle: .actionSheet)
-            sheet.addAction(UIAlertAction(title: "16 steps / 1 bar", style: store.patternLength == 16 ? .destructive : .default) { [weak self] _ in
+            let mark16 = store.patternLength == 16 ? "✓ " : ""
+            let mark32 = store.patternLength == 32 ? "✓ " : ""
+            sheet.addAction(UIAlertAction(title: "\(mark16)16 steps / 1 bar", style: .default) { [weak self] _ in
                 self?.delegate?.transportDidRequestPatternLength(16)
             })
-            sheet.addAction(UIAlertAction(title: "32 steps / 2 bars", style: store.patternLength == 32 ? .destructive : .default) { [weak self] _ in
+            sheet.addAction(UIAlertAction(title: "\(mark32)32 steps / 2 bars", style: .default) { [weak self] _ in
                 self?.delegate?.transportDidRequestPatternLength(32)
             })
             sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
