@@ -9,6 +9,7 @@ final class CellButton: UIControl {
     var isBeat: Bool = false { didSet { updateAppearance() } }
 
     private let backgroundLayer = CALayer()
+    private let bevelLayer = CAGradientLayer()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -19,6 +20,20 @@ final class CellButton: UIControl {
         backgroundLayer.cornerRadius = 8
         backgroundLayer.cornerCurve = .continuous
         backgroundLayer.borderWidth = 1
+
+        bevelLayer.startPoint = CGPoint(x: 0.5, y: 0)
+        bevelLayer.endPoint = CGPoint(x: 0.5, y: 1)
+        bevelLayer.colors = [
+            UIColor.white.withAlphaComponent(0.18).cgColor,
+            UIColor.clear.cgColor,
+            UIColor.black.withAlphaComponent(0.22).cgColor,
+        ]
+        bevelLayer.locations = [0, 0.45, 1]
+        bevelLayer.cornerRadius = 8
+        bevelLayer.cornerCurve = .continuous
+        bevelLayer.masksToBounds = true
+        backgroundLayer.addSublayer(bevelLayer)
+
         isAccessibilityElement = true
         accessibilityTraits.insert(.button)
         updateAppearance()
@@ -29,6 +44,7 @@ final class CellButton: UIControl {
     override func layoutSubviews() {
         super.layoutSubviews()
         backgroundLayer.frame = bounds
+        bevelLayer.frame = bounds
     }
 
     override var isHighlighted: Bool {
@@ -43,6 +59,8 @@ final class CellButton: UIControl {
         backgroundLayer.removeAnimation(forKey: "pulse")
         backgroundLayer.removeAnimation(forKey: "flash")
         backgroundLayer.removeAnimation(forKey: "bloom")
+
+        bevelLayer.isHidden = !isOn
 
         if isOn {
             backgroundLayer.backgroundColor = trackColor.cgColor

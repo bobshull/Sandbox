@@ -213,7 +213,7 @@ final class AudioEngine {
 
         // Switch to the correct bar's settings at each bar boundary
         if step == snap.sequenceStart || (snap.sequenceLength == 32 && step == snap.sequenceStart + 16) {
-            let barIndex = (step - snap.sequenceStart) / 16
+            let barIndex = step / 16
             applyBarSettings(barIndex: barIndex)
         }
 
@@ -240,7 +240,8 @@ final class AudioEngine {
         let snap = store.audioSnapshot()
         let seqStart = snap.sequenceStart
         let seqLen   = snap.sequenceLength
-        let nextStep = seqStart + ((currentStep - seqStart + 1) % seqLen)
+        let raw = (currentStep - seqStart + 1) % seqLen
+        let nextStep = seqStart + (raw >= 0 ? raw : raw + seqLen)
         // Swing: delay offbeats by swing*base, compensate on the following downbeat.
         let nextIsOff = (nextStep % 2 == 1)
         let factor = nextIsOff ? (1 + store.swing) : (1 - store.swing)
