@@ -112,13 +112,24 @@ final class SettingsViewController: UIViewController {
         feedbackBtn.titleLabel?.font = .systemFont(ofSize: 12)
         feedbackBtn.addAction(UIAction { [weak self] _ in self?.sendFeedback() }, for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [versionLabel, dot, feedbackBtn])
-        stack.axis = .horizontal
-        stack.spacing = 6
+        let topRow = UIStackView(arrangedSubviews: [versionLabel, dot, feedbackBtn])
+        topRow.axis = .horizontal
+        topRow.spacing = 6
+        topRow.alignment = .center
+
+        let tagline = UILabel()
+        tagline.text = "Every message is read and genuinely appreciated."
+        tagline.font = .systemFont(ofSize: 11)
+        tagline.textColor = Theme.textFaint
+        tagline.textAlignment = .center
+
+        let stack = UIStackView(arrangedSubviews: [topRow, tagline])
+        stack.axis = .vertical
+        stack.spacing = 4
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        let footer = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 44))
+        let footer = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 56))
         footer.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: footer.centerXAnchor),
@@ -182,7 +193,7 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
             let cell = tableView.dequeueReusableCell(withIdentifier: BpmAppearancePairCell.reuseID, for: indexPath) as! BpmAppearancePairCell
             cell.configure()
             return cell
-        }
+}
     }
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {

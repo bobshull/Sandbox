@@ -98,15 +98,19 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                                     attributes: self.store.canUndo ? [] : .disabled) { [weak self] _ in
                     self?.undoTapped()
                 }
-                let export = UIAction(title: "Export",
-                                      image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
-                    self?.exportTapped()
+                let exportWAV = UIAction(title: "Export WAV",
+                                         image: UIImage(systemName: "waveform")) { [weak self] _ in
+                    self?.showLoopPicker(format: .wav)
+                }
+                let exportM4A = UIAction(title: "Export M4A",
+                                         image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                    self?.showLoopPicker(format: .m4a)
                 }
                 let settings = UIAction(title: "Settings",
                                         image: UIImage(systemName: "gear")) { [weak self] _ in
                     self?.showSettings()
                 }
-                completion([save, undo, export, settings])
+                completion([save, undo, exportWAV, exportM4A, settings])
             }
         ])
         moreButton.translatesAutoresizingMaskIntoConstraints = false
@@ -446,13 +450,15 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     @objc private func quickSaveTapped() { promptSave(completion: nil) }
 
-    @objc private func exportTapped() {
-        let sheet = UIAlertController(title: "Export Mix", message: nil, preferredStyle: .actionSheet)
-        let labels = ["Short Loop", "Medium Loop", "Long Loop", "Extended Loop"]
-        for (i, bars) in [4, 8, 16, 32].enumerated() {
-            let secs = Int(Double(bars) * 4.0 * 60.0 / store.tempo)
-            sheet.addAction(UIAlertAction(title: "\(labels[i])  —  ~\(secs)s", style: .default) { [weak self] _ in
-                self?.runExport(bars: bars)
+    private func showLoopPicker(format: ExportFormat) {
+        let title = format == .wav ? "Export WAV" : "Export M4A"
+        let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
+        let stepDur = 60.0 / store.tempo / 4.0
+        for reps in [1, 2, 4, 8] {
+            let secs = Int(Double(reps * store.patternLength) * stepDur)
+            let label = reps == 1 ? "1 Loop" : "\(reps) Loops"
+            sheet.addAction(UIAlertAction(title: "\(label)  —  ~\(secs)s", style: .default) { [weak self] _ in
+                self?.runExport(reps: reps, format: format)
             })
         }
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
@@ -460,10 +466,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         present(sheet, animated: true)
     }
 
-    private func runExport(bars: Int) {
+    private func runExport(reps: Int, format: ExportFormat) {
         let progress = UIAlertController(title: "Exporting…", message: nil, preferredStyle: .alert)
         present(progress, animated: true)
-        engine.exportMix(bars: bars) { [weak self] result in
+        engine.exportMix(reps: reps, format: format) { [weak self] result in
             guard let self else { return }
             progress.dismiss(animated: true) {
                 switch result {

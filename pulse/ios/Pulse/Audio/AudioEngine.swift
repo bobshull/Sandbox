@@ -281,7 +281,7 @@ final class AudioEngine {
 
     /// Renders `bars` bars offline into an AAC/M4A file and returns the URL.
     /// Runs entirely on a background thread; calls back on main.
-    func exportMix(bars: Int, completion: @escaping (Result<URL, Error>) -> Void) {
+    func exportMix(reps: Int, format: ExportFormat, completion: @escaping (Result<URL, Error>) -> Void) {
         guard !buffers.isEmpty else {
             completion(.failure(ExportError.notPrepared)); return
         }
@@ -300,7 +300,7 @@ final class AudioEngine {
             do {
                 // 1 — compute per-step start times (seconds from t=0)
                 let stepDur   = 60.0 / tempo / 4.0
-                let total     = bars * Tracks.stepCount
+                let total     = reps * patternLength
                 var times     = [Double](repeating: 0, count: total)
                 var t         = 0.0
                 for i in 0..<total {
@@ -336,39 +336,60 @@ final class AudioEngine {
                 // 3 — master gain + tanh soft limiter
                 for i in 0..<totalFrames { out[i] = tanh(out[i] * master) }
 
-                // 4 — write PCM to a temp CAF
-                let fmt    = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
-                let cafURL = FileManager.default.temporaryDirectory.appendingPathComponent("pulse_mix.caf")
-                try? FileManager.default.removeItem(at: cafURL)
-                let cafFile = try AVAudioFile(forWriting: cafURL, settings: fmt.settings)
-                let pcm     = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(totalFrames))!
+                // 4 — build PCM buffer
+                let fmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
+                let pcm = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(totalFrames))!
                 pcm.frameLength = AVAudioFrameCount(totalFrames)
                 out.withUnsafeBufferPointer { src in
                     pcm.floatChannelData!.pointee.update(from: src.baseAddress!, count: totalFrames)
                 }
-                try cafFile.write(from: pcm)
 
-                // 5 — transcode CAF → M4A (AAC)
-                let ts     = Int(Date().timeIntervalSince1970)
-                let m4aURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).m4a")
-                try? FileManager.default.removeItem(at: m4aURL)
+                let ts        = Int(Date().timeIntervalSince1970)
+                let exportFmt = format
 
-                let asset   = AVURLAsset(url: cafURL)
-                guard let session = AVAssetExportSession(asset: asset,
-                                                         presetName: AVAssetExportPresetAppleM4A) else {
-                    throw ExportError.sessionUnavailable
-                }
-                session.outputURL      = m4aURL
-                session.outputFileType = .m4a
-
-                let sem = DispatchSemaphore(value: 0)
-                session.exportAsynchronously { sem.signal() }
-                sem.wait()
-
-                if session.status == .completed {
-                    DispatchQueue.main.async { completion(.success(m4aURL)) }
+                if exportFmt == .wav {
+                    // 5a — write PCM directly as WAV (16-bit, lossless)
+                    let wavSettings: [String: Any] = [
+                        AVFormatIDKey:             Int(kAudioFormatLinearPCM),
+                        AVSampleRateKey:           sr,
+                        AVNumberOfChannelsKey:     1,
+                        AVLinearPCMBitDepthKey:    16,
+                        AVLinearPCMIsFloatKey:     false,
+                        AVLinearPCMIsBigEndianKey: false,
+                        AVLinearPCMIsNonInterleaved: false,
+                    ]
+                    let wavURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).wav")
+                    try? FileManager.default.removeItem(at: wavURL)
+                    let wavFile = try AVAudioFile(forWriting: wavURL, settings: wavSettings)
+                    try wavFile.write(from: pcm)
+                    DispatchQueue.main.async { completion(.success(wavURL)) }
                 } else {
-                    throw session.error ?? ExportError.exportFailed
+                    // 5b — write PCM to CAF, transcode to M4A (AAC 256 kbps)
+                    let cafURL = FileManager.default.temporaryDirectory.appendingPathComponent("pulse_mix.caf")
+                    try? FileManager.default.removeItem(at: cafURL)
+                    let cafFile = try AVAudioFile(forWriting: cafURL, settings: fmt.settings)
+                    try cafFile.write(from: pcm)
+
+                    let m4aURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).m4a")
+                    try? FileManager.default.removeItem(at: m4aURL)
+
+                    let asset = AVURLAsset(url: cafURL)
+                    guard let session = AVAssetExportSession(asset: asset,
+                                                             presetName: AVAssetExportPresetAppleM4A) else {
+                        throw ExportError.sessionUnavailable
+                    }
+                    session.outputURL      = m4aURL
+                    session.outputFileType = .m4a
+
+                    let sem = DispatchSemaphore(value: 0)
+                    session.exportAsynchronously { sem.signal() }
+                    sem.wait()
+
+                    if session.status == .completed {
+                        DispatchQueue.main.async { completion(.success(m4aURL)) }
+                    } else {
+                        throw session.error ?? ExportError.exportFailed
+                    }
                 }
 
             } catch {

@@ -1,11 +1,13 @@
 import Foundation
 
+enum ExportFormat: String { case wav, m4a }
+
 enum AppSettings {
     private static let local = UserDefaults.standard
 
-    private static let hapticsKey     = "pulse.hapticsEnabled"
-    private static let tempoKey       = "pulse.defaultTempo"
-    private static let colorThemeKey  = "pulse.colorThemeId"
+    private static let hapticsKey    = "pulse.hapticsEnabled"
+    private static let tempoKey      = "pulse.defaultTempo"
+    private static let colorThemeKey = "pulse.colorThemeId"
 
     static var hapticsEnabled: Bool {
         get { local.object(forKey: hapticsKey) == nil ? true : local.bool(forKey: hapticsKey) }
@@ -24,6 +26,7 @@ enum AppSettings {
             NotificationCenter.default.post(name: .colorThemeDidChange, object: nil)
         }
     }
+
 }
 
 extension Notification.Name {
