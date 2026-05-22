@@ -28,6 +28,13 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     private var rows: [RowView] = []
     private var syncing = false
 
+    // Easter egg state (1-bar mode overscroll gag)
+    private var isEasterEggAnimating = false
+    private var easterEggCooldownUntil: Date = .distantPast
+    // 0=inactive 1=doubleTap 2=tripleTap 3=buzzing; only advances forward until reset at zero
+    private var easterEggHapticZone = 0
+    private var easterEggHapticBucket = 0
+
     // Page state (UI-only; not persisted to Store)
     private var activePage: Int = 0
 
@@ -561,6 +568,13 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         for row in rows where row.scrollView !== scrollView {
             row.scrollView.contentOffset = offset
         }
+        // Drive progressive haptics while the user is actively rubber-banding (1-bar only)
+        if store.patternLength == 16, scrollView !== headerScrollView, scrollView.isDragging {
+            easterEggHapticTick(overscroll: abs(scrollView.contentOffset.x))
+        } else if !scrollView.isDragging {
+            easterEggHapticZone = 0
+            easterEggHapticBucket = 0
+        }
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
@@ -578,6 +592,154 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         scrollViewDidEndDecelerating(scrollView)
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        // Only in 1-bar mode; 2-bar uses horizontal scroll for real navigation
+        guard store.patternLength == 16 else { return }
+        guard scrollView !== headerScrollView else { return }
+        guard !isEasterEggAnimating, Date() > easterEggCooldownUntil else { return }
+        // Require intentional overscroll — small bounce bounces are < 44 pts
+        let overscroll = abs(scrollView.contentOffset.x)
+        guard overscroll > 180 else { return }
+        triggerEasterEgg(contentOffset: scrollView.contentOffset.x, scrollViewWidth: scrollView.bounds.width)
+    }
+
+    // MARK: - Easter Egg
+
+    private func triggerEasterEgg(contentOffset: CGFloat, scrollViewWidth: CGFloat) {
+        isEasterEggAnimating = true
+        easterEggCooldownUntil = Date().addingTimeInterval(3.0)
+
+        let allCells = rows.flatMap { $0.cells }
+        // Fly in the direction the user was dragging: positive offset = dragged left = fly right
+        let direction: CGFloat = contentOffset >= 0 ? 1 : -1
+        let exitX: CGFloat  =  direction * (scrollViewWidth + 80)
+        let entryX: CGFloat = -direction * (scrollViewWidth + 80)
+
+        if AppSettings.hapticsEnabled {
+            // Solid double-hit on trigger: rigid "crack" then a heavy thump 80ms later
+            let gen = UIImpactFeedbackGenerator(style: .rigid)
+            gen.prepare()
+            gen.impactOccurred(intensity: 1.0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            }
+        }
+
+        // Reduced motion: simple fade instead of fly
+        if UIAccessibility.isReduceMotionEnabled {
+            UIView.animate(withDuration: 0.2) {
+                allCells.forEach { $0.alpha = 0 }
+            } completion: { _ in
+                UIView.animate(withDuration: 0.2) {
+                    allCells.forEach { $0.alpha = 1 }
+                } completion: { [weak self] _ in
+                    self?.isEasterEggAnimating = false
+                }
+            }
+            return
+        }
+
+        // Phase 1: slide off to the left, staggered left-to-right by column
+        let flyOffDuration: Double = 0.18
+        let flyOffStagger: Double = 0.008
+        for cell in allCells {
+            // Leading-edge tile goes first: fly-left → tag 0 leads; fly-right → tag 15 leads
+            let col = direction > 0 ? Double(15 - cell.tag) : Double(cell.tag)
+            UIView.animate(withDuration: flyOffDuration, delay: col * flyOffStagger,
+                           options: .curveEaseIn) {
+                cell.transform = CGAffineTransform(translationX: exitX, y: 0)
+            }
+        }
+
+        // Phase 2: snap cells to the right edge (off-screen), then spring back in
+        let snapDelay = flyOffDuration + Double(15) * flyOffStagger + 0.025
+        let flyInDuration: Double = 0.30
+        let flyInStagger: Double = 0.012
+        DispatchQueue.main.asyncAfter(deadline: .now() + snapDelay) { [weak self] in
+            guard let self else { return }
+            UIView.performWithoutAnimation {
+                allCells.forEach { $0.transform = CGAffineTransform(translationX: entryX, y: 0) }
+            }
+            for cell in allCells {
+                let col = Double(cell.tag)
+                UIView.animate(
+                    withDuration: flyInDuration,
+                    delay: col * flyInStagger,
+                    usingSpringWithDamping: 0.72,
+                    initialSpringVelocity: 0.9,
+                    options: []
+                ) {
+                    cell.transform = .identity
+                } completion: { finished in
+                    // Active tiles get a brief glow on landing
+                    if finished && cell.isOn { cell.pulseReturn() }
+                }
+            }
+            // Snap-back haptic + unlock after all cells have settled
+            let totalFlyIn = flyInDuration + Double(15) * flyInStagger + 0.06
+            DispatchQueue.main.asyncAfter(deadline: .now() + totalFlyIn) { [weak self] in
+                if AppSettings.hapticsEnabled {
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                }
+                self?.isEasterEggAnimating = false
+            }
+        }
+    }
+
+    private func easterEggHapticTick(overscroll: CGFloat) {
+        guard AppSettings.hapticsEnabled else { return }
+        guard !isEasterEggAnimating else { return }
+
+        // Full reset when they pull back to near-zero
+        guard overscroll > 15 else {
+            easterEggHapticZone = 0
+            easterEggHapticBucket = 0
+            return
+        }
+
+        // Determine target zone from current overscroll depth
+        let targetZone: Int = overscroll < 60 ? 1 : overscroll < 110 ? 2 : 3
+
+        // Zones only advance — no re-firing bursts on pullback
+        if targetZone > easterEggHapticZone {
+            easterEggHapticZone = targetZone
+            switch targetZone {
+            case 1:
+                // Double tap: two light pulses
+                fireHapticBurst(count: 2, style: .light, baseIntensity: 0.6, spacing: 0.09)
+            case 2:
+                // Triple tap: three medium pulses, each a bit heavier
+                fireHapticBurst(count: 3, style: .medium, baseIntensity: 0.7, spacing: 0.08)
+            case 3:
+                // First buzz tick fires immediately on zone entry
+                easterEggHapticBucket = Int(overscroll / 8.0)
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.6)
+            default: break
+            }
+        }
+
+        // Dense vibration ticks throughout buzz zone (intensity rises toward threshold)
+        if easterEggHapticZone == 3 {
+            let bucket = Int(overscroll / 8.0)
+            guard bucket != easterEggHapticBucket else { return }
+            easterEggHapticBucket = bucket
+            let progress = min(1.0, (overscroll - 110) / 70)   // 0→1 across buzz zone
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.6 + progress * 0.4)
+        }
+    }
+
+    private func fireHapticBurst(count: Int, style: UIImpactFeedbackGenerator.FeedbackStyle,
+                                  baseIntensity: CGFloat, spacing: TimeInterval) {
+        let gen = UIImpactFeedbackGenerator(style: style)
+        gen.prepare()
+        gen.impactOccurred(intensity: baseIntensity)
+        for i in 1..<count {
+            DispatchQueue.main.asyncAfter(deadline: .now() + spacing * Double(i)) {
+                UIImpactFeedbackGenerator(style: style).impactOccurred(intensity: baseIntensity + CGFloat(i) * 0.08)
+            }
+        }
     }
 }
 

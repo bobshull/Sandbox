@@ -158,13 +158,13 @@ final class SettingsViewController: UIViewController {
         if MFMailComposeViewController.canSendMail() {
             let vc = MFMailComposeViewController()
             vc.mailComposeDelegate = self
-            vc.setToRecipients(["bobby@bobshull.com"])
+            vc.setToRecipients(["bobby@pulsemixer.app"])
             vc.setSubject(subject)
             vc.addAttachmentData(attachmentData, mimeType: "text/plain", fileName: "diagnostic_report.txt")
             present(vc, animated: true)
         } else {
             let encoded = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            if let url = URL(string: "mailto:bobby@bobshull.com?subject=\(encoded)") {
+            if let url = URL(string: "mailto:bobby@pulsemixer.app?subject=\(encoded)") {
                 UIApplication.shared.open(url)
             }
         }
