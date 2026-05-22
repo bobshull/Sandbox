@@ -510,7 +510,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
 
     // Tap: toggle that bar in/out of the playback loop
     @objc private func barButtonTapped(_ sender: UIButton) {
-        UISelectionFeedbackGenerator().selectionChanged()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         store.toggleBar(sender.tag)
     }
 
@@ -519,7 +519,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         guard store.patternLength == 32 else { return }
         let target = gr.direction == .left ? min(activePage + 1, 1) : max(activePage - 1, 0)
         guard target != activePage else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         scrollToPage(target, animated: true)
     }
 

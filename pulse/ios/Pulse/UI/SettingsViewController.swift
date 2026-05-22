@@ -134,11 +134,22 @@ final class SettingsViewController: UIViewController {
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build   = info?["CFBundleVersion"] as? String ?? "?"
         let subject = "Pulse \(version) (\(build)) Feedback"
+
+        let device = UIDevice.current
+        var report = "Pulse \(version) (\(build))\nDate: \(Date())\nDevice: \(device.model) — iOS \(device.systemVersion)\n\n"
+        if let crash = CrashLogger.shared.crashLogData.flatMap({ String(data: $0, encoding: .utf8) }) {
+            report += "--- Crash Log ---\n\(crash)"
+        } else {
+            report += "No crash log."
+        }
+        let attachmentData = report.data(using: .utf8) ?? Data()
+
         if MFMailComposeViewController.canSendMail() {
             let vc = MFMailComposeViewController()
             vc.mailComposeDelegate = self
             vc.setToRecipients(["bobby@bobshull.com"])
             vc.setSubject(subject)
+            vc.addAttachmentData(attachmentData, mimeType: "text/plain", fileName: "diagnostic_report.txt")
             present(vc, animated: true)
         } else {
             let encoded = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
@@ -184,6 +195,7 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
 extension SettingsViewController: MFMailComposeViewControllerDelegate {
     func mailComposeController(_ controller: MFMailComposeViewController,
                                didFinishWith result: MFMailComposeResult, error: Error?) {
+        if result == .sent { CrashLogger.shared.clearLog() }
         controller.dismiss(animated: true)
     }
 }

@@ -320,7 +320,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         sheet.popoverPresentationController?.sourceView = transportView
         sheet.popoverPresentationController?.sourceRect = CGRect(
-            x: transportView.bounds.midX, y: transportView.bounds.minY, width: 0, height: 0)
+            x: transportView.bounds.midX, y: transportView.bounds.midY, width: 1, height: 1)
 
         presentWhenReady(sheet)
     }
@@ -395,6 +395,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     @objc private func showKitPicker() {
+        if AppSettings.hapticsEnabled { UISelectionFeedbackGenerator().selectionChanged() }
         let picker = KitPickerViewController(currentKitId: store.currentKitId)
         picker.onSelect = { [weak self] kit in
             guard let self else { return }
@@ -406,6 +407,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     @objc private func showLibrary() {
+        if AppSettings.hapticsEnabled { UISelectionFeedbackGenerator().selectionChanged() }
         let lib = PatternLibraryViewController(currentName: store.patternName, currentPatternId: store.currentPatternId, currentKitId: store.currentKitId)
         lib.delegate = self
         present(lib, animated: true)

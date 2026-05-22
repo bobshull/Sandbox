@@ -12,7 +12,7 @@ struct ColorTheme {
         all.first { $0.id == AppSettings.colorThemeId } ?? neon
     }
 
-    static let all: [ColorTheme] = [neon, pastel, dusk, aurora]
+    static let all: [ColorTheme] = [neon, synthwave, dusk, aurora]
 
     // ── Neon (original) ────────────────────────────────────────────────────
     static let neon = ColorTheme(id: "neon", name: "Neon", colors: [
@@ -26,16 +26,16 @@ struct ColorTheme {
         "perc":  (hex("fdffb6"), hex("ddd86a")),
     ])
 
-    // ── Pastel ─────────────────────────────────────────────────────────────
-    static let pastel = ColorTheme(id: "pastel", name: "Pastel", colors: [
-        "kick":  (hex("ffb3a0"), hex("ff8f78")),
-        "snare": (hex("ffe4a0"), hex("ffd166")),
-        "hat":   (hex("b3f0ff"), hex("7ddff0")),
-        "clap":  (hex("c8ffbe"), hex("96e88a")),
-        "bass":  (hex("d9d4ff"), hex("b0a8ff")),
-        "pluck": (hex("ffd6ff"), hex("f0aaff")),
-        "pad":   (hex("c4dcff"), hex("93b8f5")),
-        "perc":  (hex("feffd6"), hex("e8e97a")),
+    // ── Synthwave ──────────────────────────────────────────────────────────
+    static let synthwave = ColorTheme(id: "synthwave", name: "Synth", colors: [
+        "kick":  (hex("ff2d78"), hex("d4005e")),
+        "snare": (hex("ff6ec7"), hex("e040a0")),
+        "hat":   (hex("00f0ff"), hex("00c8d8")),
+        "clap":  (hex("80ffea"), hex("40d8c0")),
+        "bass":  (hex("bf5fff"), hex("9930e0")),
+        "pluck": (hex("ff9fff"), hex("e060e0")),
+        "pad":   (hex("7b61ff"), hex("5538d8")),
+        "perc":  (hex("ffe566"), hex("d4b800")),
     ])
 
     // ── Dusk ───────────────────────────────────────────────────────────────

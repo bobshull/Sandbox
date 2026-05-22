@@ -121,6 +121,7 @@ final class TrackHeaderView: UIView {
     }
 
     @objc private func muteTapped() {
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
         delegate?.trackHeaderDidToggleMute(track)
     }
 

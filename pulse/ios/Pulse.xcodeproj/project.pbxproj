@@ -16,6 +16,7 @@
 		176B96B916D99A4B8D2A056F /* SampleKitsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7709EC17543072039B4671 /* SampleKitsTests.swift */; };
 		191AE9FFB312C7AB639EE9A0 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */; };
 		2013364E56B47CDC09B19E61 /* TracksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982B0E039F5177C7BE9F9F13 /* TracksTests.swift */; };
+		2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A96046916DC293790338A29F /* CrashLogger.swift */; };
 		2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B482574CA195A1DAE016C145 /* PresetsTests.swift */; };
 		2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C227703998F168A936512CCB /* TrackHeaderView.swift */; };
 		425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C973180DE38EF31F813D0783 /* SceneDelegate.swift */; };
@@ -79,6 +80,7 @@
 		918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStoreTests.swift; sourceTree = "<group>"; };
 		982B0E039F5177C7BE9F9F13 /* TracksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksTests.swift; sourceTree = "<group>"; };
 		A51EDD8265DEB720F5F54516 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		A96046916DC293790338A29F /* CrashLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashLogger.swift; sourceTree = "<group>"; };
 		AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequencerView.swift; sourceTree = "<group>"; };
 		AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
 		B482574CA195A1DAE016C145 /* PresetsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetsTests.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */,
+				A96046916DC293790338A29F /* CrashLogger.swift */,
 				CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */,
 				3905D7136357A9F65DDF822C /* Store.swift */,
 			);
@@ -324,6 +327,7 @@
 				FB61F8B02D4E5452965B1AF2 /* AudioEngine.swift in Sources */,
 				F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */,
 				C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */,
+				2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */,
 				829BF53E5B5B3892A3D5EBB5 /* FaderControl.swift in Sources */,
 				108DA7F180F50C9BD4C7F4A8 /* KitPickerViewController.swift in Sources */,
 				957541AD298144CE3AEFA793 /* KnobControl.swift in Sources */,
