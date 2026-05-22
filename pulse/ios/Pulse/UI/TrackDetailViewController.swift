@@ -11,10 +11,12 @@ final class TrackDetailViewController: UIViewController {
 
     private let panel = UIView()
 
-    private let volFader = FaderControl()
-    private let rvbFader = FaderControl()
-    private let dlyFader = FaderControl()
-    private let dstFader = FaderControl()
+    private let volFader   = FaderControl()
+    private let panFader   = FaderControl()
+    private let pitchFader = FaderControl()
+    private let rvbFader   = FaderControl()
+    private let dlyFader   = FaderControl()
+    private let dstFader   = FaderControl()
 
     private let dlySegment = UISegmentedControl(
         items: TrackEffects.DelaySyncDivision.allCases.map { $0.displayName }
@@ -35,12 +37,6 @@ final class TrackDetailViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = UIColor.black.withAlphaComponent(0.45)
 
-        let bg = UIButton(type: .custom)
-        bg.frame = view.bounds
-        bg.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        bg.addTarget(self, action: #selector(close), for: .touchUpInside)
-        view.addSubview(bg)
-
         buildPanel()
         populateValues()
     }
@@ -51,14 +47,15 @@ final class TrackDetailViewController: UIViewController {
         panel.backgroundColor    = Theme.backgroundElevated2
         panel.layer.cornerRadius = 16
         panel.layer.borderWidth  = 1.5
-        panel.layer.borderColor  = track.color.withAlphaComponent(0.8).cgColor
+        let trackColor = ColorTheme.current.color(for: track.id)
+        panel.layer.borderColor  = trackColor.withAlphaComponent(0.8).cgColor
         panel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(panel)
 
         let nameLabel = UILabel()
         nameLabel.text      = track.name
         nameLabel.font      = .systemFont(ofSize: 15, weight: .semibold)
-        nameLabel.textColor = track.color
+        nameLabel.textColor = trackColor
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(nameLabel)
 
@@ -72,25 +69,29 @@ final class TrackDetailViewController: UIViewController {
         let headerDiv = makeDivider()
         panel.addSubview(headerDiv)
 
-        // Fader stack
-        configureFader(volFader, title: "Vol",  min: 0,  max: 1)
-        configureFader(rvbFader, title: "Rvb",  min: 0, max: 100)
-        configureFader(dlyFader, title: "Dly",  min: 0, max: 100)
-        configureFader(dstFader, title: "Dst",  min: 0, max: 100)
+        configureFader(volFader,   title: "Vol",   min: 0,   max: 1)
+        configureFader(panFader,   title: "Pan",   min: -1,  max: 1)
+        panFader.snapPoints  = [0]; panFader.snapRadius  = 0.08
+        configureFader(pitchFader, title: "Pitch", min: -12, max: 12)
+        pitchFader.snapPoints = [0]; pitchFader.snapRadius = 1.0
+        configureFader(rvbFader,   title: "Rvb",   min: 0,   max: 100)
+        configureFader(dlyFader,   title: "Dly",   min: 0,   max: 100)
+        configureFader(dstFader,   title: "Dst",   min: 0,   max: 100)
 
-        volFader.addTarget(self, action: #selector(volChanged),  for: .valueChanged)
-        rvbFader.addTarget(self, action: #selector(rvbChanged),  for: .valueChanged)
-        dlyFader.addTarget(self, action: #selector(dlyChanged),  for: .valueChanged)
-        dstFader.addTarget(self, action: #selector(dstChanged),  for: .valueChanged)
+        volFader.addTarget(self,   action: #selector(volChanged),   for: .valueChanged)
+        panFader.addTarget(self,   action: #selector(panChanged),   for: .valueChanged)
+        pitchFader.addTarget(self, action: #selector(pitchChanged), for: .valueChanged)
+        rvbFader.addTarget(self,   action: #selector(rvbChanged),   for: .valueChanged)
+        dlyFader.addTarget(self,   action: #selector(dlyChanged),   for: .valueChanged)
+        dstFader.addTarget(self,   action: #selector(dstChanged),   for: .valueChanged)
 
-        let faderStack = UIStackView(arrangedSubviews: [volFader, rvbFader, dlyFader, dstFader])
+        let faderStack = UIStackView(arrangedSubviews: [volFader, panFader, pitchFader, rvbFader, dlyFader, dstFader])
         faderStack.axis         = .horizontal
         faderStack.distribution = .fillEqually
         faderStack.spacing      = 8
         faderStack.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(faderStack)
 
-        // Delay sync segment
         dlySegment.selectedSegmentTintColor = Theme.accent
         dlySegment.setTitleTextAttributes([.foregroundColor: Theme.text], for: .selected)
         dlySegment.setTitleTextAttributes([.foregroundColor: Theme.textDim as Any], for: .normal)
@@ -102,7 +103,7 @@ final class TrackDetailViewController: UIViewController {
         NSLayoutConstraint.activate([
             panel.centerXAnchor.constraint(equalTo: safe.centerXAnchor),
             panel.centerYAnchor.constraint(equalTo: safe.centerYAnchor),
-            panel.widthAnchor.constraint(equalToConstant: 300),
+            panel.widthAnchor.constraint(equalToConstant: 380),
 
             nameLabel.topAnchor.constraint(equalTo: panel.topAnchor, constant: 14),
             nameLabel.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 16),
@@ -135,6 +136,12 @@ final class TrackDetailViewController: UIViewController {
         volFader.value     = volume
         volFader.valueText = pctVol(volume)
 
+        panFader.value     = effects.pan
+        panFader.valueText = panText(effects.pan)
+
+        pitchFader.value     = effects.pitch
+        pitchFader.valueText = pitchText(effects.pitch)
+
         rvbFader.value     = effects.reverbWet
         rvbFader.valueText = pct100(effects.reverbWet)
 
@@ -145,6 +152,16 @@ final class TrackDetailViewController: UIViewController {
 
         dstFader.value     = effects.distortionWet
         dstFader.valueText = pct100(effects.distortionWet)
+
+        updateDlySegState()
+    }
+
+    // MARK: - Delay segment state
+
+    private func updateDlySegState() {
+        let active = effects.delayWet > 0
+        dlySegment.isEnabled = active
+        dlySegment.alpha     = active ? 1 : 0.35
     }
 
     // MARK: - Actions
@@ -158,6 +175,22 @@ final class TrackDetailViewController: UIViewController {
         onVolumeChange?(volume)
     }
 
+    @objc private func panChanged() {
+        effects.pan        = panFader.value
+        panFader.valueText = panText(effects.pan)
+        panFader.setNeedsDisplay()
+        onEffectsChange?(effects)
+    }
+
+    @objc private func pitchChanged() {
+        let semitones          = Float(Int(pitchFader.value.rounded()))
+        effects.pitch          = semitones
+        pitchFader.value       = semitones
+        pitchFader.valueText   = pitchText(semitones)
+        pitchFader.setNeedsDisplay()
+        onEffectsChange?(effects)
+    }
+
     @objc private func rvbChanged() {
         effects.reverbWet  = rvbFader.value
         rvbFader.valueText = pct100(effects.reverbWet)
@@ -169,6 +202,7 @@ final class TrackDetailViewController: UIViewController {
         effects.delayWet   = dlyFader.value
         dlyFader.valueText = pct100(effects.delayWet)
         dlyFader.setNeedsDisplay()
+        updateDlySegState()
         onEffectsChange?(effects)
     }
 
@@ -191,10 +225,22 @@ final class TrackDetailViewController: UIViewController {
     private func pctVol(_ v: Float) -> String { "\(Int((v * 100).rounded()))%" }
     private func pct100(_ v: Float) -> String { "\(Int(v.rounded()))%" }
 
+    private func panText(_ v: Float) -> String {
+        let pct = Int((abs(v) * 100).rounded())
+        if pct == 0 { return "C" }
+        return v < 0 ? "L\(pct)" : "R\(pct)"
+    }
+
+    private func pitchText(_ v: Float) -> String {
+        let s = Int(v.rounded())
+        if s == 0 { return "0st" }
+        return s > 0 ? "+\(s)st" : "\(s)st"
+    }
+
     private func configureFader(_ f: FaderControl, title: String, min: Float, max: Float) {
         f.minimumValue = min
         f.maximumValue = max
-        f.trackColor   = track.color
+        f.trackColor   = ColorTheme.current.color(for: track.id)
         f.title        = title
     }
 

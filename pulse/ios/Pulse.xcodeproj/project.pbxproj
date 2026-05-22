@@ -13,8 +13,15 @@
 		0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51EDD8265DEB720F5F54516 /* Theme.swift */; };
 		108DA7F180F50C9BD4C7F4A8 /* KitPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */; };
 		1588E0A7A2CC232214B932DC /* Synths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F72C6BC8D90CE86D0586B3A /* Synths.swift */; };
+		176B96B916D99A4B8D2A056F /* SampleKitsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7709EC17543072039B4671 /* SampleKitsTests.swift */; };
+		191AE9FFB312C7AB639EE9A0 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */; };
+		2013364E56B47CDC09B19E61 /* TracksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982B0E039F5177C7BE9F9F13 /* TracksTests.swift */; };
+		2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A96046916DC293790338A29F /* CrashLogger.swift */; };
+		2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B482574CA195A1DAE016C145 /* PresetsTests.swift */; };
 		2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C227703998F168A936512CCB /* TrackHeaderView.swift */; };
 		425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C973180DE38EF31F813D0783 /* SceneDelegate.swift */; };
+		47ABBF89B33B0D9C0EB5145B /* SessionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */; };
+		593E0C3776C4B93E2CEBBFB4 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58355B633C2F1A2DAD18A896 /* StoreTests.swift */; };
 		5B1224B4A7B8F994B72217B7 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3905D7136357A9F65DDF822C /* Store.swift */; };
 		616B1E15A99B07B4D65A228F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */; };
 		7D03AE0E0B1816039E741BA5 /* TrackDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */; };
@@ -22,10 +29,15 @@
 		841AADEA1BF7E0367AA736A2 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */; };
 		92528EF8C82B3D65914B5069 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD6248F10D8F97FB821D51E /* MainViewController.swift */; };
 		957541AD298144CE3AEFA793 /* KnobControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479A58EEA48C73B1C82F82DC /* KnobControl.swift */; };
+		97710BDD3FA9DE1F343CF4D2 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0B6A0582997898623109FC /* SettingsViewController.swift */; };
+		9B6CA5DA4B6A94018ED3D755 /* TrackEffectsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8050A11B221549612EC5112E /* TrackEffectsTests.swift */; };
 		9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */; };
 		A42EB5E151A566DA7D46C921 /* SampleKits.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB05F18EB784C467E9F52091 /* SampleKits.swift */; };
 		A4F508C5FF8E23F5C835CA8F /* PatternStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */; };
 		B16E1AF171034F853892913B /* LevelMeterStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */; };
+		BEF2EFE9CA34C7D767F58C56 /* PatternStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */; };
+		C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */; };
+		D137BDC802515EFD1669CAA2 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA857BE40CCB4925205352A /* AppSettingsTests.swift */; };
 		DD600448B5D57F1D8F25DF5B /* TrackEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */; };
 		E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */; };
 		F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE1C4767AB7667B0376366A /* CellButton.swift */; };
@@ -33,33 +45,56 @@
 		FB61F8B02D4E5452965B1AF2 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58107A90060A6D3A39ED5760 /* AudioEngine.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		EE9EFEEC20EB618CA7451ADB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 84FEC84833EC6BF77563A3F6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CF79B1BAD3D70F54153FE0B3;
+			remoteInfo = Pulse;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
 		13FEF2D2118D74C3572DF349 /* Pulse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
 		1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
 		2AE1C4767AB7667B0376366A /* CellButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellButton.swift; sourceTree = "<group>"; };
+		2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		2F72C6BC8D90CE86D0586B3A /* Synths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Synths.swift; sourceTree = "<group>"; };
 		3905D7136357A9F65DDF822C /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		42EC5B8C7893835120454B29 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		479A58EEA48C73B1C82F82DC /* KnobControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnobControl.swift; sourceTree = "<group>"; };
 		48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaderControl.swift; sourceTree = "<group>"; };
 		4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tracks.swift; sourceTree = "<group>"; };
+		4FBA30D234A433E58E16508B /* PulseTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PulseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58107A90060A6D3A39ED5760 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		58355B633C2F1A2DAD18A896 /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
+		6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStateTests.swift; sourceTree = "<group>"; };
 		702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
+		8050A11B221549612EC5112E /* TrackEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffectsTests.swift; sourceTree = "<group>"; };
 		82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportView.swift; sourceTree = "<group>"; };
+		8FA857BE40CCB4925205352A /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStoreTests.swift; sourceTree = "<group>"; };
+		982B0E039F5177C7BE9F9F13 /* TracksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksTests.swift; sourceTree = "<group>"; };
 		A51EDD8265DEB720F5F54516 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		A96046916DC293790338A29F /* CrashLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashLogger.swift; sourceTree = "<group>"; };
 		AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequencerView.swift; sourceTree = "<group>"; };
 		AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
+		B482574CA195A1DAE016C145 /* PresetsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetsTests.swift; sourceTree = "<group>"; };
 		B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BD0B6A0582997898623109FC /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		BFD6248F10D8F97FB821D51E /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		C227703998F168A936512CCB /* TrackHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackHeaderView.swift; sourceTree = "<group>"; };
 		C973180DE38EF31F813D0783 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		CBC8AE5BF7C0419018C1192A /* Pulse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulse.entitlements; sourceTree = "<group>"; };
 		CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStore.swift; sourceTree = "<group>"; };
+		CF7709EC17543072039B4671 /* SampleKitsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKitsTests.swift; sourceTree = "<group>"; };
 		DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
 		EB05F18EB784C467E9F52091 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
+		FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -81,6 +116,7 @@
 			isa = PBXGroup;
 			children = (
 				2AE1C4767AB7667B0376366A /* CellButton.swift */,
+				FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */,
 				48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */,
 				0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */,
 				479A58EEA48C73B1C82F82DC /* KnobControl.swift */,
@@ -88,6 +124,7 @@
 				BFD6248F10D8F97FB821D51E /* MainViewController.swift */,
 				DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */,
 				AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */,
+				BD0B6A0582997898623109FC /* SettingsViewController.swift */,
 				A51EDD8265DEB720F5F54516 /* Theme.swift */,
 				42EC5B8C7893835120454B29 /* ToastView.swift */,
 				702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */,
@@ -100,6 +137,8 @@
 		1C5FCB9A4DB3E40A084045AB /* State */ = {
 			isa = PBXGroup;
 			children = (
+				2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */,
+				A96046916DC293790338A29F /* CrashLogger.swift */,
 				CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */,
 				3905D7136357A9F65DDF822C /* Store.swift */,
 			);
@@ -110,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				13FEF2D2118D74C3572DF349 /* Pulse.app */,
+				4FBA30D234A433E58E16508B /* PulseTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -136,6 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				16C8605271C6A45188D07E13 /* Pulse */,
+				FCB0E6001B954CCA450AA55C /* PulseTests */,
 				1FEE830988994786371D8E45 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -159,9 +200,42 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		FCB0E6001B954CCA450AA55C /* PulseTests */ = {
+			isa = PBXGroup;
+			children = (
+				8FA857BE40CCB4925205352A /* AppSettingsTests.swift */,
+				918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */,
+				B482574CA195A1DAE016C145 /* PresetsTests.swift */,
+				CF7709EC17543072039B4671 /* SampleKitsTests.swift */,
+				6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */,
+				58355B633C2F1A2DAD18A896 /* StoreTests.swift */,
+				8050A11B221549612EC5112E /* TrackEffectsTests.swift */,
+				982B0E039F5177C7BE9F9F13 /* TracksTests.swift */,
+			);
+			path = PulseTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		26CB5097CD9CC52FD2F253AB /* PulseTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F2F1EA2CB05C310F102D486E /* Build configuration list for PBXNativeTarget "PulseTests" */;
+			buildPhases = (
+				8B00C375CD98515701D2325C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				43B12092B94F779018A5F285 /* PBXTargetDependency */,
+			);
+			name = PulseTests;
+			packageProductDependencies = (
+			);
+			productName = PulseTests;
+			productReference = 4FBA30D234A433E58E16508B /* PulseTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		CF79B1BAD3D70F54153FE0B3 /* Pulse */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9608D96881FD5C17BB380FA0 /* Build configuration list for PBXNativeTarget "Pulse" */;
@@ -189,6 +263,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					26CB5097CD9CC52FD2F253AB = {
+						DevelopmentTeam = "Bob Shull";
+						ProvisioningStyle = Automatic;
+					};
 					CF79B1BAD3D70F54153FE0B3 = {
 						ProvisioningStyle = Automatic;
 					};
@@ -208,6 +286,7 @@
 			projectRoot = "";
 			targets = (
 				CF79B1BAD3D70F54153FE0B3 /* Pulse */,
+				26CB5097CD9CC52FD2F253AB /* PulseTests */,
 			);
 		};
 /* End PBXProject section */
@@ -224,13 +303,31 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		8B00C375CD98515701D2325C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D137BDC802515EFD1669CAA2 /* AppSettingsTests.swift in Sources */,
+				BEF2EFE9CA34C7D767F58C56 /* PatternStoreTests.swift in Sources */,
+				2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */,
+				176B96B916D99A4B8D2A056F /* SampleKitsTests.swift in Sources */,
+				47ABBF89B33B0D9C0EB5145B /* SessionStateTests.swift in Sources */,
+				593E0C3776C4B93E2CEBBFB4 /* StoreTests.swift in Sources */,
+				9B6CA5DA4B6A94018ED3D755 /* TrackEffectsTests.swift in Sources */,
+				2013364E56B47CDC09B19E61 /* TracksTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D70CFAE236269B6E146109F4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */,
+				191AE9FFB312C7AB639EE9A0 /* AppSettings.swift in Sources */,
 				FB61F8B02D4E5452965B1AF2 /* AudioEngine.swift in Sources */,
 				F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */,
+				C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */,
+				2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */,
 				829BF53E5B5B3892A3D5EBB5 /* FaderControl.swift in Sources */,
 				108DA7F180F50C9BD4C7F4A8 /* KitPickerViewController.swift in Sources */,
 				957541AD298144CE3AEFA793 /* KnobControl.swift in Sources */,
@@ -242,6 +339,7 @@
 				A42EB5E151A566DA7D46C921 /* SampleKits.swift in Sources */,
 				425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */,
 				F1A5D42C877007077A318F45 /* SequencerView.swift in Sources */,
+				97710BDD3FA9DE1F343CF4D2 /* SettingsViewController.swift in Sources */,
 				5B1224B4A7B8F994B72217B7 /* Store.swift in Sources */,
 				1588E0A7A2CC232214B932DC /* Synths.swift in Sources */,
 				0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */,
@@ -256,7 +354,32 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		43B12092B94F779018A5F285 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CF79B1BAD3D70F54153FE0B3 /* Pulse */;
+			targetProxy = EE9EFEEC20EB618CA7451ADB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		2269555CAF74F95347158B33 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pulse.app/Pulse";
+			};
+			name = Release;
+		};
 		2E7048B1817FBF01C246A8F3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -325,16 +448,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = Pulse/Pulse.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -348,21 +468,35 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = Pulse/Pulse.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
+		};
+		F4D6E71E3061EE0C8446C127 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.pulse.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pulse.app/Pulse";
+			};
+			name = Debug;
 		};
 		FA223E74BBF86702C72CD3A8 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -449,6 +583,15 @@
 			buildConfigurations = (
 				FA223E74BBF86702C72CD3A8 /* Debug */,
 				2E7048B1817FBF01C246A8F3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F2F1EA2CB05C310F102D486E /* Build configuration list for PBXNativeTarget "PulseTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F4D6E71E3061EE0C8446C127 /* Debug */,
+				2269555CAF74F95347158B33 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

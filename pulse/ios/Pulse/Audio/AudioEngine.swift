@@ -21,11 +21,13 @@ final class AudioEngine {
 
     private let store: Store
 
-    private var players: [String: AVAudioPlayerNode] = [:]
     private var buffers: [String: AVAudioPCMBuffer] = [:]
     private let masterMixer = AVAudioMixerNode()
 
     private struct TrackFXChain {
+        let player: AVAudioPlayerNode
+        let eq: AVAudioUnitEQ
+        let pitchNode: AVAudioUnitTimePitch
         let distortion: AVAudioUnitDistortion
         let delay: AVAudioUnitDelay
         let reverb: AVAudioUnitReverb
@@ -46,7 +48,7 @@ final class AudioEngine {
 
     init(store: Store) {
         self.store = store
-        self.format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
+        self.format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 2)!
         self.sampleRate = format.sampleRate
     }
 
@@ -63,24 +65,31 @@ final class AudioEngine {
 
         for track in Tracks.all {
             let player = AVAudioPlayerNode()
+            let eq     = AVAudioUnitEQ(numberOfBands: 1)
+            let ptch   = AVAudioUnitTimePitch()
             let dist   = AVAudioUnitDistortion()
             let delay  = AVAudioUnitDelay()
             let reverb = AVAudioUnitReverb()
 
-            for node: AVAudioNode in [player, dist, delay, reverb] { engine.attach(node) }
-            engine.connect(player, to: dist,        format: format)
+            eq.bands[0].filterType = .lowPass
+            eq.bands[0].bypass     = true
+            dist.loadFactoryPreset(.multiDistortedFunk)
+            reverb.loadFactoryPreset(.mediumRoom)
+
+            for node: AVAudioNode in [player, eq, ptch, dist, delay, reverb] { engine.attach(node) }
+            engine.connect(player, to: eq,          format: format)
+            engine.connect(eq,     to: ptch,        format: format)
+            engine.connect(ptch,   to: dist,        format: format)
             engine.connect(dist,   to: delay,       format: format)
             engine.connect(delay,  to: reverb,      format: format)
             engine.connect(reverb, to: masterMixer, format: format)
 
             player.volume = store.volumes(for: 0)[track.id] ?? 1.0
 
-            dist.loadFactoryPreset(.multiDistortedFunk)
-            reverb.loadFactoryPreset(.mediumRoom)
-            let chain = TrackFXChain(distortion: dist, delay: delay, reverb: reverb)
+            let chain = TrackFXChain(player: player, eq: eq, pitchNode: ptch,
+                                     distortion: dist, delay: delay, reverb: reverb)
             applyFX(store.effects[track.id] ?? .default, chain: chain, tempo: store.tempo)
 
-            players[track.id]  = player
             fxChains[track.id] = chain
 
             // Pre-render the voice once and reuse for every hit.
@@ -88,13 +97,15 @@ final class AudioEngine {
             let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
             buf.frameLength = AVAudioFrameCount(samples.count)
             samples.withUnsafeBufferPointer { src in
-                buf.floatChannelData!.pointee.update(from: src.baseAddress!, count: samples.count)
+                let channels = buf.floatChannelData!
+                channels[0].update(from: src.baseAddress!, count: samples.count)
+                channels[1].update(from: src.baseAddress!, count: samples.count)
             }
             buffers[track.id] = buf
         }
 
         try engine.start()
-        for (_, player) in players { player.play() }
+        for (_, chain) in fxChains { chain.player.play() }
     }
 
     // MARK: - Transport
@@ -115,7 +126,7 @@ final class AudioEngine {
         isPlaying = false
         schedulerTimer?.cancel()
         schedulerTimer = nil
-        for (_, player) in players { player.stop(); player.play() }
+        for (_, chain) in fxChains { chain.player.stop(); chain.player.play() }
         events.send(.stopped)
         events.send(.step(-1))
     }
@@ -125,7 +136,7 @@ final class AudioEngine {
     }
 
     func setTrackGain(_ id: String, _ value: Float) {
-        players[id]?.volume = value
+        fxChains[id]?.player.volume = value
     }
 
     func reloadKit(_ kitId: String) {
@@ -135,7 +146,9 @@ final class AudioEngine {
             let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
             buf.frameLength = AVAudioFrameCount(samples.count)
             samples.withUnsafeBufferPointer { src in
-                buf.floatChannelData!.pointee.update(from: src.baseAddress!, count: samples.count)
+                let channels = buf.floatChannelData!
+                channels[0].update(from: src.baseAddress!, count: samples.count)
+                channels[1].update(from: src.baseAddress!, count: samples.count)
             }
             newBuffers[track.id] = buf
         }
@@ -144,8 +157,8 @@ final class AudioEngine {
 
     /// Triggers a single voice immediately. Used for track-header preview taps.
     func preview(trackId: String) {
-        guard let player = players[trackId], let buf = buffers[trackId] else { return }
-        player.scheduleBuffer(buf, at: nil, options: [.interrupts], completionHandler: nil)
+        guard let chain = fxChains[trackId], let buf = buffers[trackId] else { return }
+        chain.player.scheduleBuffer(buf, at: nil, options: [.interrupts], completionHandler: nil)
     }
 
     // MARK: - FX
@@ -164,6 +177,13 @@ final class AudioEngine {
     }
 
     private func applyFX(_ fx: TrackEffects, chain: TrackFXChain, tempo: Double) {
+        chain.player.pan = fx.pan
+        chain.pitchNode.pitch = fx.pitch * 100   // semitones → cents
+
+        let filterOpen = fx.filterCutoff >= 100
+        chain.eq.bands[0].bypass    = filterOpen
+        chain.eq.bands[0].frequency = TrackEffects.filterFrequency(from: fx.filterCutoff)
+
         chain.distortion.wetDryMix = fx.distortionWet
         chain.delay.wetDryMix      = fx.delayWet
         chain.delay.delayTime      = min(fx.delaySyncDivision.quarterNoteMultiplier * (60.0 / tempo), 2.0)
@@ -201,10 +221,9 @@ final class AudioEngine {
         let vols = store.volumes(for: barIndex)
         let efxs = store.effects(for: barIndex)
         for track in Tracks.all {
-            players[track.id]?.volume = vols[track.id] ?? 1.0
-            if let chain = fxChains[track.id] {
-                applyFX(efxs[track.id] ?? .default, chain: chain, tempo: store.tempo)
-            }
+            guard let chain = fxChains[track.id] else { continue }
+            chain.player.volume = vols[track.id] ?? 1.0
+            applyFX(efxs[track.id] ?? .default, chain: chain, tempo: store.tempo)
         }
     }
 
@@ -217,16 +236,25 @@ final class AudioEngine {
             applyBarSettings(barIndex: barIndex)
         }
 
+        let barIndex = step / 16
+        let barEffects = store.effects(for: barIndex)
+
         for track in Tracks.all {
             guard snap.mutes[track.id] != true,
                   let row = snap.rows[track.id], row.indices.contains(step), row[step],
-                  let player = players[track.id],
+                  let chain = fxChains[track.id],
                   let buf = buffers[track.id]
             else { continue }
 
-            let host = AVAudioTime.hostTime(forSeconds: max(hostSeconds, 0))
+            var hitTime = hostSeconds
+            let humanize = Double(barEffects[track.id]?.humanize ?? 0)
+            if humanize > 0 {
+                hitTime += Double.random(in: -1...1) * humanize / 100.0 * stepDuration() * 0.3
+            }
+
+            let host = AVAudioTime.hostTime(forSeconds: max(hitTime, 0))
             let when = AVAudioTime(hostTime: host)
-            player.scheduleBuffer(buf, at: when, options: [.interrupts], completionHandler: nil)
+            chain.player.scheduleBuffer(buf, at: when, options: [.interrupts], completionHandler: nil)
         }
 
         // Notify the UI on main.
@@ -253,7 +281,7 @@ final class AudioEngine {
 
     /// Renders `bars` bars offline into an AAC/M4A file and returns the URL.
     /// Runs entirely on a background thread; calls back on main.
-    func exportMix(bars: Int, completion: @escaping (Result<URL, Error>) -> Void) {
+    func exportMix(reps: Int, format: ExportFormat, completion: @escaping (Result<URL, Error>) -> Void) {
         guard !buffers.isEmpty else {
             completion(.failure(ExportError.notPrepared)); return
         }
@@ -272,7 +300,7 @@ final class AudioEngine {
             do {
                 // 1 — compute per-step start times (seconds from t=0)
                 let stepDur   = 60.0 / tempo / 4.0
-                let total     = bars * Tracks.stepCount
+                let total     = reps * patternLength
                 var times     = [Double](repeating: 0, count: total)
                 var t         = 0.0
                 for i in 0..<total {
@@ -308,39 +336,60 @@ final class AudioEngine {
                 // 3 — master gain + tanh soft limiter
                 for i in 0..<totalFrames { out[i] = tanh(out[i] * master) }
 
-                // 4 — write PCM to a temp CAF
-                let fmt    = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
-                let cafURL = FileManager.default.temporaryDirectory.appendingPathComponent("pulse_mix.caf")
-                try? FileManager.default.removeItem(at: cafURL)
-                let cafFile = try AVAudioFile(forWriting: cafURL, settings: fmt.settings)
-                let pcm     = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(totalFrames))!
+                // 4 — build PCM buffer
+                let fmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
+                let pcm = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(totalFrames))!
                 pcm.frameLength = AVAudioFrameCount(totalFrames)
                 out.withUnsafeBufferPointer { src in
                     pcm.floatChannelData!.pointee.update(from: src.baseAddress!, count: totalFrames)
                 }
-                try cafFile.write(from: pcm)
 
-                // 5 — transcode CAF → M4A (AAC)
-                let ts     = Int(Date().timeIntervalSince1970)
-                let m4aURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).m4a")
-                try? FileManager.default.removeItem(at: m4aURL)
+                let ts        = Int(Date().timeIntervalSince1970)
+                let exportFmt = format
 
-                let asset   = AVURLAsset(url: cafURL)
-                guard let session = AVAssetExportSession(asset: asset,
-                                                         presetName: AVAssetExportPresetAppleM4A) else {
-                    throw ExportError.sessionUnavailable
-                }
-                session.outputURL      = m4aURL
-                session.outputFileType = .m4a
-
-                let sem = DispatchSemaphore(value: 0)
-                session.exportAsynchronously { sem.signal() }
-                sem.wait()
-
-                if session.status == .completed {
-                    DispatchQueue.main.async { completion(.success(m4aURL)) }
+                if exportFmt == .wav {
+                    // 5a — write PCM directly as WAV (16-bit, lossless)
+                    let wavSettings: [String: Any] = [
+                        AVFormatIDKey:             Int(kAudioFormatLinearPCM),
+                        AVSampleRateKey:           sr,
+                        AVNumberOfChannelsKey:     1,
+                        AVLinearPCMBitDepthKey:    16,
+                        AVLinearPCMIsFloatKey:     false,
+                        AVLinearPCMIsBigEndianKey: false,
+                        AVLinearPCMIsNonInterleaved: false,
+                    ]
+                    let wavURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).wav")
+                    try? FileManager.default.removeItem(at: wavURL)
+                    let wavFile = try AVAudioFile(forWriting: wavURL, settings: wavSettings)
+                    try wavFile.write(from: pcm)
+                    DispatchQueue.main.async { completion(.success(wavURL)) }
                 } else {
-                    throw session.error ?? ExportError.exportFailed
+                    // 5b — write PCM to CAF, transcode to M4A (AAC 256 kbps)
+                    let cafURL = FileManager.default.temporaryDirectory.appendingPathComponent("pulse_mix.caf")
+                    try? FileManager.default.removeItem(at: cafURL)
+                    let cafFile = try AVAudioFile(forWriting: cafURL, settings: fmt.settings)
+                    try cafFile.write(from: pcm)
+
+                    let m4aURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).m4a")
+                    try? FileManager.default.removeItem(at: m4aURL)
+
+                    let asset = AVURLAsset(url: cafURL)
+                    guard let session = AVAssetExportSession(asset: asset,
+                                                             presetName: AVAssetExportPresetAppleM4A) else {
+                        throw ExportError.sessionUnavailable
+                    }
+                    session.outputURL      = m4aURL
+                    session.outputFileType = .m4a
+
+                    let sem = DispatchSemaphore(value: 0)
+                    session.exportAsynchronously { sem.signal() }
+                    sem.wait()
+
+                    if session.status == .completed {
+                        DispatchQueue.main.async { completion(.success(m4aURL)) }
+                    } else {
+                        throw session.error ?? ExportError.exportFailed
+                    }
                 }
 
             } catch {

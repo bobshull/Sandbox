@@ -9,7 +9,8 @@ final class CellButton: UIControl {
     var isBeat: Bool = false { didSet { updateAppearance() } }
 
     private let backgroundLayer = CALayer()
-    private let bevelLayer = CAGradientLayer()
+    private let shadowLayer = CAGradientLayer()   // bottom darkening, always visible
+    private let shineLayer = CAGradientLayer()    // top gloss highlight, always visible
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -21,18 +22,21 @@ final class CellButton: UIControl {
         backgroundLayer.cornerCurve = .continuous
         backgroundLayer.borderWidth = 1
 
-        bevelLayer.startPoint = CGPoint(x: 0.5, y: 0)
-        bevelLayer.endPoint = CGPoint(x: 0.5, y: 1)
-        bevelLayer.colors = [
-            UIColor.white.withAlphaComponent(0.18).cgColor,
-            UIColor.clear.cgColor,
-            UIColor.black.withAlphaComponent(0.22).cgColor,
-        ]
-        bevelLayer.locations = [0, 0.45, 1]
-        bevelLayer.cornerRadius = 8
-        bevelLayer.cornerCurve = .continuous
-        bevelLayer.masksToBounds = true
-        backgroundLayer.addSublayer(bevelLayer)
+        // Bottom-half shadow: clear → dark
+        shadowLayer.startPoint = CGPoint(x: 0.5, y: 0.4)
+        shadowLayer.endPoint   = CGPoint(x: 0.5, y: 1.0)
+        shadowLayer.cornerRadius = 8
+        shadowLayer.cornerCurve = .continuous
+        shadowLayer.masksToBounds = true
+        backgroundLayer.addSublayer(shadowLayer)
+
+        // Top-half gloss shine: bright → clear
+        shineLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        shineLayer.endPoint   = CGPoint(x: 0.5, y: 1.0)
+        shineLayer.cornerRadius = 8
+        shineLayer.cornerCurve = .continuous
+        shineLayer.masksToBounds = true
+        backgroundLayer.addSublayer(shineLayer)
 
         isAccessibilityElement = true
         accessibilityTraits.insert(.button)
@@ -44,7 +48,8 @@ final class CellButton: UIControl {
     override func layoutSubviews() {
         super.layoutSubviews()
         backgroundLayer.frame = bounds
-        bevelLayer.frame = bounds
+        shadowLayer.frame = bounds
+        shineLayer.frame = bounds
     }
 
     override var isHighlighted: Bool {
@@ -60,17 +65,25 @@ final class CellButton: UIControl {
         backgroundLayer.removeAnimation(forKey: "flash")
         backgroundLayer.removeAnimation(forKey: "bloom")
 
-        bevelLayer.isHidden = !isOn
-
         if isOn {
             backgroundLayer.backgroundColor = trackColor.cgColor
             backgroundLayer.borderColor = accentColor.cgColor
+            shineLayer.colors  = [UIColor.white.withAlphaComponent(0.30).cgColor,
+                                   UIColor.white.withAlphaComponent(0.10).cgColor,
+                                   UIColor.clear.cgColor]
+            shineLayer.locations = [0, 0.35, 0.65]
+            shadowLayer.colors = [UIColor.clear.cgColor,
+                                   UIColor.black.withAlphaComponent(0.28).cgColor]
         } else if isBeat {
             backgroundLayer.backgroundColor = UIColor(red: 36/255, green: 43/255, blue: 62/255, alpha: 1).cgColor
             backgroundLayer.borderColor = UIColor(red: 52/255, green: 60/255, blue: 80/255, alpha: 1).cgColor
+            shineLayer.colors  = [UIColor.clear.cgColor, UIColor.clear.cgColor]
+            shadowLayer.colors = [UIColor.clear.cgColor, UIColor.clear.cgColor]
         } else {
             backgroundLayer.backgroundColor = Theme.backgroundElevated2.cgColor
             backgroundLayer.borderColor = Theme.border.cgColor
+            shineLayer.colors  = [UIColor.clear.cgColor, UIColor.clear.cgColor]
+            shadowLayer.colors = [UIColor.clear.cgColor, UIColor.clear.cgColor]
         }
 
         if isPlayhead && isOn {

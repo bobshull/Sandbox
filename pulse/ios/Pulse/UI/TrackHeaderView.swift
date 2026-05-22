@@ -45,6 +45,13 @@ final class TrackHeaderView: UIView {
         updatePillLabel()
     }
 
+    func applyThemeColor(_ color: UIColor) {
+        var cfg = swatchButton.configuration
+        cfg?.background.backgroundColor = color
+        swatchButton.configuration = cfg
+        volumePill.fillColor = color
+    }
+
     private func updatePillLabel() {
         let pct = "\(Int((currentVolume * 100).rounded()))%"
         volumePill.label.text = currentEffects.hasAnyActive ? "• \(pct)" : pct
@@ -114,6 +121,7 @@ final class TrackHeaderView: UIView {
     }
 
     @objc private func muteTapped() {
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
         delegate?.trackHeaderDidToggleMute(track)
     }
 

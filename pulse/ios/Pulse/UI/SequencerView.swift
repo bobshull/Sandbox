@@ -173,8 +173,9 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                 group.axis = .horizontal; group.distribution = .fillEqually; group.spacing = cellSpacing
                 for step in g*4..<g*4+4 {
                     let cell = CellButton()
-                    cell.trackColor = row.track.color
-                    cell.accentColor = row.track.accent
+                    let theme = ColorTheme.current
+                    cell.trackColor = theme.color(for: row.track.id)
+                    cell.accentColor = theme.accent(for: row.track.id)
                     cell.isBeat = (step % 4 == 0)
                     cell.accessibilityLabel = "\(row.track.name) step \(step + 1)"
                     cell.tag = step
@@ -334,8 +335,9 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
             group.spacing = cellSpacing
             for localStep in g*4..<g*4+4 {
                 let cell = CellButton()
-                cell.trackColor = track.color
-                cell.accentColor = track.accent
+                let theme = ColorTheme.current
+                cell.trackColor = theme.color(for: track.id)
+                cell.accentColor = theme.accent(for: track.id)
                 cell.isBeat = (localStep % 4 == 0)
                 cell.accessibilityLabel = "\(track.name) step \(localStep + 1)"
                 cell.tag = localStep   // local 0-15; actual step = activePage*16 + tag
@@ -375,6 +377,8 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     // MARK: - Binding
 
     private func bind() {
+        NotificationCenter.default.addObserver(self, selector: #selector(applyTheme),
+                                               name: .colorThemeDidChange, object: nil)
         store.changes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] section in
@@ -488,15 +492,25 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
 
     @objc private func cellTapped(_ sender: CellButton) {
         guard let row = rows.first(where: { $0.cells.contains(sender) }) else { return }
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         delegate?.sequencer(toggleStep: row.track.id, step: sender.tag)
+    }
+
+    @objc private func applyTheme() {
+        let theme = ColorTheme.current
+        for row in rows {
+            let c = theme.color(for: row.track.id)
+            let a = theme.accent(for: row.track.id)
+            for cell in row.cells { cell.trackColor = c; cell.accentColor = a }
+            row.header.applyThemeColor(c)
+        }
     }
 
     // MARK: - Bar buttons + swipe
 
     // Tap: toggle that bar in/out of the playback loop
     @objc private func barButtonTapped(_ sender: UIButton) {
-        UISelectionFeedbackGenerator().selectionChanged()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         store.toggleBar(sender.tag)
     }
 
@@ -505,7 +519,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         guard store.patternLength == 32 else { return }
         let target = gr.direction == .left ? min(activePage + 1, 1) : max(activePage - 1, 0)
         guard target != activePage else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         scrollToPage(target, animated: true)
     }
 

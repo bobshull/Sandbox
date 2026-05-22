@@ -42,7 +42,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private func loadInitialPreset() {
         if let session = PatternStore.loadSession() {
             store.loadSession(session)
-        } else if let preset = Presets.all.first(where: { $0.id != "empty" }) {
+        } else if let preset = Presets.all.first(where: { $0.id == "boom-bap-2" }) ?? Presets.all.first(where: { $0.id != "empty" }) {
             store.loadPattern(preset)
         }
         applyTrackVolumesToEngine()
@@ -63,7 +63,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     private func configureBody() {
         // ── Library button ────────────────────────────────────────────────
-        patternsButton.configuration = headerButtonConfig(title: "Library")
+        patternsButton.configuration = headerButtonConfig(title: "Mixes")
         patternsButton.addTarget(self, action: #selector(showLibrary), for: .touchUpInside)
         patternsButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(patternsButton)
@@ -98,19 +98,19 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                                     attributes: self.store.canUndo ? [] : .disabled) { [weak self] _ in
                     self?.undoTapped()
                 }
-                let export = UIAction(title: "Export",
-                                      image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
-                    self?.exportTapped()
+                let exportWAV = UIAction(title: "Export WAV",
+                                         image: UIImage(systemName: "waveform")) { [weak self] _ in
+                    self?.showLoopPicker(format: .wav)
                 }
-                var items: [UIMenuElement] = [save, undo, export]
-                if self.store.patternLength == 32 {
-                    let copy = UIAction(title: "Copy Bar 1 to Bar 2",
-                                        image: UIImage(systemName: "doc.on.doc")) { [weak self] _ in
-                        self?.copyBar1ToBar2()
-                    }
-                    items.append(copy)
+                let exportM4A = UIAction(title: "Export M4A",
+                                         image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                    self?.showLoopPicker(format: .m4a)
                 }
-                completion(items)
+                let settings = UIAction(title: "Settings",
+                                        image: UIImage(systemName: "gear")) { [weak self] _ in
+                    self?.showSettings()
+                }
+                completion([save, undo, exportWAV, exportM4A, settings])
             }
         ])
         moreButton.translatesAutoresizingMaskIntoConstraints = false
@@ -146,7 +146,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
             moreButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
             moreButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
-            moreButton.heightAnchor.constraint(equalToConstant: 38),
 
             // Header separator — centered in the 8pt gap between header and grid
             headerSeparator.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
@@ -325,7 +324,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         sheet.popoverPresentationController?.sourceView = transportView
         sheet.popoverPresentationController?.sourceRect = CGRect(
-            x: transportView.bounds.midX, y: transportView.bounds.minY, width: 0, height: 0)
+            x: transportView.bounds.midX, y: transportView.bounds.midY, width: 1, height: 1)
 
         presentWhenReady(sheet)
     }
@@ -389,7 +388,18 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     // MARK: - Pattern library
 
+    private func showSettings() {
+        let settings = SettingsViewController()
+        settings.modalPresentationStyle = .pageSheet
+        if let sheet = settings.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(settings, animated: true)
+    }
+
     @objc private func showKitPicker() {
+        if AppSettings.hapticsEnabled { UISelectionFeedbackGenerator().selectionChanged() }
         let picker = KitPickerViewController(currentKitId: store.currentKitId)
         picker.onSelect = { [weak self] kit in
             guard let self else { return }
@@ -401,6 +411,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     @objc private func showLibrary() {
+        if AppSettings.hapticsEnabled { UISelectionFeedbackGenerator().selectionChanged() }
         let lib = PatternLibraryViewController(currentName: store.patternName, currentPatternId: store.currentPatternId, currentKitId: store.currentKitId)
         lib.delegate = self
         present(lib, animated: true)
@@ -430,7 +441,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     @objc private func undoTapped() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         store.undo()
         applyTrackVolumesToEngine()
         applyTrackEffectsToEngine()
@@ -439,13 +450,15 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     @objc private func quickSaveTapped() { promptSave(completion: nil) }
 
-    @objc private func exportTapped() {
-        let sheet = UIAlertController(title: "Export Mix", message: nil, preferredStyle: .actionSheet)
-        let labels = ["Short Loop", "Medium Loop", "Long Loop", "Extended Loop"]
-        for (i, bars) in [4, 8, 16, 32].enumerated() {
-            let secs = Int(Double(bars) * 4.0 * 60.0 / store.tempo)
-            sheet.addAction(UIAlertAction(title: "\(labels[i])  —  ~\(secs)s", style: .default) { [weak self] _ in
-                self?.runExport(bars: bars)
+    private func showLoopPicker(format: ExportFormat) {
+        let title = format == .wav ? "Export WAV" : "Export M4A"
+        let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
+        let stepDur = 60.0 / store.tempo / 4.0
+        for reps in [1, 2, 4, 8] {
+            let secs = Int(Double(reps * store.patternLength) * stepDur)
+            let label = reps == 1 ? "1 Loop" : "\(reps) Loops"
+            sheet.addAction(UIAlertAction(title: "\(label)  —  ~\(secs)s", style: .default) { [weak self] _ in
+                self?.runExport(reps: reps, format: format)
             })
         }
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
@@ -453,10 +466,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         present(sheet, animated: true)
     }
 
-    private func runExport(bars: Int) {
+    private func runExport(reps: Int, format: ExportFormat) {
         let progress = UIAlertController(title: "Exporting…", message: nil, preferredStyle: .alert)
         present(progress, animated: true)
-        engine.exportMix(bars: bars) { [weak self] result in
+        engine.exportMix(reps: reps, format: format) { [weak self] result in
             guard let self else { return }
             progress.dismiss(animated: true) {
                 switch result {
