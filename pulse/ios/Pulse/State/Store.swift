@@ -7,7 +7,7 @@ enum StateSection {
 
 final class Store {
     // Settings
-    private(set) var tempo: Double = 96
+    private(set) var tempo: Double = AppSettings.defaultTempo
     private(set) var swing: Double = 0.18
     private(set) var masterGain: Float = 0.85
 

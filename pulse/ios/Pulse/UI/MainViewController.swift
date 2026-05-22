@@ -42,7 +42,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private func loadInitialPreset() {
         if let session = PatternStore.loadSession() {
             store.loadSession(session)
-        } else if let preset = Presets.all.first(where: { $0.id != "empty" }) {
+        } else if let preset = Presets.all.first(where: { $0.id == "boom-bap-2" }) ?? Presets.all.first(where: { $0.id != "empty" }) {
             store.loadPattern(preset)
         }
         applyTrackVolumesToEngine()
@@ -63,7 +63,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     private func configureBody() {
         // ── Library button ────────────────────────────────────────────────
-        patternsButton.configuration = headerButtonConfig(title: "Library")
+        patternsButton.configuration = headerButtonConfig(title: "Mixes")
         patternsButton.addTarget(self, action: #selector(showLibrary), for: .touchUpInside)
         patternsButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(patternsButton)
@@ -102,15 +102,11 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                                       image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                     self?.exportTapped()
                 }
-                var items: [UIMenuElement] = [save, undo, export]
-                if self.store.patternLength == 32 {
-                    let copy = UIAction(title: "Copy Bar 1 to Bar 2",
-                                        image: UIImage(systemName: "doc.on.doc")) { [weak self] _ in
-                        self?.copyBar1ToBar2()
-                    }
-                    items.append(copy)
+                let settings = UIAction(title: "Settings",
+                                        image: UIImage(systemName: "gear")) { [weak self] _ in
+                    self?.showSettings()
                 }
-                completion(items)
+                completion([save, undo, export, settings])
             }
         ])
         moreButton.translatesAutoresizingMaskIntoConstraints = false
@@ -388,6 +384,16 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     // MARK: - Pattern library
 
+    private func showSettings() {
+        let settings = SettingsViewController()
+        settings.modalPresentationStyle = .pageSheet
+        if let sheet = settings.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(settings, animated: true)
+    }
+
     @objc private func showKitPicker() {
         let picker = KitPickerViewController(currentKitId: store.currentKitId)
         picker.onSelect = { [weak self] kit in
@@ -429,7 +435,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     @objc private func undoTapped() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         store.undo()
         applyTrackVolumesToEngine()
         applyTrackEffectsToEngine()

@@ -23,11 +23,18 @@ enum PatternStore {
 
     private static let patternsKey = "pulse.userPatterns.v1"
     private static let sessionKey = "pulse.session.v1"
+    private static let syncKey = "pulse.iCloudSyncEnabled"
+
+    static var iCloudSyncEnabled: Bool {
+        get { local.object(forKey: syncKey) == nil ? true : local.bool(forKey: syncKey) }
+        set { local.set(newValue, forKey: syncKey) }
+    }
 
     // MARK: - User Patterns
 
     static func userPatterns() -> [Pattern] {
-        let data = cloud.data(forKey: patternsKey) ?? local.data(forKey: patternsKey)
+        let data = (iCloudSyncEnabled ? cloud.data(forKey: patternsKey) : nil)
+            ?? local.data(forKey: patternsKey)
         guard let data else { return [] }
         do {
             return try JSONDecoder().decode([Pattern].self, from: data)
@@ -59,7 +66,7 @@ enum PatternStore {
         do {
             let data = try JSONEncoder().encode(list)
             local.set(data, forKey: patternsKey)
-            cloud.set(data, forKey: patternsKey)
+            if iCloudSyncEnabled { cloud.set(data, forKey: patternsKey) }
             return true
         } catch {
             print("[PatternStore] encode failed: \(error)")
@@ -73,14 +80,15 @@ enum PatternStore {
         do {
             let data = try JSONEncoder().encode(state)
             local.set(data, forKey: sessionKey)
-            cloud.set(data, forKey: sessionKey)
+            if iCloudSyncEnabled { cloud.set(data, forKey: sessionKey) }
         } catch {
             print("[PatternStore] session encode failed: \(error)")
         }
     }
 
     static func loadSession() -> SessionState? {
-        let data = cloud.data(forKey: sessionKey) ?? local.data(forKey: sessionKey)
+        let data = (iCloudSyncEnabled ? cloud.data(forKey: sessionKey) : nil)
+            ?? local.data(forKey: sessionKey)
         guard let data else { return nil }
         do {
             return try JSONDecoder().decode(SessionState.self, from: data)

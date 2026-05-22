@@ -11,6 +11,10 @@ final class FaderControl: UIControl {
     var title: String = "" { didSet { setNeedsDisplay() } }
     var valueText: String = "" { didSet { setNeedsDisplay() } }
 
+    /// Values that the fader snaps to when dragged within `snapRadius`.
+    var snapPoints: [Float] = []
+    var snapRadius: Float = 0
+
     private let capHeight: CGFloat = 22
     private let capWidth: CGFloat = 36
     private let trackWidth: CGFloat = 4
@@ -38,8 +42,8 @@ final class FaderControl: UIControl {
         let labelH: CGFloat = 16
         let segH: CGFloat = 4
 
-        let trackTop = labelH + 6
-        let trackBottom = rect.height - labelH - 6
+        let trackTop = labelH + 14
+        let trackBottom = rect.height - labelH - 14
         let trackH = trackBottom - trackTop
 
         let norm = CGFloat(min(max((value - minimumValue) / (maximumValue - minimumValue), 0), 1))
@@ -123,14 +127,18 @@ final class FaderControl: UIControl {
 
     override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         let labelH: CGFloat = 16
-        let trackTop    = labelH + 6
-        let trackBottom = bounds.height - labelH - 6
+        let trackTop    = labelH + 14
+        let trackBottom = bounds.height - labelH - 14
         let trackH      = trackBottom - trackTop
 
         guard trackH > 0 else { return true }
         let dy    = dragOriginY - touch.location(in: self).y
         let delta = Float(dy / trackH) * (maximumValue - minimumValue)
-        value     = min(max(dragOriginValue + delta, minimumValue), maximumValue)
+        var raw   = min(max(dragOriginValue + delta, minimumValue), maximumValue)
+        if snapRadius > 0, let snap = snapPoints.first(where: { abs(raw - $0) <= snapRadius }) {
+            raw = snap
+        }
+        value = raw
         sendActions(for: .valueChanged)
         return true
     }

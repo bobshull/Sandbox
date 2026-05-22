@@ -44,6 +44,7 @@ final class TransportView: UIView {
         cfg.baseForegroundColor = playing ? Theme.accent : UIColor(white: 0.1, alpha: 1)
         cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
         playButton.configuration = cfg
+        playButton.setPlaying(playing)
     }
 
     func observe(_ store: Store) {
@@ -75,8 +76,8 @@ final class TransportView: UIView {
         setIsPlaying(false)
         addSubview(playButton)
 
-        setupChip(tempoChip, tag: 0, width: 120)
-        setupChip(swingChip, tag: 1, width: 105)
+        setupChip(tempoChip,  tag: 0, width: 120)
+        setupChip(swingChip,  tag: 1, width: 105)
         setupChip(masterChip, tag: 2, width: 90)
         setupChip(lengthChip, tag: 3, width: 90)
 
@@ -100,6 +101,8 @@ final class TransportView: UIView {
 
             bottomAnchor.constraint(equalTo: playButton.bottomAnchor),
         ])
+
+        clipsToBounds = true
     }
 
     private func setupChip(_ button: UIButton, tag: Int, width: CGFloat) {
@@ -159,7 +162,7 @@ final class TransportView: UIView {
     // MARK: - Actions
 
     @objc private func playTapped() {
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
         delegate?.transportTogglePlay()
     }
 
@@ -380,6 +383,10 @@ private final class PlayButton: UIButton {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    func setPlaying(_ playing: Bool) {
+        shineLayer.opacity = playing ? 0 : 1
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()

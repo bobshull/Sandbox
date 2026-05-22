@@ -114,16 +114,6 @@ final class PatternLibraryViewController: UIViewController,
         nowPill.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(nowPill)
 
-        let iCloudAvailable = FileManager.default.ubiquityIdentityToken != nil
-        let cloudIcon = UIImageView(image: UIImage(systemName:
-            iCloudAvailable ? "checkmark.icloud.fill" : "icloud",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)))
-        cloudIcon.tintColor = iCloudAvailable
-            ? UIColor(red: 0.2, green: 0.85, blue: 0.45, alpha: 1) : Theme.textFaint
-        cloudIcon.contentMode = .scaleAspectFit
-        cloudIcon.translatesAutoresizingMaskIntoConstraints = false
-        header.addSubview(cloudIcon)
-
         let closeBtn = UIButton(type: .system)
         var closeCfg = UIButton.Configuration.plain()
         closeCfg.title = "Close"
@@ -144,11 +134,6 @@ final class PatternLibraryViewController: UIViewController,
         NSLayoutConstraint.activate([
             nowPill.leadingAnchor.constraint(equalTo: header.leadingAnchor),
             nowPill.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-
-            cloudIcon.leadingAnchor.constraint(equalTo: nowPill.trailingAnchor, constant: 8),
-            cloudIcon.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            cloudIcon.widthAnchor.constraint(equalToConstant: 20),
-            cloudIcon.heightAnchor.constraint(equalToConstant: 20),
 
             closeBtn.trailingAnchor.constraint(equalTo: header.trailingAnchor),
             closeBtn.centerYAnchor.constraint(equalTo: header.centerYAnchor),

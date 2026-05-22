@@ -2,6 +2,11 @@ import AVFoundation
 
 struct TrackEffects: Codable, Equatable {
 
+    var pan: Float = 0                  // -1 (L) to 1 (R)
+    var pitch: Float = 0                // -12 to +12 semitones
+    var filterCutoff: Float = 100       // 0–100, 100 = wide open (~20kHz)
+    var humanize: Float = 0             // 0–100; per-hit timing jitter
+
     var reverbWet: Float = 0            // 0–100, 0 = off
 
     var delayWet: Float = 0             // 0–100, 0 = off
@@ -31,5 +36,13 @@ struct TrackEffects: Codable, Equatable {
 
     static let `default` = TrackEffects()
 
-    var hasAnyActive: Bool { reverbWet > 0 || delayWet > 0 || distortionWet > 0 }
+    var hasAnyActive: Bool {
+        pan != 0 || pitch != 0 || filterCutoff < 100 || humanize > 0 ||
+        reverbWet > 0 || delayWet > 0 || distortionWet > 0
+    }
+
+    /// Maps 0–100 fader value to a log-scale filter frequency (200Hz–20kHz).
+    static func filterFrequency(from cutoff: Float) -> Float {
+        Float(200.0 * pow(100.0, Double(cutoff) / 100.0))
+    }
 }
