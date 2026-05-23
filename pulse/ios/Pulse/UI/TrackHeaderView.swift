@@ -5,6 +5,7 @@ protocol TrackHeaderViewDelegate: AnyObject {
     func trackHeaderDidToggleMute(_ track: Track)
     func trackHeaderDidChangeVolume(_ track: Track, value: Float)
     func trackHeaderDidChangeEffects(_ track: Track, effects: TrackEffects)
+    func trackHeaderDidRequestActions(_ track: Track)
 }
 
 final class TrackHeaderView: UIView {
@@ -76,8 +77,8 @@ final class TrackHeaderView: UIView {
         swatchCfg.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 5, bottom: 3, trailing: 5)
         swatchButton.configuration = swatchCfg
         swatchButton.translatesAutoresizingMaskIntoConstraints = false
-        swatchButton.accessibilityLabel = "Preview \(track.name)"
-        swatchButton.addTarget(self, action: #selector(previewTapped), for: .touchUpInside)
+        swatchButton.accessibilityLabel = "\(track.name) actions"
+        swatchButton.addTarget(self, action: #selector(swatchTapped), for: .touchUpInside)
         addSubview(swatchButton)
 
         let symCfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .medium)
@@ -115,9 +116,9 @@ final class TrackHeaderView: UIView {
         ])
     }
 
-    @objc private func previewTapped() {
-        UISelectionFeedbackGenerator().selectionChanged()
-        delegate?.trackHeaderDidTapPreview(track)
+    @objc private func swatchTapped() {
+        if AppSettings.hapticsEnabled { UISelectionFeedbackGenerator().selectionChanged() }
+        delegate?.trackHeaderDidRequestActions(track)
     }
 
     @objc private func muteTapped() {

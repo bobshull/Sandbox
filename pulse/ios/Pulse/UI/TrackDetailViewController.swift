@@ -44,6 +44,12 @@ final class TrackDetailViewController: UIViewController {
     // MARK: - Panel
 
     private func buildPanel() {
+        let bg = UIButton(type: .custom)
+        bg.frame = view.bounds
+        bg.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        bg.addTarget(self, action: #selector(close), for: .touchUpInside)
+        view.addSubview(bg)
+
         panel.backgroundColor    = Theme.backgroundElevated2
         panel.layer.cornerRadius = 16
         panel.layer.borderWidth  = 1.5

@@ -4,6 +4,9 @@ import Combine
 protocol SequencerViewDelegate: AnyObject {
     func sequencer(toggleStep trackId: String, step: Int)
     func sequencerDidRequestPatternLength(_ length: Int)
+    func sequencerDidRequestTrackActions(_ track: Track)
+    func sequencerDidRequestBarActions(barIndex: Int)
+    func sequencerDidToggleAccent(isAccented: Bool)
 }
 
 /// Scrolling grid where each row pins its track header to the leading edge
@@ -37,6 +40,9 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
 
     // Page state (UI-only; not persisted to Store)
     private var activePage: Int = 0
+
+    /// The currently visible bar index (0 or 1) — used by MainViewController for context menus.
+    var currentBar: Int { activePage }
 
     // Bar 1 / Bar 2 toggles — lives in the header corner, only shown in 32-step mode
     private let bar1Button = UIButton(type: .system)
@@ -114,6 +120,9 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         cfg.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8)
         button.configuration = cfg
         button.addTarget(self, action: #selector(barButtonTapped(_:)), for: .touchUpInside)
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(barLongPressed(_:)))
+        longPress.minimumPressDuration = 0.4
+        button.addGestureRecognizer(longPress)
     }
 
     // Enabled (in loop) = accent. Disabled (muted from loop) = dim.
@@ -188,6 +197,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                     cell.accessibilityLabel = "\(row.track.name) step \(step + 1)"
                     cell.tag = step
                     cell.addTarget(self, action: #selector(cellTapped(_:)), for: .touchUpInside)
+                    addAccentGestures(to: cell)
                     cell.translatesAutoresizingMaskIntoConstraints = false
                     group.addArrangedSubview(cell)
                     newCells.append(cell)
@@ -350,6 +360,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                 cell.accessibilityLabel = "\(track.name) step \(localStep + 1)"
                 cell.tag = localStep   // local 0-15; actual step = activePage*16 + tag
                 cell.addTarget(self, action: #selector(cellTapped(_:)), for: .touchUpInside)
+                addAccentGestures(to: cell)
                 cell.translatesAutoresizingMaskIntoConstraints = false
                 group.addArrangedSubview(cell)
                 cells.append(cell)
@@ -392,7 +403,10 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
             .sink { [weak self] section in
                 guard let self else { return }
                 switch section {
-                case .pattern: self.syncPattern()
+                case .pattern:
+                    self.syncPattern()
+                    self.syncAccents()
+                case .accent: self.syncAccents()
                 case .patternLength:
                     let needsRebuild = store.patternLength != (self.rows.first?.cells.count ?? 0)
                     if needsRebuild {
@@ -402,10 +416,12 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                         self.syncBarButtons()
                     }
                     self.syncPattern()
+                    self.syncAccents()
                     self.syncPlayhead()
                 case .load:
                     self.rebuildForPatternLength()
                     self.syncPattern()
+                    self.syncAccents()
                     self.syncPlayhead()
                     self.syncMutes()
                     self.syncVolumes()
@@ -423,6 +439,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     private func applyState() {
         rebuildForPatternLength()
         syncPattern()
+        syncAccents()
         syncMutes()
         syncVolumes()
         syncEffects()
@@ -498,6 +515,15 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         }
     }
 
+    private func syncAccents() {
+        for row in rows {
+            let arr = store.accents[row.track.id] ?? []
+            for cell in row.cells {
+                cell.isAccented = arr.indices.contains(cell.tag) && arr[cell.tag]
+            }
+        }
+    }
+
     // MARK: - Cell tap
 
     @objc private func cellTapped(_ sender: CellButton) {
@@ -555,6 +581,64 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         let bar = store.patternLength == 32 ? activePage : 0
         store.setTrackEffects(trackId: track.id, effects, bar: bar)
         engine.setTrackEffects(track.id, effects)
+    }
+
+    func trackHeaderDidRequestActions(_ track: Track) {
+        delegate?.sequencerDidRequestTrackActions(track)
+    }
+
+    // MARK: - Bar long press → bar actions
+
+    @objc private func barLongPressed(_ gr: UILongPressGestureRecognizer) {
+        guard gr.state == .began else { return }
+        let barIndex: Int
+        if gr.view === bar1Button { barIndex = 0 }
+        else if gr.view === bar2Button { barIndex = 1 }
+        else { return }
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+        delegate?.sequencerDidRequestBarActions(barIndex: barIndex)
+    }
+
+    // MARK: - Cell accent gestures
+
+    private func addAccentGestures(to cell: CellButton) {
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(cellLongPressed(_:)))
+        longPress.minimumPressDuration = 0.4
+        // cancelsTouchesInView = true (default): suppresses touchUpInside on long press ✓
+        cell.addGestureRecognizer(longPress)
+
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(cellDoubleTapped(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        // cancelsTouchesInView = false: both taps fire touchUpInside, cancelling each other out
+        // (net step state unchanged), then this GR fires to toggle accent ✓
+        doubleTap.cancelsTouchesInView = false
+        cell.addGestureRecognizer(doubleTap)
+    }
+
+    @objc private func cellLongPressed(_ gr: UILongPressGestureRecognizer) {
+        guard gr.state == .began, let cell = gr.view as? CellButton else { return }
+        // cell.isOn is reliable here: long press suppresses touchUpInside, step state unchanged
+        guard cell.isOn else { return }
+        guard let row = rows.first(where: { $0.cells.contains(cell) }) else { return }
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+        store.toggleAccent(trackId: row.track.id, step: cell.tag)
+        let newAccented = store.accents[row.track.id]?[cell.tag] ?? false
+        cell.pulseAccent(on: newAccented)
+        delegate?.sequencerDidToggleAccent(isAccented: newAccented)
+    }
+
+    @objc private func cellDoubleTapped(_ gr: UITapGestureRecognizer) {
+        guard let cell = gr.view as? CellButton else { return }
+        // cell.isOn is reliable here: the two touchUpInside events toggled the store twice
+        // (net: unchanged), but syncPattern hasn't run yet, so cell.isOn still reflects
+        // the original state — check it to ignore double-taps on empty cells
+        guard cell.isOn else { return }
+        guard let row = rows.first(where: { $0.cells.contains(cell) }) else { return }
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+        store.toggleAccent(trackId: row.track.id, step: cell.tag)
+        let newAccented = store.accents[row.track.id]?[cell.tag] ?? false
+        cell.pulseAccent(on: newAccented)
+        delegate?.sequencerDidToggleAccent(isAccented: newAccented)
     }
 
     // MARK: - Scroll sync

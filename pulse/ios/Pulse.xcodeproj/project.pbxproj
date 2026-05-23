@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		02EABD489A957AEAA7991EF8 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42EC5B8C7893835120454B29 /* ToastView.swift */; };
+		AA001111000000000000AAA1 /* ActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001111000000000000BBB1 /* ActionsViewController.swift */; };
+		AA001111000000000000AAA2 /* TrackActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001111000000000000BBB2 /* TrackActionsViewController.swift */; };
+		AA001111000000000000AAA3 /* BarActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001111000000000000BBB3 /* BarActionsViewController.swift */; };
 		03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */; };
 		0695C41C5BFCD2213CD18550 /* PatternLibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */; };
 		0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51EDD8265DEB720F5F54516 /* Theme.swift */; };
@@ -57,6 +60,9 @@
 
 /* Begin PBXFileReference section */
 		0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
+		AA001111000000000000BBB1 /* ActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsViewController.swift; sourceTree = "<group>"; };
+		AA001111000000000000BBB2 /* TrackActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionsViewController.swift; sourceTree = "<group>"; };
+		AA001111000000000000BBB3 /* BarActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarActionsViewController.swift; sourceTree = "<group>"; };
 		13FEF2D2118D74C3572DF349 /* Pulse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
 		1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
@@ -115,6 +121,8 @@
 		1BBA6FCCC1FA176AD6D36324 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				AA001111000000000000BBB1 /* ActionsViewController.swift */,
+				AA001111000000000000BBB3 /* BarActionsViewController.swift */,
 				2AE1C4767AB7667B0376366A /* CellButton.swift */,
 				FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */,
 				48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */,
@@ -129,6 +137,7 @@
 				42EC5B8C7893835120454B29 /* ToastView.swift */,
 				702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */,
 				C227703998F168A936512CCB /* TrackHeaderView.swift */,
+				AA001111000000000000BBB2 /* TrackActionsViewController.swift */,
 				896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */,
 			);
 			path = UI;
@@ -322,8 +331,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA001111000000000000AAA1 /* ActionsViewController.swift in Sources */,
 				9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */,
 				191AE9FFB312C7AB639EE9A0 /* AppSettings.swift in Sources */,
+				AA001111000000000000AAA3 /* BarActionsViewController.swift in Sources */,
 				FB61F8B02D4E5452965B1AF2 /* AudioEngine.swift in Sources */,
 				F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */,
 				C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */,
@@ -347,6 +358,7 @@
 				7D03AE0E0B1816039E741BA5 /* TrackDetailViewController.swift in Sources */,
 				DD600448B5D57F1D8F25DF5B /* TrackEffects.swift in Sources */,
 				2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */,
+				AA001111000000000000AAA2 /* TrackActionsViewController.swift in Sources */,
 				E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */,
 				03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */,
 			);

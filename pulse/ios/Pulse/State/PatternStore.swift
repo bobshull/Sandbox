@@ -15,6 +15,7 @@ struct SessionState: Codable {
     var enabledBars: [Bool]?
     var bar2Volumes: [String: Float]?      // nil → copy bar 0
     var bar2Effects: [String: TrackEffects]?  // nil → copy bar 0
+    var accents: [String: [Bool]]?
 }
 
 enum PatternStore {

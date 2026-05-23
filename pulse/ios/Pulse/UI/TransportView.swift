@@ -13,11 +13,10 @@ final class TransportView: UIView {
 
     weak var delegate: TransportViewDelegate?
 
-    private let playButton  = PlayButton()
-    private let tempoChip   = UIButton(type: .system)
-    private let swingChip   = UIButton(type: .system)
-    private let masterChip  = UIButton(type: .system)
-    private let lengthChip  = UIButton(type: .system)
+    private let playButton      = PlayButton()
+    private let tempoSwingChip  = UIButton(type: .system)
+    private let masterChip      = UIButton(type: .system)
+    private let lengthChip      = UIButton(type: .system)
 
     private var cancellables = Set<AnyCancellable>()
     private let store: Store
@@ -33,6 +32,9 @@ final class TransportView: UIView {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Source view for popovers/sheets that originate from the pattern-length chip.
+    var patternLengthButton: UIView { lengthChip }
 
     // MARK: - Public
 
@@ -63,13 +65,13 @@ final class TransportView: UIView {
             .sink { [weak self] section in
                 guard let self else { return }
                 switch section {
-                case .tempo:  self.setChip(self.tempoChip, value: store.tempo, suffix: " BPM", icon: "metronome")
-                case .swing:  self.setChip(self.swingChip, value: store.swing * 100, suffix: "%", icon: "waveform.path")
-                case .master: self.setChip(self.masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
+                case .tempo, .swing:
+                    self.setTempoSwingChip(tempo: store.tempo, swing: store.swing)
+                case .master:
+                    self.setChip(self.masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
                 case .patternLength: self.syncLengthChip()
                 case .load:
-                    self.setChip(self.tempoChip, value: store.tempo, suffix: " BPM", icon: "metronome")
-                    self.setChip(self.swingChip, value: store.swing * 100, suffix: "%", icon: "waveform.path")
+                    self.setTempoSwingChip(tempo: store.tempo, swing: store.swing)
                     self.setChip(self.masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
                     self.syncLengthChip()
                 default: break
@@ -86,10 +88,9 @@ final class TransportView: UIView {
         setIsPlaying(false)
         addSubview(playButton)
 
-        setupChip(tempoChip,  tag: 0, width: 120)
-        setupChip(swingChip,  tag: 1, width: 105)
-        setupChip(masterChip, tag: 2, width: 90)
-        setupChip(lengthChip, tag: 3, width: 90)
+        setupChip(tempoSwingChip, tag: 0, width: 120)
+        setupChip(masterChip,     tag: 1, width: 90)
+        setupChip(lengthChip,     tag: 2, width: 90)
 
         NSLayoutConstraint.activate([
             playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -97,13 +98,10 @@ final class TransportView: UIView {
             playButton.heightAnchor.constraint(equalToConstant: 38),
             playButton.widthAnchor.constraint(equalToConstant: 54),
 
-            tempoChip.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 10),
-            tempoChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
+            tempoSwingChip.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 10),
+            tempoSwingChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
 
-            swingChip.leadingAnchor.constraint(equalTo: tempoChip.trailingAnchor, constant: 8),
-            swingChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
-
-            masterChip.leadingAnchor.constraint(equalTo: swingChip.trailingAnchor, constant: 8),
+            masterChip.leadingAnchor.constraint(equalTo: tempoSwingChip.trailingAnchor, constant: 8),
             masterChip.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
 
             lengthChip.leadingAnchor.constraint(equalTo: masterChip.trailingAnchor, constant: 8),
@@ -145,10 +143,29 @@ final class TransportView: UIView {
     }
 
     private func applyState() {
-        setChip(tempoChip,  value: store.tempo,              suffix: " BPM", icon: "metronome")
-        setChip(swingChip,  value: store.swing * 100,        suffix: "%",    icon: "waveform.path")
+        setTempoSwingChip(tempo: store.tempo, swing: store.swing)
         setChip(masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
         syncLengthChip()
+    }
+
+    private func setTempoSwingChip(tempo: Double, swing: Double) {
+        var cfg = UIButton.Configuration.plain()
+        cfg.image = UIImage(systemName: "metronome",
+                            withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .medium))
+        cfg.imagePadding = 5
+        cfg.title = "\(Int(tempo.rounded())) BPM"
+        cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
+            var out = attrs
+            out.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
+            return out
+        }
+        cfg.baseForegroundColor = Theme.text
+        cfg.background.backgroundColor = Theme.backgroundElevated
+        cfg.background.strokeColor = Theme.border
+        cfg.background.strokeWidth = 1
+        cfg.background.cornerRadius = 19
+        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 12)
+        tempoSwingChip.configuration = cfg
     }
 
     private func syncLengthChip() {
@@ -180,20 +197,8 @@ final class TransportView: UIView {
     @objc private func chipTapped(_ sender: UIButton) {
         UISelectionFeedbackGenerator().selectionChanged()
         if sender.tag == 0 {
-            showSlider(from: sender, title: "Tempo", min: 60, max: 200, step: 1,
-                       value: store.tempo, suffix: " BPM", icon: "metronome") { [weak self] v in
-                guard let self else { return }
-                self.setChip(self.tempoChip, value: v, suffix: " BPM", icon: "metronome")
-                self.delegate?.transportSetTempo(v)
-            }
+            showTempoSwing()
         } else if sender.tag == 1 {
-            showSlider(from: sender, title: "Swing", min: 0, max: 60, step: 1,
-                       value: store.swing * 100, suffix: "%", icon: "waveform.path") { [weak self] v in
-                guard let self else { return }
-                self.setChip(self.swingChip, value: v, suffix: "%", icon: "waveform.path")
-                self.delegate?.transportSetSwing(v / 100)
-            }
-        } else if sender.tag == 2 {
             showSlider(from: sender, title: "Master", min: 0, max: 100, step: 1,
                        value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2") { [weak self] v in
                 guard let self else { return }
@@ -216,6 +221,22 @@ final class TransportView: UIView {
             sheet.popoverPresentationController?.sourceView = sender
             parentVC.present(sheet, animated: true)
         }
+    }
+
+    private func showTempoSwing() {
+        guard let parentVC = parentViewController else { return }
+        let vc = TempoSwingPopoverViewController(tempo: store.tempo, swing: store.swing)
+        vc.onTempoChange = { [weak self] v in
+            guard let self else { return }
+            self.setTempoSwingChip(tempo: v, swing: self.store.swing)
+            self.delegate?.transportSetTempo(v)
+        }
+        vc.onSwingChange = { [weak self] v in
+            guard let self else { return }
+            self.setTempoSwingChip(tempo: self.store.tempo, swing: v / 100)
+            self.delegate?.transportSetSwing(v / 100)
+        }
+        parentVC.present(vc, animated: true)
     }
 
     private func showSlider(from source: UIButton, title: String,
@@ -315,7 +336,9 @@ final class SliderPopoverViewController: UIViewController {
         slider.value = Float(current)
         slider.minimumTrackTintColor = primary
         slider.maximumTrackTintColor = Theme.border
-        slider.thumbTintColor = Theme.text
+        let grip = Theme.makeGripThumb()
+        slider.setThumbImage(grip, for: .normal)
+        slider.setThumbImage(grip, for: .highlighted)
         slider.addTarget(self, action: #selector(sliderChanged), for: .valueChanged)
         slider.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(slider)
@@ -361,6 +384,195 @@ final class SliderPopoverViewController: UIViewController {
 
     private func format(_ v: Double) -> String {
         "\(Int(v.rounded()))\(suffix)"
+    }
+}
+
+// MARK: - TempoSwingPopoverViewController
+
+final class TempoSwingPopoverViewController: UIViewController {
+
+    var onTempoChange: ((Double) -> Void)?
+    var onSwingChange: ((Double) -> Void)?
+
+    private var currentTempo: Double
+    private var currentSwing: Double   // 0–60 (percent)
+
+    private let panel = UIView()
+    private let tempoValueLabel = UILabel()
+    private let swingValueLabel = UILabel()
+    private let tempoSlider = UISlider()
+    private let swingSlider = UISlider()
+
+    init(tempo: Double, swing: Double) {
+        self.currentTempo = tempo
+        self.currentSwing = swing * 100
+        super.init(nibName: nil, bundle: nil)
+        modalPresentationStyle = .overFullScreen
+        modalTransitionStyle = .crossDissolve
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+
+        let bg = UIButton(type: .custom)
+        bg.frame = view.bounds
+        bg.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        bg.addTarget(self, action: #selector(dismissOverlay), for: .touchUpInside)
+        view.addSubview(bg)
+
+        let primary = ColorTheme.current.primaryColor
+        panel.backgroundColor = Theme.backgroundElevated2
+        panel.layer.cornerRadius = 14
+        panel.layer.borderWidth = 1.5
+        panel.layer.borderColor = primary.withAlphaComponent(0.75).cgColor
+        panel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(panel)
+
+        let closeButton = UIButton(type: .system)
+        closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        closeButton.tintColor = Theme.textFaint
+        closeButton.addTarget(self, action: #selector(dismissOverlay), for: .touchUpInside)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(closeButton)
+
+        // ── Tempo row ──────────────────────────────────────────────────────
+        let tempoIcon = makeIcon("metronome", tint: primary)
+        let tempoLabel = makeLabel("Tempo", color: primary)
+        tempoValueLabel.text = "\(Int(currentTempo.rounded())) BPM"
+        tempoValueLabel.font = .monospacedSystemFont(ofSize: 15, weight: .medium)
+        tempoValueLabel.textColor = Theme.text
+        tempoValueLabel.textAlignment = .right
+        tempoValueLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        tempoSlider.minimumValue = 60
+        tempoSlider.maximumValue = 200
+        tempoSlider.value = Float(currentTempo)
+        styleSlider(tempoSlider, primary: primary)
+        tempoSlider.addTarget(self, action: #selector(tempoChanged), for: .valueChanged)
+
+        // ── Swing row ──────────────────────────────────────────────────────
+        let swingIcon = makeIcon("waveform.path", tint: primary)
+        let swingLabel = makeLabel("Swing", color: primary)
+        swingValueLabel.text = "\(Int(currentSwing.rounded()))%"
+        swingValueLabel.font = .monospacedSystemFont(ofSize: 15, weight: .medium)
+        swingValueLabel.textColor = Theme.text
+        swingValueLabel.textAlignment = .right
+        swingValueLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        swingSlider.minimumValue = 0
+        swingSlider.maximumValue = 60
+        swingSlider.value = Float(currentSwing)
+        styleSlider(swingSlider, primary: primary)
+        swingSlider.addTarget(self, action: #selector(swingChanged), for: .valueChanged)
+
+        for v in [tempoIcon, tempoLabel, tempoValueLabel, tempoSlider,
+                  swingIcon, swingLabel, swingValueLabel, swingSlider] {
+            panel.addSubview(v)
+        }
+
+        let divider = UIView()
+        divider.backgroundColor = Theme.border
+        divider.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(divider)
+
+        let safe = view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            panel.centerXAnchor.constraint(equalTo: safe.centerXAnchor),
+            panel.centerYAnchor.constraint(equalTo: safe.centerYAnchor),
+            panel.widthAnchor.constraint(equalToConstant: 380),
+
+            closeButton.topAnchor.constraint(equalTo: panel.topAnchor, constant: 14),
+            closeButton.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -14),
+            closeButton.widthAnchor.constraint(equalToConstant: 28),
+            closeButton.heightAnchor.constraint(equalToConstant: 28),
+
+            // Tempo section
+            tempoIcon.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 18),
+            tempoIcon.topAnchor.constraint(equalTo: panel.topAnchor, constant: 16),
+            tempoIcon.widthAnchor.constraint(equalToConstant: 18),
+            tempoIcon.heightAnchor.constraint(equalToConstant: 18),
+
+            tempoLabel.leadingAnchor.constraint(equalTo: tempoIcon.trailingAnchor, constant: 8),
+            tempoLabel.centerYAnchor.constraint(equalTo: tempoIcon.centerYAnchor),
+
+            tempoValueLabel.centerYAnchor.constraint(equalTo: tempoIcon.centerYAnchor),
+            tempoValueLabel.centerXAnchor.constraint(equalTo: panel.centerXAnchor),
+            tempoValueLabel.widthAnchor.constraint(equalToConstant: 80),
+
+            tempoSlider.topAnchor.constraint(equalTo: tempoIcon.bottomAnchor, constant: 12),
+            tempoSlider.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 14),
+            tempoSlider.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -14),
+
+            // Divider
+            divider.topAnchor.constraint(equalTo: tempoSlider.bottomAnchor, constant: 14),
+            divider.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 14),
+            divider.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -14),
+            divider.heightAnchor.constraint(equalToConstant: 1),
+
+            // Swing section
+            swingIcon.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 18),
+            swingIcon.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 14),
+            swingIcon.widthAnchor.constraint(equalToConstant: 18),
+            swingIcon.heightAnchor.constraint(equalToConstant: 18),
+
+            swingLabel.leadingAnchor.constraint(equalTo: swingIcon.trailingAnchor, constant: 8),
+            swingLabel.centerYAnchor.constraint(equalTo: swingIcon.centerYAnchor),
+
+            swingValueLabel.centerYAnchor.constraint(equalTo: swingIcon.centerYAnchor),
+            swingValueLabel.centerXAnchor.constraint(equalTo: panel.centerXAnchor),
+            swingValueLabel.widthAnchor.constraint(equalToConstant: 80),
+
+            swingSlider.topAnchor.constraint(equalTo: swingIcon.bottomAnchor, constant: 12),
+            swingSlider.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 14),
+            swingSlider.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -14),
+            swingSlider.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -16),
+        ])
+    }
+
+    @objc private func dismissOverlay() { dismiss(animated: true) }
+
+    @objc private func tempoChanged() {
+        let snapped = Double(tempoSlider.value).rounded()
+        currentTempo = snapped
+        tempoValueLabel.text = "\(Int(snapped)) BPM"
+        onTempoChange?(snapped)
+    }
+
+    @objc private func swingChanged() {
+        let snapped = Double(swingSlider.value).rounded()
+        currentSwing = snapped
+        swingValueLabel.text = "\(Int(snapped))%"
+        onSwingChange?(snapped)
+    }
+
+    private func makeIcon(_ name: String, tint: UIColor) -> UIImageView {
+        let iv = UIImageView(image: UIImage(systemName: name,
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
+        iv.tintColor = tint
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }
+
+    private func makeLabel(_ text: String, color: UIColor) -> UILabel {
+        let l = UILabel()
+        l.text = text
+        l.font = .systemFont(ofSize: 15, weight: .semibold)
+        l.textColor = color
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }
+
+    private func styleSlider(_ s: UISlider, primary: UIColor) {
+        s.minimumTrackTintColor = primary
+        s.maximumTrackTintColor = Theme.border
+        let grip = Theme.makeGripThumb()
+        s.setThumbImage(grip, for: .normal)
+        s.setThumbImage(grip, for: .highlighted)
+        s.translatesAutoresizingMaskIntoConstraints = false
     }
 }
 
