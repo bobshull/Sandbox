@@ -120,14 +120,15 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     // Current view gets a subtle underline dot so you know where you are.
     private func syncBarButtons() {
         let enabled = store.enabledBars
+        let primary = ColorTheme.current.primaryColor
         for (idx, button) in [(0, bar1Button), (1, bar2Button)] {
             let isEnabled = idx < enabled.count && enabled[idx]
             var cfg = button.configuration ?? .plain()
             let iconName = isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill"
             cfg.image = UIImage(systemName: iconName, withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .semibold))
-            cfg.background.backgroundColor = isEnabled ? Theme.accent.withAlphaComponent(0.22) : Theme.backgroundElevated
-            cfg.background.strokeColor     = isEnabled ? Theme.accent : Theme.border
-            cfg.baseForegroundColor        = isEnabled ? Theme.accent : Theme.textFaint
+            cfg.background.backgroundColor = isEnabled ? primary.withAlphaComponent(0.22) : Theme.backgroundElevated
+            cfg.background.strokeColor     = isEnabled ? primary : Theme.border
+            cfg.baseForegroundColor        = isEnabled ? primary : Theme.textFaint
             button.configuration = cfg
             button.alpha = isEnabled ? 1.0 : 0.45
         }
@@ -425,6 +426,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         syncMutes()
         syncVolumes()
         syncEffects()
+        applyTheme()
     }
 
     // MARK: - Sync helpers
@@ -460,8 +462,9 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                 cell.isPlayhead = (cell.tag == active)
             }
         }
+        let primary = ColorTheme.current.primaryColor
         for (i, label) in stepLabels.enumerated() {
-            label.textColor = (i == active) ? Theme.accent : ((i % 4 == 0) ? Theme.text : Theme.textFaint)
+            label.textColor = (i == active) ? primary : ((i % 4 == 0) ? Theme.text : Theme.textFaint)
         }
         if engine.isPlaying, store.patternLength == 32, active >= 0 {
             let bar = active / 16
@@ -511,6 +514,8 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
             for cell in row.cells { cell.trackColor = c; cell.accentColor = a }
             row.header.applyThemeColor(c)
         }
+        syncBarButtons()
+        syncPlayhead()
     }
 
     // MARK: - Bar buttons + swipe

@@ -106,7 +106,7 @@ final class KitPickerViewController: UIViewController {
             return out
         }
         cfg.baseForegroundColor = selected ? UIColor(white: 0.1, alpha: 1) : Theme.text
-        cfg.background.backgroundColor = selected ? Theme.accent : Theme.backgroundElevated
+        cfg.background.backgroundColor = selected ? ColorTheme.current.primaryColor : Theme.backgroundElevated
         if !selected {
             cfg.background.strokeColor = Theme.border
             cfg.background.strokeWidth = 1

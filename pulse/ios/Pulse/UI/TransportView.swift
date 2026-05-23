@@ -21,12 +21,15 @@ final class TransportView: UIView {
 
     private var cancellables = Set<AnyCancellable>()
     private let store: Store
+    private var isPlayingState = false
 
     init(store: Store) {
         self.store = store
         super.init(frame: .zero)
         configure()
         applyState()
+        NotificationCenter.default.addObserver(self, selector: #selector(themeDidChange),
+                                               name: .colorThemeDidChange, object: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -34,17 +37,24 @@ final class TransportView: UIView {
     // MARK: - Public
 
     func setIsPlaying(_ playing: Bool) {
+        isPlayingState = playing
+        let primary = ColorTheme.current.primaryColor
         var cfg = UIButton.Configuration.filled()
         cfg.background.cornerRadius = 8
-        cfg.background.backgroundColor = playing ? Theme.backgroundElevated2 : Theme.accent
-        cfg.background.strokeColor = playing ? Theme.accent : .clear
+        cfg.background.backgroundColor = playing ? Theme.backgroundElevated2 : primary
+        cfg.background.strokeColor = playing ? primary : .clear
         cfg.background.strokeWidth = playing ? 1.5 : 0
         cfg.image = UIImage(systemName: playing ? "stop.fill" : "play.fill",
                             withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold))
-        cfg.baseForegroundColor = playing ? Theme.accent : UIColor(white: 0.1, alpha: 1)
+        cfg.baseForegroundColor = playing ? primary : UIColor(white: 0.1, alpha: 1)
         cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
         playButton.configuration = cfg
         playButton.setPlaying(playing)
+    }
+
+    @objc private func themeDidChange() {
+        setIsPlaying(isPlayingState)
+        syncLengthChip()
     }
 
     func observe(_ store: Store) {
@@ -143,6 +153,7 @@ final class TransportView: UIView {
 
     private func syncLengthChip() {
         let is32 = store.patternLength == 32
+        let primary = ColorTheme.current.primaryColor
         var cfg = UIButton.Configuration.plain()
         cfg.title = is32 ? "2 Bars" : "1 Bar"
         cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
@@ -150,9 +161,9 @@ final class TransportView: UIView {
             out.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
             return out
         }
-        cfg.baseForegroundColor = is32 ? Theme.accent : Theme.text
+        cfg.baseForegroundColor = is32 ? primary : Theme.text
         cfg.background.backgroundColor = Theme.backgroundElevated
-        cfg.background.strokeColor = is32 ? Theme.accent.withAlphaComponent(0.5) : Theme.border
+        cfg.background.strokeColor = is32 ? primary.withAlphaComponent(0.5) : Theme.border
         cfg.background.strokeWidth = 1
         cfg.background.cornerRadius = 19
         cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
@@ -264,23 +275,24 @@ final class SliderPopoverViewController: UIViewController {
         bg.addTarget(self, action: #selector(dismissOverlay), for: .touchUpInside)
         view.addSubview(bg)
 
+        let primary = ColorTheme.current.primaryColor
         panel.backgroundColor = Theme.backgroundElevated2
         panel.layer.cornerRadius = 14
         panel.layer.borderWidth = 1.5
-        panel.layer.borderColor = Theme.accent.withAlphaComponent(0.75).cgColor
+        panel.layer.borderColor = primary.withAlphaComponent(0.75).cgColor
         panel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(panel)
 
         let iconView = UIImageView(image: UIImage(systemName: icon,
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
-        iconView.tintColor = Theme.accent
+        iconView.tintColor = primary
         iconView.contentMode = .scaleAspectFit
         iconView.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(iconView)
 
         titleLabel.text = controlTitle
         titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        titleLabel.textColor = Theme.accent
+        titleLabel.textColor = primary
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(titleLabel)
 
@@ -301,7 +313,7 @@ final class SliderPopoverViewController: UIViewController {
         slider.minimumValue = Float(minVal)
         slider.maximumValue = Float(maxVal)
         slider.value = Float(current)
-        slider.minimumTrackTintColor = Theme.accent
+        slider.minimumTrackTintColor = primary
         slider.maximumTrackTintColor = Theme.border
         slider.thumbTintColor = Theme.text
         slider.addTarget(self, action: #selector(sliderChanged), for: .valueChanged)

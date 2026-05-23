@@ -8,6 +8,9 @@ struct ColorTheme {
     func color(for trackId: String) -> UIColor  { colors[trackId]?.0 ?? Theme.accent }
     func accent(for trackId: String) -> UIColor { colors[trackId]?.1 ?? Theme.accent }
 
+    /// The primary UI accent colour for this theme — used by transport, bar buttons, toast, etc.
+    var primaryColor: UIColor { color(for: "kick") }
+
     static var current: ColorTheme {
         all.first { $0.id == AppSettings.colorThemeId } ?? neon
     }
@@ -26,20 +29,20 @@ struct ColorTheme {
         "perc":  (hex("fdffb6"), hex("ddd86a")),
     ])
 
-    // ── Synthwave ──────────────────────────────────────────────────────────
-    static let synthwave = ColorTheme(id: "synthwave", name: "Synth", colors: [
-        "kick":  (hex("ff2d78"), hex("d4005e")),
-        "snare": (hex("ff6ec7"), hex("e040a0")),
-        "hat":   (hex("00f0ff"), hex("00c8d8")),
-        "clap":  (hex("80ffea"), hex("40d8c0")),
-        "bass":  (hex("bf5fff"), hex("9930e0")),
-        "pluck": (hex("ff9fff"), hex("e060e0")),
-        "pad":   (hex("7b61ff"), hex("5538d8")),
-        "perc":  (hex("ffe566"), hex("d4b800")),
+    // ── Jungle ─────────────────────────────────────────────────────────────
+    static let synthwave = ColorTheme(id: "synthwave", name: "Jungle", colors: [
+        "kick":  (hex("3aad5a"), hex("28884a")),   // tropical leaf green
+        "snare": (hex("e87c28"), hex("c45a18")),   // mango / fruit orange
+        "hat":   (hex("d4c028"), hex("a89c18")),   // sunlight through canopy
+        "clap":  (hex("9848c8"), hex("7830a8")),   // orchid purple
+        "bass":  (hex("1e7a50"), hex("0e5838")),   // deep forest shadow
+        "pluck": (hex("e84c6a"), hex("c03050")),   // bird of paradise
+        "pad":   (hex("2a9680"), hex("187660")),   // jungle stream teal
+        "perc":  (hex("c4a028"), hex("a08018")),   // earthy gold
     ])
 
-    // ── Dusk ───────────────────────────────────────────────────────────────
-    static let dusk = ColorTheme(id: "dusk", name: "Dusk", colors: [
+    // ── Pastel ─────────────────────────────────────────────────────────────
+    static let dusk = ColorTheme(id: "dusk", name: "Pastel", colors: [
         "kick":  (hex("e05c78"), hex("c43a58")),
         "snare": (hex("d4aa6a"), hex("b88a3a")),
         "hat":   (hex("7ab8d8"), hex("4e92b8")),
