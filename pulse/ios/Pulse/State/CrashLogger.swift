@@ -47,7 +47,7 @@ final class CrashLogger {
         let b = (info?["CFBundleVersion"] as? String) ?? "?"
 
         // Populate signal handler globals before installing handlers
-        Self.logURL.path.withCString { strlcpy(_crashLogPath, $0, Int(PATH_MAX)) }
+        Self.logURL.path.withCString { _ = strlcpy(_crashLogPath, $0, Int(PATH_MAX)) }
         let header = "Pulse \(v) (\(b))\nDate: \(Date())\n\nBacktrace:\n"
         header.withCString { _ = strlcpy(_crashHeader, $0, 256) }
         _crashHeaderLen = min(strlen(_crashHeader), 255)

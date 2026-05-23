@@ -856,6 +856,51 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(received.contains(.load))
     }
 
+    // MARK: - loadPattern (empty preset)
+
+    func test_loadPattern_emptyPreset_usesDefaultTempo() {
+        AppSettings.defaultTempo = 128
+        defer { UserDefaults.standard.removeObject(forKey: "pulse.defaultTempo") }
+        let empty = Presets.all.first { $0.id == "empty" }!
+        store.loadPattern(empty)
+        XCTAssertEqual(store.tempo, 128)
+    }
+
+    func test_loadPattern_emptyPreset_defaultTempoWhenNeverSet() {
+        UserDefaults.standard.removeObject(forKey: "pulse.defaultTempo")
+        let empty = Presets.all.first { $0.id == "empty" }!
+        store.loadPattern(empty)
+        XCTAssertEqual(store.tempo, 96)  // AppSettings fallback
+    }
+
+    func test_loadPattern_emptyPreset_ignoresHardcodedTempo() {
+        // Hardcoded value in Presets.all is 96; setting default to something else must win.
+        AppSettings.defaultTempo = 140
+        defer { UserDefaults.standard.removeObject(forKey: "pulse.defaultTempo") }
+        let empty = Presets.all.first { $0.id == "empty" }!
+        XCTAssertEqual(empty.tempo, 96, "test precondition: empty preset still has 96 baked in")
+        store.loadPattern(empty)
+        XCTAssertEqual(store.tempo, 140)
+    }
+
+    func test_loadPattern_nonEmptyPreset_usesPatternTempo() {
+        // A non-empty preset must NOT be overridden by AppSettings.defaultTempo.
+        AppSettings.defaultTempo = 200
+        defer { UserDefaults.standard.removeObject(forKey: "pulse.defaultTempo") }
+        let preset = Presets.all.first { $0.id != "empty" }!
+        store.loadPattern(preset)
+        XCTAssertEqual(store.tempo, preset.tempo)
+    }
+
+    func test_loadPattern_customPattern_usesPatternTempo() {
+        // A user-saved pattern with a specific tempo must load that tempo regardless of default.
+        AppSettings.defaultTempo = 200
+        defer { UserDefaults.standard.removeObject(forKey: "pulse.defaultTempo") }
+        let custom = Pattern(id: "custom-uuid-abc", name: "My Beat", tempo: 110, swing: 0, rows: [:])
+        store.loadPattern(custom)
+        XCTAssertEqual(store.tempo, 110)
+    }
+
     // MARK: - exportPattern
 
     func test_exportPattern_hasCurrentName() {

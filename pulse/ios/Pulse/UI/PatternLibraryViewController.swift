@@ -105,7 +105,7 @@ final class PatternLibraryViewController: UIViewController,
         }
         pillCfg.baseForegroundColor = Theme.text
         pillCfg.background.backgroundColor = Theme.backgroundElevated
-        pillCfg.background.strokeColor = Theme.accent.withAlphaComponent(0.55)
+        pillCfg.background.strokeColor = ColorTheme.current.primaryColor.withAlphaComponent(0.55)
         pillCfg.background.strokeWidth = 1.5
         pillCfg.background.cornerRadius = 16
         pillCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 12)
@@ -339,9 +339,10 @@ final class MixCardCell: UICollectionViewCell {
         activityBars.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(activityBars)
 
+        let primary = ColorTheme.current.primaryColor
         bpmPill.font               = .monospacedSystemFont(ofSize: 10, weight: .medium)
-        bpmPill.textColor          = Theme.accent
-        bpmPill.backgroundColor    = Theme.accent.withAlphaComponent(0.12)
+        bpmPill.textColor          = primary
+        bpmPill.backgroundColor    = primary.withAlphaComponent(0.12)
         bpmPill.layer.cornerRadius = 4
         bpmPill.layer.masksToBounds = true
         bpmPill.textAlignment      = .center

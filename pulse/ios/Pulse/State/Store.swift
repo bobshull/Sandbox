@@ -303,7 +303,7 @@ final class Store {
         undoStack.removeAll()
         patternName = pattern.name
         currentPatternId = pattern.id
-        tempo = pattern.tempo
+        tempo = pattern.id == "empty" ? AppSettings.defaultTempo : pattern.tempo
         swing = pattern.swing
         patternLength = pattern.patternLength ?? 16
         enabledBars = patternLength == 32 ? [true, true] : [true]

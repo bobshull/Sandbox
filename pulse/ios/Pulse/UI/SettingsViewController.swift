@@ -3,7 +3,9 @@ import MessageUI
 
 final class SettingsViewController: UIViewController {
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
+    private let tableView   = UITableView(frame: .zero, style: .plain)
+    private let titlePill   = UIButton(type: .custom)
+    private let feedbackBtn = UIButton(type: .system)
 
     private enum Row { case syncHaptics, bpmAppearance }
     private let rows: [Row] = [.syncHaptics, .bpmAppearance]
@@ -25,6 +27,8 @@ final class SettingsViewController: UIViewController {
 
         let header = buildHeader()
         view.addSubview(header)
+        NotificationCenter.default.addObserver(self, selector: #selector(themeDidChange),
+                                               name: .colorThemeDidChange, object: nil)
 
         let safe = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
@@ -44,7 +48,6 @@ final class SettingsViewController: UIViewController {
         let header = UIView()
         header.translatesAutoresizingMaskIntoConstraints = false
 
-        let titlePill = UIButton(type: .custom)
         var pillCfg = UIButton.Configuration.plain()
         pillCfg.image = UIImage(systemName: "gear",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
@@ -55,7 +58,7 @@ final class SettingsViewController: UIViewController {
         }
         pillCfg.baseForegroundColor = Theme.text
         pillCfg.background.backgroundColor = Theme.backgroundElevated
-        pillCfg.background.strokeColor = Theme.accent.withAlphaComponent(0.55)
+        pillCfg.background.strokeColor = ColorTheme.current.primaryColor.withAlphaComponent(0.55)
         pillCfg.background.strokeWidth = 1.5
         pillCfg.background.cornerRadius = 16
         pillCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 12)
@@ -106,9 +109,8 @@ final class SettingsViewController: UIViewController {
         dot.font = .systemFont(ofSize: 12)
         dot.textColor = Theme.textFaint
 
-        let feedbackBtn = UIButton(type: .system)
         feedbackBtn.setTitle("Send Feedback", for: .normal)
-        feedbackBtn.setTitleColor(Theme.accent, for: .normal)
+        feedbackBtn.setTitleColor(ColorTheme.current.primaryColor, for: .normal)
         feedbackBtn.titleLabel?.font = .systemFont(ofSize: 12)
         feedbackBtn.addAction(UIAction { [weak self] _ in self?.sendFeedback() }, for: .touchUpInside)
 
@@ -140,6 +142,14 @@ final class SettingsViewController: UIViewController {
 
     @objc private func closeTapped() { dismiss(animated: true) }
 
+    @objc private func themeDidChange() {
+        let primary = ColorTheme.current.primaryColor
+        var cfg = titlePill.configuration
+        cfg?.background.strokeColor = primary.withAlphaComponent(0.55)
+        titlePill.configuration = cfg
+        feedbackBtn.setTitleColor(primary, for: .normal)
+    }
+
     private func sendFeedback() {
         let info    = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
@@ -158,13 +168,13 @@ final class SettingsViewController: UIViewController {
         if MFMailComposeViewController.canSendMail() {
             let vc = MFMailComposeViewController()
             vc.mailComposeDelegate = self
-            vc.setToRecipients(["bobby@bobshull.com"])
+            vc.setToRecipients(["bobby@pulsemixer.app"])
             vc.setSubject(subject)
             vc.addAttachmentData(attachmentData, mimeType: "text/plain", fileName: "diagnostic_report.txt")
             present(vc, animated: true)
         } else {
             let encoded = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            if let url = URL(string: "mailto:bobby@bobshull.com?subject=\(encoded)") {
+            if let url = URL(string: "mailto:bobby@pulsemixer.app?subject=\(encoded)") {
                 UIApplication.shared.open(url)
             }
         }
@@ -256,6 +266,8 @@ final class SyncHapticsPairCell: UITableViewCell {
         setupLayout()
         cloudSwitch.addTarget(self, action: #selector(cloudToggled), for: .valueChanged)
         hapticsSwitch.addTarget(self, action: #selector(hapticsToggled), for: .valueChanged)
+        NotificationCenter.default.addObserver(self, selector: #selector(applyTheme),
+                                               name: .colorThemeDidChange, object: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -266,6 +278,13 @@ final class SyncHapticsPairCell: UITableViewCell {
         cloudSwitch.isEnabled = available
         applyCloudState(enabled: available && PatternStore.iCloudSyncEnabled)
         hapticsSwitch.isOn = AppSettings.hapticsEnabled
+        applyTheme()
+    }
+
+    @objc private func applyTheme() {
+        let primary = ColorTheme.current.primaryColor
+        cloudSwitch.onTintColor = primary
+        hapticsSwitch.onTintColor = primary
     }
 
     private func setupLayout() {
@@ -283,7 +302,6 @@ final class SyncHapticsPairCell: UITableViewCell {
         let cloudTitleRow = UIStackView(arrangedSubviews: [cloudIconView, cloudTitle])
         cloudTitleRow.axis = .horizontal; cloudTitleRow.spacing = 6; cloudTitleRow.alignment = .center
 
-        cloudSwitch.onTintColor = Theme.accent
         cloudStatusLabel.font = .systemFont(ofSize: 12)
         cloudStatusLabel.textColor = Theme.textFaint
         let cloudControlRow = UIStackView(arrangedSubviews: [cloudStatusLabel, UIView(), cloudSwitch])
@@ -307,7 +325,6 @@ final class SyncHapticsPairCell: UITableViewCell {
         let hapticsTitleRow = UIStackView(arrangedSubviews: [hapticsIcon, hapticsTitle])
         hapticsTitleRow.axis = .horizontal; hapticsTitleRow.spacing = 6; hapticsTitleRow.alignment = .center
 
-        hapticsSwitch.onTintColor = Theme.accent
         let hapticsDesc = UILabel()
         hapticsDesc.text = "Step taps, play/stop, and undo"
         hapticsDesc.font = .systemFont(ofSize: 12); hapticsDesc.textColor = Theme.textFaint
@@ -372,6 +389,8 @@ final class BpmAppearancePairCell: UITableViewCell {
         setupLayout()
         slider.addTarget(self, action: #selector(sliderChanged), for: .valueChanged)
         segment.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
+        NotificationCenter.default.addObserver(self, selector: #selector(applyTheme),
+                                               name: .colorThemeDidChange, object: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -387,6 +406,13 @@ final class BpmAppearancePairCell: UITableViewCell {
             segment.insertSegment(withTitle: theme.name, at: i, animated: false)
             if theme.id == AppSettings.colorThemeId { segment.selectedSegmentIndex = i }
         }
+        applyTheme()
+    }
+
+    @objc private func applyTheme() {
+        let primary = ColorTheme.current.primaryColor
+        valueLabel.textColor = primary
+        slider.minimumTrackTintColor = primary
         colorSegments()
     }
 
@@ -404,13 +430,12 @@ final class BpmAppearancePairCell: UITableViewCell {
         bpmTitle.font = .systemFont(ofSize: 14, weight: .semibold); bpmTitle.textColor = Theme.text
 
         valueLabel.font = .monospacedSystemFont(ofSize: 14, weight: .medium)
-        valueLabel.textColor = Theme.accent; valueLabel.textAlignment = .right
+        valueLabel.textAlignment = .right
         valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         let bpmTitleRow = UIStackView(arrangedSubviews: [bpmIcon, bpmTitle, UIView(), valueLabel])
         bpmTitleRow.axis = .horizontal; bpmTitleRow.spacing = 6; bpmTitleRow.alignment = .center
 
-        slider.minimumTrackTintColor = Theme.accent
         slider.maximumTrackTintColor = Theme.border
         let grip = Self.makeGripThumb()
         slider.setThumbImage(grip, for: .normal)
@@ -438,7 +463,7 @@ final class BpmAppearancePairCell: UITableViewCell {
         themeTitleRow.axis = .horizontal; themeTitleRow.spacing = 6; themeTitleRow.alignment = .center
 
         let themeDesc = UILabel()
-        themeDesc.text = "Changes sequencer track colors"
+        themeDesc.text = "Sets the system theme color"
         themeDesc.font = .systemFont(ofSize: 12); themeDesc.textColor = Theme.textFaint
 
         let themeStack = UIStackView(arrangedSubviews: [themeTitleRow, segment, themeDesc])

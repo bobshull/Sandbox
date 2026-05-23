@@ -132,4 +132,33 @@ final class CellButton: UIControl {
 
         accessibilityValue = isOn ? "on" : "off"
     }
+
+    // Brief glow pulse used by the Easter egg when tiles re-enter from the right.
+    // No-ops on inactive cells; respects whatever shadow state updateAppearance set.
+    func pulseReturn() {
+        guard isOn else { return }
+        let finalOpacity: Float = isPlayhead ? 1.0 : 0
+        let finalRadius: CGFloat = isPlayhead ? 12 : 0
+        // Commit final values to the model layer first so there's no snap on completion
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        backgroundLayer.shadowColor = accentColor.cgColor
+        backgroundLayer.shadowOpacity = finalOpacity
+        backgroundLayer.shadowRadius = finalRadius
+        CATransaction.commit()
+        // Animate FROM brief glow TO resting state
+        let opAnim = CABasicAnimation(keyPath: "shadowOpacity")
+        opAnim.fromValue = Float(0.85)
+        opAnim.toValue = finalOpacity
+        opAnim.duration = 0.40
+        opAnim.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        backgroundLayer.add(opAnim, forKey: "eggGlow")
+
+        let radAnim = CABasicAnimation(keyPath: "shadowRadius")
+        radAnim.fromValue = CGFloat(20)
+        radAnim.toValue = finalRadius
+        radAnim.duration = 0.40
+        radAnim.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        backgroundLayer.add(radAnim, forKey: "eggRadius")
+    }
 }
