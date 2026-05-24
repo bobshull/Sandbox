@@ -7,10 +7,12 @@ final class CellButton: UIControl {
     var isOn: Bool = false { didSet { updateAppearance() } }
     var isPlayhead: Bool = false { didSet { updateAppearance() } }
     var isBeat: Bool = false { didSet { updateAppearance() } }
+    var isAccented: Bool = false { didSet { updateAppearance() } }
 
     private let backgroundLayer = CALayer()
     private let shadowLayer = CAGradientLayer()   // bottom darkening, always visible
     private let shineLayer = CAGradientLayer()    // top gloss highlight, always visible
+    private let accentDot = CALayer()             // small corner marker for accented steps
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -38,6 +40,12 @@ final class CellButton: UIControl {
         shineLayer.masksToBounds = true
         backgroundLayer.addSublayer(shineLayer)
 
+        // Accent dot: small bright marker in top-right corner
+        accentDot.backgroundColor = UIColor.white.withAlphaComponent(0.9).cgColor
+        accentDot.cornerRadius = 3
+        accentDot.isHidden = true
+        backgroundLayer.addSublayer(accentDot)
+
         isAccessibilityElement = true
         accessibilityTraits.insert(.button)
         updateAppearance()
@@ -50,6 +58,8 @@ final class CellButton: UIControl {
         backgroundLayer.frame = bounds
         shadowLayer.frame = bounds
         shineLayer.frame = bounds
+        let dotSize: CGFloat = 5
+        accentDot.frame = CGRect(x: bounds.width - dotSize - 2, y: 2, width: dotSize, height: dotSize)
     }
 
     override var isHighlighted: Bool {
@@ -66,32 +76,61 @@ final class CellButton: UIControl {
         backgroundLayer.removeAnimation(forKey: "bloom")
 
         if isOn {
-            backgroundLayer.backgroundColor = trackColor.cgColor
+            let fillColor = isAccented ? trackColor.brightened(by: 0.22) : trackColor
+            backgroundLayer.backgroundColor = fillColor.cgColor
             backgroundLayer.borderColor = accentColor.cgColor
-            shineLayer.colors  = [UIColor.white.withAlphaComponent(0.30).cgColor,
-                                   UIColor.white.withAlphaComponent(0.10).cgColor,
-                                   UIColor.clear.cgColor]
+            backgroundLayer.borderWidth = isAccented ? 2.5 : 1.0
+            shineLayer.colors = isAccented
+                ? [UIColor.white.withAlphaComponent(0.65).cgColor,
+                   UIColor.white.withAlphaComponent(0.28).cgColor,
+                   UIColor.clear.cgColor]
+                : [UIColor.white.withAlphaComponent(0.30).cgColor,
+                   UIColor.white.withAlphaComponent(0.10).cgColor,
+                   UIColor.clear.cgColor]
             shineLayer.locations = [0, 0.35, 0.65]
             shadowLayer.colors = [UIColor.clear.cgColor,
                                    UIColor.black.withAlphaComponent(0.28).cgColor]
         } else if isBeat {
+            backgroundLayer.borderWidth = 1.0
             backgroundLayer.backgroundColor = UIColor(red: 36/255, green: 43/255, blue: 62/255, alpha: 1).cgColor
             backgroundLayer.borderColor = UIColor(red: 52/255, green: 60/255, blue: 80/255, alpha: 1).cgColor
             shineLayer.colors  = [UIColor.clear.cgColor, UIColor.clear.cgColor]
             shadowLayer.colors = [UIColor.clear.cgColor, UIColor.clear.cgColor]
         } else {
+            backgroundLayer.borderWidth = 1.0
             backgroundLayer.backgroundColor = Theme.backgroundElevated2.cgColor
             backgroundLayer.borderColor = Theme.border.cgColor
             shineLayer.colors  = [UIColor.clear.cgColor, UIColor.clear.cgColor]
             shadowLayer.colors = [UIColor.clear.cgColor, UIColor.clear.cgColor]
         }
 
+        // Commit shadow state instantly — no implicit animation — so the glow
+        // never gets stuck between transitions (e.g. accent removal mid-playhead).
+        let glowRadius: CGFloat = isAccented ? 18 : 12
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         if isPlayhead && isOn {
             backgroundLayer.shadowColor = trackColor.cgColor
             backgroundLayer.shadowOpacity = 1.0
-            backgroundLayer.shadowRadius = 12
+            backgroundLayer.shadowRadius = glowRadius
             backgroundLayer.shadowOffset = .zero
+        } else if isPlayhead {
+            backgroundLayer.shadowColor = Theme.accent2.cgColor
+            backgroundLayer.shadowOpacity = 0.9
+            backgroundLayer.shadowRadius = 8
+            backgroundLayer.shadowOffset = .zero
+        } else if isOn && isAccented {
+            backgroundLayer.shadowColor = accentColor.cgColor
+            backgroundLayer.shadowOpacity = 0.90
+            backgroundLayer.shadowRadius = 14
+            backgroundLayer.shadowOffset = .zero
+        } else {
+            backgroundLayer.shadowOpacity = 0
+        }
+        CATransaction.commit()
 
+        // Explicit animations run after the model layer is committed above.
+        if isPlayhead && isOn {
             // Spring bounce: overshoot then snap back
             let scale = CAKeyframeAnimation(keyPath: "transform.scale")
             scale.values = [1.0, 1.18, 0.92, 1.0]
@@ -106,14 +145,14 @@ final class CellButton: UIControl {
 
             let flash = CABasicAnimation(keyPath: "backgroundColor")
             flash.fromValue = UIColor.white.withAlphaComponent(0.9).cgColor
-            flash.toValue = trackColor.cgColor
+            flash.toValue = (isAccented ? trackColor.brightened(by: 0.22) : trackColor).cgColor
             flash.duration = 0.32
             flash.timingFunction = CAMediaTimingFunction(name: .easeOut)
             backgroundLayer.add(flash, forKey: "flash")
 
             // Glow bloom: shadow radius spikes then settles
             let bloom = CAKeyframeAnimation(keyPath: "shadowRadius")
-            bloom.values = [12.0, 28.0, 10.0]
+            bloom.values = [glowRadius, glowRadius + 16.0, glowRadius - 2.0]
             bloom.keyTimes = [0, 0.3, 1.0]
             bloom.duration = 0.45
             bloom.timingFunctions = [
@@ -121,19 +160,48 @@ final class CellButton: UIControl {
                 CAMediaTimingFunction(name: .easeIn),
             ]
             backgroundLayer.add(bloom, forKey: "bloom")
-        } else if isPlayhead {
-            backgroundLayer.shadowColor = Theme.accent2.cgColor
-            backgroundLayer.shadowOpacity = 0.9
-            backgroundLayer.shadowRadius = 8
-            backgroundLayer.shadowOffset = .zero
-        } else {
-            backgroundLayer.shadowOpacity = 0
         }
 
-        accessibilityValue = isOn ? "on" : "off"
+        accentDot.isHidden = !isOn || !isAccented
+        accessibilityValue = isOn ? (isAccented ? "on accented" : "on") : "off"
+    }
+
+    // Accent toggle feedback animation — call after store.toggleAccent.
+    func pulseAccent(on: Bool) {
+        guard isOn else { return }
+        if on {
+            let scale = CAKeyframeAnimation(keyPath: "transform.scale")
+            scale.values = [1.0, 1.15, 0.95, 1.0]
+            scale.keyTimes = [0, 0.25, 0.65, 1.0]
+            scale.duration = 0.32
+            scale.timingFunctions = [
+                CAMediaTimingFunction(name: .easeOut),
+                CAMediaTimingFunction(name: .easeOut),
+                CAMediaTimingFunction(name: .easeOut),
+            ]
+            backgroundLayer.add(scale, forKey: "accentPulse")
+
+            let flash = CABasicAnimation(keyPath: "backgroundColor")
+            flash.fromValue = UIColor.white.withAlphaComponent(0.85).cgColor
+            flash.toValue = trackColor.brightened(by: 0.22).cgColor
+            flash.duration = 0.28
+            flash.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            backgroundLayer.add(flash, forKey: "accentFlash")
+        } else {
+            let scale = CAKeyframeAnimation(keyPath: "transform.scale")
+            scale.values = [1.0, 0.88, 1.0]
+            scale.keyTimes = [0, 0.4, 1.0]
+            scale.duration = 0.22
+            scale.timingFunctions = [
+                CAMediaTimingFunction(name: .easeIn),
+                CAMediaTimingFunction(name: .easeOut),
+            ]
+            backgroundLayer.add(scale, forKey: "accentPulse")
+        }
     }
 
     // Brief glow pulse used by the Easter egg when tiles re-enter from the right.
+    // MARK: - Easter egg return glow
     // No-ops on inactive cells; respects whatever shadow state updateAppearance set.
     func pulseReturn() {
         guard isOn else { return }
@@ -160,5 +228,24 @@ final class CellButton: UIControl {
         radAnim.duration = 0.40
         radAnim.timingFunction = CAMediaTimingFunction(name: .easeOut)
         backgroundLayer.add(radAnim, forKey: "eggRadius")
+    }
+}
+
+// MARK: -
+
+private extension UIColor {
+    /// Returns a brighter version by boosting brightness and slightly desaturating.
+    func brightened(by amount: CGFloat) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        if getHue(&h, saturation: &s, brightness: &b, alpha: &a) {
+            return UIColor(hue: h,
+                           saturation: max(s - amount * 0.3, 0),
+                           brightness: min(b + amount, 1.0),
+                           alpha: a)
+        }
+        // Fallback for achromatic colors
+        var w: CGFloat = 0
+        getWhite(&w, alpha: &a)
+        return UIColor(white: min(w + amount, 1.0), alpha: a)
     }
 }

@@ -31,11 +31,11 @@ struct ColorTheme {
 
     // ── Jungle ─────────────────────────────────────────────────────────────
     static let synthwave = ColorTheme(id: "synthwave", name: "Jungle", colors: [
-        "kick":  (hex("3aad5a"), hex("28884a")),   // tropical leaf green
+        "kick":  (hex("1e7a50"), hex("0e5838")),   // deep forest shadow
         "snare": (hex("e87c28"), hex("c45a18")),   // mango / fruit orange
         "hat":   (hex("d4c028"), hex("a89c18")),   // sunlight through canopy
         "clap":  (hex("9848c8"), hex("7830a8")),   // orchid purple
-        "bass":  (hex("1e7a50"), hex("0e5838")),   // deep forest shadow
+        "bass":  (hex("3aad5a"), hex("28884a")),   // tropical leaf green
         "pluck": (hex("e84c6a"), hex("c03050")),   // bird of paradise
         "pad":   (hex("2a9680"), hex("187660")),   // jungle stream teal
         "perc":  (hex("c4a028"), hex("a08018")),   // earthy gold

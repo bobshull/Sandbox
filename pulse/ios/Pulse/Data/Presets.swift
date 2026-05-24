@@ -15,6 +15,7 @@ struct Pattern: Codable {
     var bar2Effects: [String: TrackEffects]?
     var basePresetId: String?
     var barLength: Int?
+    var accents: [String: [Bool]]?
 }
 
 enum Presets {
@@ -32,8 +33,10 @@ enum Presets {
 
     private static func fx(rvb: Float = 0, dly: Float = 0,
                             div: TrackEffects.DelaySyncDivision = .eighth,
-                            dst: Float = 0) -> TrackEffects {
-        TrackEffects(reverbWet: rvb, delayWet: dly, delaySyncDivision: div, distortionWet: dst)
+                            dst: Float = 0,
+                            pan: Float = 0, pitch: Float = 0) -> TrackEffects {
+        TrackEffects(pan: pan, pitch: pitch, reverbWet: rvb, delayWet: dly,
+                     delaySyncDivision: div, distortionWet: dst)
     }
 
     static let all: [Pattern] = [
@@ -507,6 +510,482 @@ enum Presets {
             kitId: "marimba",
             patternLength: 32,
             basePresetId: "marimba-groove", barLength: 2
+        ),
+
+        // ── Concrete Jungle — NYC boom bap, punchy downbeat knock ────────────
+        Pattern(
+            id: "concrete-jungle", name: "Concrete Jungle", tempo: 87, swing: 0.25,
+            rows: [
+                "kick":  row(0, 6, 10),
+                "snare": row(4, 12),
+                "hat":   row(2, 6, 10, 14),
+                "clap":  row(4),
+                "bass":  row(0, 5, 8, 11),
+                "pluck": row(2, 9, 15),
+                "perc":  row(7, 13),
+            ],
+            volumes: ["kick": 0.92, "snare": 0.88, "hat": 0.65, "clap": 0.75, "bass": 0.85, "pluck": 0.72, "perc": 0.60],
+            effects: [
+                "kick":  fx(rvb: 18, dst: 20),
+                "snare": fx(rvb: 35),
+                "hat":   fx(rvb: 22, pan: -0.20),
+                "clap":  fx(rvb: 30, pan:  0.15),
+                "bass":  fx(rvb: 12),
+                "pluck": fx(rvb: 32, dly: 22, pan:  0.30),
+                "perc":  fx(rvb: 28, pan: -0.30),
+            ],
+            kitId: "boom-bap",
+            accents: [
+                "kick":  row(0),
+                "snare": row(4),
+                "hat":   row(2, 10),
+            ]
+        ),
+
+        // ── Concrete Jungle 2-bar — bar 2 snare fill turnaround ──────────────
+        Pattern(
+            id: "concrete-jungle-2", name: "Concrete Jungle", tempo: 87, swing: 0.25,
+            rows: [
+                "kick":  row2(0, 6, 10,        16, 22, 26, 30, 31),
+                "snare": row2(4, 12,            20, 27, 28),
+                "hat":   row2(2, 6, 10, 14,     18, 22, 26, 30),
+                "clap":  row2(4,                20),
+                "bass":  row2(0, 5, 8, 11,      16, 21, 24, 27),
+                "pluck": row2(2, 9, 15,         18, 25, 31),
+                "perc":  row2(7, 13,            23),
+            ],
+            volumes: ["kick": 0.92, "snare": 0.88, "hat": 0.65, "clap": 0.75, "bass": 0.85, "pluck": 0.72, "perc": 0.60],
+            effects: [
+                "kick":  fx(rvb: 18, dst: 20),
+                "snare": fx(rvb: 35),
+                "hat":   fx(rvb: 22, pan: -0.20),
+                "clap":  fx(rvb: 30, pan:  0.15),
+                "bass":  fx(rvb: 12),
+                "pluck": fx(rvb: 32, dly: 22, pan:  0.30),
+                "perc":  fx(rvb: 28, pan: -0.30),
+            ],
+            kitId: "boom-bap",
+            patternLength: 32,
+            basePresetId: "concrete-jungle", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "snare": row2(4, 20),
+                "hat":   row2(2, 10, 18, 26),
+            ]
+        ),
+
+        // ── Soul Choppa — dusty soul chops, chopped-sample stabs ─────────────
+        Pattern(
+            id: "soul-choppa", name: "Soul Choppa", tempo: 90, swing: 0.28,
+            rows: [
+                "kick":  row(0, 8, 11),
+                "snare": row(4, 14),
+                "hat":   row(2, 4, 6, 8, 10, 12, 14),
+                "clap":  row(12),
+                "bass":  row(0, 3, 6, 9, 12),
+                "pluck": row(1, 7, 11, 15),
+                "perc":  row(5, 13),
+            ],
+            volumes: ["kick": 0.90, "snare": 0.85, "hat": 0.60, "clap": 0.70, "bass": 0.85, "pluck": 0.68, "perc": 0.55],
+            effects: [
+                "kick":  fx(rvb: 20, dst: 22),
+                "snare": fx(rvb: 40, pan:  0.10),
+                "hat":   fx(dst: 30, pan: -0.15),
+                "clap":  fx(rvb: 38, pan:  0.20),
+                "bass":  fx(dst: 18),
+                "pluck": fx(rvb: 28, dly: 20, div: .sixteenth, pan:  0.35),
+                "perc":  fx(rvb: 22, pan: -0.25),
+            ],
+            kitId: "dusty-tape",
+            accents: [
+                "kick":  row(0),
+                "snare": row(4),
+                "hat":   row(4, 12),
+                "pluck": row(1, 11),
+            ]
+        ),
+
+        // ── Soul Choppa 2-bar — bar 2 off-beat kick variation ────────────────
+        Pattern(
+            id: "soul-choppa-2", name: "Soul Choppa", tempo: 90, swing: 0.28,
+            rows: [
+                "kick":  row2(0, 8, 11,              16, 20, 26, 28),
+                "snare": row2(4, 14,                 20, 28, 30),
+                "hat":   row2(2,4,6,8,10,12,14,      18,20,22,24,26,28,30),
+                "clap":  row2(12,                    28),
+                "bass":  row2(0, 3, 6, 9, 12,        16, 19, 22, 25, 28),
+                "pluck": row2(1, 7, 11, 15,          17, 23, 27, 31),
+                "perc":  row2(5, 13,                 21, 29),
+            ],
+            volumes: ["kick": 0.90, "snare": 0.85, "hat": 0.60, "clap": 0.70, "bass": 0.85, "pluck": 0.68, "perc": 0.55],
+            effects: [
+                "kick":  fx(rvb: 20, dst: 22),
+                "snare": fx(rvb: 40, pan:  0.10),
+                "hat":   fx(dst: 30, pan: -0.15),
+                "clap":  fx(rvb: 38, pan:  0.20),
+                "bass":  fx(dst: 18),
+                "pluck": fx(rvb: 28, dly: 20, div: .sixteenth, pan:  0.35),
+                "perc":  fx(rvb: 22, pan: -0.25),
+            ],
+            kitId: "dusty-tape",
+            patternLength: 32,
+            basePresetId: "soul-choppa", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "snare": row2(4, 20),
+                "hat":   row2(4, 12, 20, 28),
+                "pluck": row2(1, 11, 17, 27),
+            ]
+        ),
+
+        // ── Coffee Shop — lazy lo-fi, kick on 1+and-of-3, pluck drags on upbeats
+        Pattern(
+            id: "coffee-shop", name: "Coffee Shop", tempo: 80, swing: 0.38,
+            rows: [
+                "kick":  row(0, 10),
+                "snare": row(4, 12),
+                "hat":   row(0, 2, 4, 6, 8, 10, 12, 14),
+                "bass":  row(0, 5, 9),
+                "pluck": row(2, 7, 11),
+            ],
+            volumes: ["kick": 0.72, "snare": 0.60, "hat": 0.48, "bass": 0.80, "pluck": 0.72],
+            effects: [
+                "kick":  fx(rvb: 55, dst: 12),
+                "snare": fx(rvb: 65, pan:  0.08),
+                "hat":   fx(rvb: 60, dst:  8, pan: -0.12),
+                "bass":  fx(rvb: 50, dst: 10),
+                "pluck": fx(rvb: 72, dly: 30, pan:  0.25),
+            ],
+            kitId: "rainy-night",
+            accents: [
+                "kick":  row(0),
+                "hat":   row(0, 8),
+                "pluck": row(2),
+            ]
+        ),
+
+        // ── Coffee Shop 2-bar — bar 2 bass adds a passing note, kick holds ─────
+        Pattern(
+            id: "coffee-shop-2", name: "Coffee Shop", tempo: 80, swing: 0.38,
+            rows: [
+                "kick":  row2(0, 10,                  16, 26),
+                "snare": row2(4, 12,                  20, 28),
+                "hat":   row2(0,2,4,6,8,10,12,14,     16,18,20,22,24,26,28,30),
+                "bass":  row2(0, 5, 9,                16, 21, 25, 28),
+                "pluck": row2(2, 7, 11,               18, 23, 27),
+            ],
+            volumes: ["kick": 0.72, "snare": 0.60, "hat": 0.48, "bass": 0.80, "pluck": 0.72],
+            effects: [
+                "kick":  fx(rvb: 55, dst: 12),
+                "snare": fx(rvb: 65, pan:  0.08),
+                "hat":   fx(rvb: 60, dst:  8, pan: -0.12),
+                "bass":  fx(rvb: 50, dst: 10),
+                "pluck": fx(rvb: 72, dly: 30, pan:  0.25),
+            ],
+            kitId: "rainy-night",
+            patternLength: 32,
+            basePresetId: "coffee-shop", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "hat":   row2(0, 8, 16, 24),
+                "pluck": row2(2, 18),
+            ]
+        ),
+
+        // ── Bedroom Sessions — on-beat hat ticks straight while bass drags ────────
+        Pattern(
+            id: "bedroom-sessions", name: "Bedroom Sessions", tempo: 73, swing: 0.42,
+            rows: [
+                "kick":  row(0, 10),
+                "snare": row(4, 13),
+                "hat":   row(0, 4, 8, 12),
+                "bass":  row(0, 6, 10),
+                "pluck": row(3, 9, 15),
+            ],
+            volumes: ["kick": 0.82, "snare": 0.60, "hat": 0.44, "bass": 0.84, "pluck": 0.72],
+            effects: [
+                "kick":  fx(rvb: 58, dst: 20),
+                "snare": fx(rvb: 70, pan:  0.08),
+                "hat":   fx(rvb: 58, dst: 10, pan: -0.18),
+                "bass":  fx(rvb: 50, dst: 15),
+                "pluck": fx(rvb: 78, dly: 40, pan:  0.30),
+            ],
+            kitId: "dusty-tape",
+            accents: [
+                "kick":  row(0),
+                "snare": row(4),
+                "pluck": row(3),
+            ]
+        ),
+
+        // ── Rainy Window — music-box lullaby pulse, sparse and tinkling ──────
+        Pattern(
+            id: "rainy-window", name: "Rainy Window", tempo: 76, swing: 0.35,
+            rows: [
+                "kick":  row(0, 9),
+                "snare": row(4, 12),
+                "hat":   row(2, 7, 13),
+                "bass":  row(0, 4, 9, 14),
+                "pluck": row(1, 6, 10, 14),
+                "perc":  row(3, 8, 13),
+            ],
+            volumes: ["kick": 0.52, "snare": 0.45, "hat": 0.36, "bass": 0.68, "pluck": 0.82, "perc": 0.62],
+            effects: [
+                "kick":  fx(rvb: 72),
+                "snare": fx(rvb: 76, pan:  0.12),
+                "hat":   fx(rvb: 65, pan: -0.10),
+                "bass":  fx(rvb: 68, dly: 24, pan: -0.08),
+                "pluck": fx(rvb: 85, dly: 42, pan:  0.32),
+                "perc":  fx(rvb: 78, dly: 28, pan: -0.38),
+            ],
+            kitId: "music-box",
+            accents: [
+                "pluck": row(1, 10),
+                "perc":  row(3, 8),
+            ]
+        ),
+
+        // ── Rainy Window 2-bar — bar 2 shifts melody slightly ────────────────
+        Pattern(
+            id: "rainy-window-2", name: "Rainy Window", tempo: 76, swing: 0.35,
+            rows: [
+                "kick":  row2(0, 9,                   16, 25),
+                "snare": row2(4, 12,                  20, 28),
+                "hat":   row2(2, 7, 13,               18, 23, 29),
+                "bass":  row2(0, 4, 9, 14,            16, 20, 25, 30),
+                "pluck": row2(1, 6, 10, 14,           17, 22, 26, 31),
+                "perc":  row2(3, 8, 13,               19, 24, 29),
+            ],
+            volumes: ["kick": 0.52, "snare": 0.45, "hat": 0.36, "bass": 0.68, "pluck": 0.82, "perc": 0.62],
+            effects: [
+                "kick":  fx(rvb: 72),
+                "snare": fx(rvb: 76, pan:  0.12),
+                "hat":   fx(rvb: 65, pan: -0.10),
+                "bass":  fx(rvb: 68, dly: 24, pan: -0.08),
+                "pluck": fx(rvb: 85, dly: 42, pan:  0.32),
+                "perc":  fx(rvb: 78, dly: 28, pan: -0.38),
+            ],
+            kitId: "music-box",
+            patternLength: 32,
+            basePresetId: "rainy-window", barLength: 2,
+            accents: [
+                "pluck": row2(1, 10, 17, 26),
+                "perc":  row2(3, 8, 19, 24),
+            ]
+        ),
+
+        // ── Glass Garden — sparse glass percussion, wide stereo shimmer ──────
+        Pattern(
+            id: "glass-garden", name: "Glass Garden", tempo: 72, swing: 0.08,
+            rows: [
+                "kick":  row(0, 8),
+                "hat":   row(2, 6, 10, 14),
+                "bass":  row(0, 4, 9),
+                "pluck": row(0, 3, 7, 12),
+                "perc":  row(1, 5, 9, 13),
+            ],
+            volumes: ["kick": 0.50, "hat": 0.38, "bass": 0.65, "pluck": 0.72, "perc": 0.60],
+            effects: [
+                "kick":  fx(rvb: 75),
+                "hat":   fx(rvb: 82, pan:  0.35),
+                "bass":  fx(rvb: 72, dly: 18, pan: -0.10, pitch: -5),
+                "pluck": fx(rvb: 85, dly: 45, pan:  0.40),
+                "perc":  fx(rvb: 78, dly: 30, pan: -0.45, pitch:  5),
+            ],
+            kitId: "glass",
+            accents: [
+                "pluck": row(0, 7),
+                "perc":  row(1, 9),
+            ]
+        ),
+
+        // ── Glass Garden 2-bar — bar 2 melody evolves, bass reharmonizes ─────
+        Pattern(
+            id: "glass-garden-2", name: "Glass Garden", tempo: 72, swing: 0.08,
+            rows: [
+                "kick":  row2(0, 8,                  16, 24),
+                "hat":   row2(2, 6, 10, 14,          18, 22, 26, 30),
+                "bass":  row2(0, 4, 9,               16, 20, 25, 28),
+                "pluck": row2(0, 3, 7, 12,           17, 19, 23, 27, 31),
+                "perc":  row2(1, 5, 9, 13,           17, 21, 25, 29),
+            ],
+            volumes: ["kick": 0.50, "hat": 0.38, "bass": 0.65, "pluck": 0.72, "perc": 0.60],
+            effects: [
+                "kick":  fx(rvb: 75),
+                "hat":   fx(rvb: 82, pan:  0.35),
+                "bass":  fx(rvb: 72, dly: 18, pan: -0.10, pitch: -5),
+                "pluck": fx(rvb: 85, dly: 45, pan:  0.40),
+                "perc":  fx(rvb: 78, dly: 30, pan: -0.45, pitch:  5),
+            ],
+            kitId: "glass",
+            patternLength: 32,
+            basePresetId: "glass-garden", barLength: 2,
+            accents: [
+                "pluck": row2(0, 7, 17, 27),
+                "perc":  row2(1, 9, 17, 25),
+            ]
+        ),
+
+        // ── Drifting Smoke — ultra-sparse space drone, max space between hits ─
+        Pattern(
+            id: "drifting-smoke", name: "Drifting Smoke", tempo: 65, swing: 0.05,
+            rows: [
+                "kick":  row(0, 10),
+                "snare": row(4),
+                "hat":   row(7, 15),
+                "bass":  row(0, 6, 13),
+                "pluck": row(3, 8),
+                "perc":  row(5, 12),
+            ],
+            volumes: ["kick": 0.68, "snare": 0.50, "hat": 0.36, "bass": 0.75, "pluck": 0.60, "perc": 0.52],
+            effects: [
+                "kick":  fx(rvb: 68, dst: 18),
+                "snare": fx(rvb: 85, pan:  0.12),
+                "hat":   fx(rvb: 82, pan:  0.35),
+                "bass":  fx(rvb: 62, dly: 28, div: .quarter, pitch: -7),
+                "pluck": fx(rvb: 92, dly: 58, pan:  0.40, pitch:  3),
+                "perc":  fx(rvb: 88, dst: 15, pan: -0.42),
+            ],
+            kitId: "space",
+            accents: [
+                "kick":  row(0),
+                "pluck": row(3),
+            ]
+        ),
+
+        // ── Drifting Smoke 2-bar — bar 2 shifts for variation ────────────────
+        Pattern(
+            id: "drifting-smoke-2", name: "Drifting Smoke", tempo: 65, swing: 0.05,
+            rows: [
+                "kick":  row2(0, 10,           17, 26),
+                "snare": row2(4,               22),
+                "hat":   row2(7, 15,           23, 30),
+                "bass":  row2(0, 6, 13,        16, 24, 29),
+                "pluck": row2(3, 8,            19, 28),
+                "perc":  row2(5, 12,           20, 31),
+            ],
+            volumes: ["kick": 0.68, "snare": 0.50, "hat": 0.36, "bass": 0.75, "pluck": 0.60, "perc": 0.52],
+            effects: [
+                "kick":  fx(rvb: 68, dst: 18),
+                "snare": fx(rvb: 85, pan:  0.12),
+                "hat":   fx(rvb: 82, pan:  0.35),
+                "bass":  fx(rvb: 62, dly: 28, div: .quarter, pitch: -7),
+                "pluck": fx(rvb: 92, dly: 58, pan:  0.40, pitch:  3),
+                "perc":  fx(rvb: 88, dst: 15, pan: -0.42),
+            ],
+            kitId: "space",
+            patternLength: 32,
+            basePresetId: "drifting-smoke", barLength: 2,
+            accents: [
+                "kick":  row2(0, 17),
+                "pluck": row2(3, 19),
+            ]
+        ),
+
+        // ── Wind Through Chimes — sparse gusts, irregular, nothing repeats evenly
+        Pattern(
+            id: "wind-through-chimes", name: "Wind Through Chimes", tempo: 90, swing: 0.12,
+            rows: [
+                "hat":   row(1, 4, 11),
+                "bass":  row(0, 8, 13),
+                "pluck": row(0, 3, 7, 12),
+                "perc":  row(5, 9, 15),
+            ],
+            volumes: ["hat": 0.38, "bass": 0.58, "pluck": 0.78, "perc": 0.65],
+            effects: [
+                "hat":   fx(rvb: 88, pan:  0.30),
+                "bass":  fx(rvb: 75, dly: 20, pan: -0.10, pitch: -3),
+                "pluck": fx(rvb: 92, dly: 45, pan:  0.42, pitch:  2),
+                "perc":  fx(rvb: 90, dly: 32, pan: -0.48, pitch:  5),
+            ],
+            kitId: "wind-chimes",
+            accents: [
+                "pluck": row(0, 7),
+                "perc":  row(5),
+            ]
+        ),
+
+        // ── Wind Through Chimes 2-bar — bar 2 gust comes from different angle ──
+        Pattern(
+            id: "wind-through-chimes-2", name: "Wind Through Chimes", tempo: 90, swing: 0.12,
+            rows: [
+                "hat":   row2(1, 4, 11,               17, 22, 28),
+                "bass":  row2(0, 8, 13,               16, 24, 29),
+                "pluck": row2(0, 3, 7, 12,            18, 21, 25, 30),
+                "perc":  row2(5, 9, 15,               20, 26, 31),
+            ],
+            volumes: ["hat": 0.38, "bass": 0.58, "pluck": 0.78, "perc": 0.65],
+            effects: [
+                "hat":   fx(rvb: 88, pan:  0.30),
+                "bass":  fx(rvb: 75, dly: 20, pan: -0.10, pitch: -3),
+                "pluck": fx(rvb: 92, dly: 45, pan:  0.42, pitch:  2),
+                "perc":  fx(rvb: 90, dly: 32, pan: -0.48, pitch:  5),
+            ],
+            kitId: "wind-chimes",
+            patternLength: 32,
+            basePresetId: "wind-through-chimes", barLength: 2,
+            accents: [
+                "pluck": row2(0, 7, 18, 25),
+                "perc":  row2(5, 20),
+            ]
+        ),
+
+        // ── Toy Piano — bouncy and playful, upbeat toy-kit groove ────────────
+        Pattern(
+            id: "toy-piano-groove", name: "Toy Piano", tempo: 84, swing: 0.10,
+            rows: [
+                "kick":  row(0, 8),
+                "snare": row(4, 12),
+                "hat":   row(0, 2, 4, 6, 8, 10, 12, 14),
+                "bass":  row(0, 4, 7, 11),
+                "pluck": row(0, 2, 5, 9, 12),
+                "perc":  row(3, 7, 11, 15),
+            ],
+            volumes: ["kick": 0.78, "snare": 0.72, "hat": 0.55, "bass": 0.75, "pluck": 0.82, "perc": 0.65],
+            effects: [
+                "kick":  fx(rvb: 45, dst:  8),
+                "snare": fx(rvb: 40, pan:  0.12),
+                "hat":   fx(rvb: 35, pan: -0.15),
+                "bass":  fx(rvb: 38, dly: 10),
+                "pluck": fx(rvb: 52, dly: 22, pan:  0.28),
+                "perc":  fx(rvb: 60, dly: 18, pan: -0.32, pitch:  3),
+            ],
+            kitId: "toy-piano",
+            accents: [
+                "kick":  row(0),
+                "hat":   row(0, 8),
+                "pluck": row(0, 9),
+            ]
+        ),
+
+        // ── Toy Piano 2-bar — bar 2 shifts melody, snare fill at end ─────────
+        Pattern(
+            id: "toy-piano-groove-2", name: "Toy Piano", tempo: 84, swing: 0.10,
+            rows: [
+                "kick":  row2(0, 8,                        16, 24),
+                "snare": row2(4, 12,                       20, 28, 30),
+                "hat":   row2(0,2,4,6,8,10,12,14,          16,18,20,22,24,26,28,30),
+                "bass":  row2(0, 4, 7, 11,                 16, 20, 23, 27),
+                "pluck": row2(0, 2, 5, 9, 12,              17, 21, 24, 28, 31),
+                "perc":  row2(3, 7, 11, 15,                19, 23, 27, 31),
+            ],
+            volumes: ["kick": 0.78, "snare": 0.72, "hat": 0.55, "bass": 0.75, "pluck": 0.82, "perc": 0.65],
+            effects: [
+                "kick":  fx(rvb: 45, dst:  8),
+                "snare": fx(rvb: 40, pan:  0.12),
+                "hat":   fx(rvb: 35, pan: -0.15),
+                "bass":  fx(rvb: 38, dly: 10),
+                "pluck": fx(rvb: 52, dly: 22, pan:  0.28),
+                "perc":  fx(rvb: 60, dly: 18, pan: -0.32, pitch:  3),
+            ],
+            kitId: "toy-piano",
+            patternLength: 32,
+            basePresetId: "toy-piano-groove", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "hat":   row2(0, 8, 16, 24),
+                "pluck": row2(0, 9, 17, 28),
+            ]
         ),
 
         Pattern(id: "empty", name: "Empty", tempo: 96, swing: 0.0, rows: [:]),

@@ -437,7 +437,7 @@ final class BpmAppearancePairCell: UITableViewCell {
         bpmTitleRow.axis = .horizontal; bpmTitleRow.spacing = 6; bpmTitleRow.alignment = .center
 
         slider.maximumTrackTintColor = Theme.border
-        let grip = Self.makeGripThumb()
+        let grip = Theme.makeGripThumb()
         slider.setThumbImage(grip, for: .normal)
         slider.setThumbImage(grip, for: .highlighted)
 
@@ -479,26 +479,6 @@ final class BpmAppearancePairCell: UITableViewCell {
             pair.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             pair.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
-    }
-
-    private static func makeGripThumb() -> UIImage {
-        let w: CGFloat = 20, h: CGFloat = 34
-        return UIGraphicsImageRenderer(size: CGSize(width: w, height: h)).image { ctx in
-            let cgCtx = ctx.cgContext
-            let path  = UIBezierPath(roundedRect: CGRect(x: 0.5, y: 0.5, width: w-1, height: h-1), cornerRadius: 4)
-            Theme.backgroundElevated2.setFill(); path.fill()
-            cgCtx.setStrokeColor(Theme.border.withAlphaComponent(0.7).cgColor)
-            cgCtx.setLineWidth(1); path.stroke()
-            cgCtx.setStrokeColor(Theme.textFaint.cgColor)
-            cgCtx.setLineWidth(1); cgCtx.setLineCap(.round)
-            let cx = w/2, cy = h/2
-            for i: CGFloat in [-1, 0, 1] {
-                let gx = cx + i * 3.5
-                cgCtx.move(to: CGPoint(x: gx, y: cy-6))
-                cgCtx.addLine(to: CGPoint(x: gx, y: cy+6))
-            }
-            cgCtx.strokePath()
-        }
     }
 
     private func colorSegments() {

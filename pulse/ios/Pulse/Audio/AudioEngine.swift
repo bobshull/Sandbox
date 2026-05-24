@@ -22,6 +22,12 @@ final class AudioEngine {
     private let store: Store
 
     private var buffers: [String: AVAudioPCMBuffer] = [:]
+    private var accentBuffers: [String: AVAudioPCMBuffer] = [:]
+    private static let accentGains: [String: Float] = [
+        "kick": 2.00, "snare": 2.00, "hat": 2.00,
+        "clap": 2.00, "bass": 1.80, "pluck": 1.80,
+        "pad":  1.60, "perc": 2.00,
+    ]
     private let masterMixer = AVAudioMixerNode()
 
     private struct TrackFXChain {
@@ -102,6 +108,8 @@ final class AudioEngine {
                 channels[1].update(from: src.baseAddress!, count: samples.count)
             }
             buffers[track.id] = buf
+            let gain = AudioEngine.accentGains[track.id] ?? 1.25
+            accentBuffers[track.id] = makeAccentBuffer(from: buf, gain: gain)
         }
 
         try engine.start()
@@ -152,7 +160,26 @@ final class AudioEngine {
             }
             newBuffers[track.id] = buf
         }
-        schedulerQueue.async { [weak self] in self?.buffers = newBuffers }
+        var newAccentBuffers: [String: AVAudioPCMBuffer] = [:]
+        for (id, buf) in newBuffers {
+            let gain = AudioEngine.accentGains[id] ?? 1.25
+            newAccentBuffers[id] = makeAccentBuffer(from: buf, gain: gain)
+        }
+        schedulerQueue.async { [weak self] in
+            self?.buffers = newBuffers
+            self?.accentBuffers = newAccentBuffers
+        }
+    }
+
+    private func makeAccentBuffer(from buf: AVAudioPCMBuffer, gain: Float) -> AVAudioPCMBuffer {
+        let out = AVAudioPCMBuffer(pcmFormat: buf.format, frameCapacity: buf.frameCapacity)!
+        out.frameLength = buf.frameLength
+        let count = Int(buf.frameLength)
+        guard let srcCh = buf.floatChannelData, let dstCh = out.floatChannelData else { return out }
+        for ch in 0..<Int(buf.format.channelCount) {
+            for i in 0..<count { dstCh[ch][i] = srcCh[ch][i] * gain }
+        }
+        return out
     }
 
     /// Triggers a single voice immediately. Used for track-header preview taps.
@@ -243,8 +270,18 @@ final class AudioEngine {
             guard snap.mutes[track.id] != true,
                   let row = snap.rows[track.id], row.indices.contains(step), row[step],
                   let chain = fxChains[track.id],
-                  let buf = buffers[track.id]
+                  let normalBuf = buffers[track.id]
             else { continue }
+
+            let isAccented = snap.accents[track.id]?.indices.contains(step) == true
+                          && snap.accents[track.id]![step]
+            let buf = isAccented ? (accentBuffers[track.id] ?? normalBuf) : normalBuf
+            #if DEBUG
+            if isAccented {
+                let gain = AudioEngine.accentGains[track.id] ?? 1.25
+                print("[Pulse] accent hit: \(track.id) step=\(step) gain=\(gain)×")
+            }
+            #endif
 
             var hitTime = hostSeconds
             let humanize = Double(barEffects[track.id]?.humanize ?? 0)
@@ -294,6 +331,7 @@ final class AudioEngine {
         let swing         = store.swing
         let patternLength = snap.patternLength
         let captured      = buffers
+        let capturedAccents = snap.accents
         let sr            = sampleRate
 
         DispatchQueue.global(qos: .userInitiated).async {
@@ -323,8 +361,12 @@ final class AudioEngine {
                               row.indices.contains(patStep), row[patStep],
                               let buf = captured[track.id],
                               let data = buf.floatChannelData?.pointee else { continue }
-                        let barIdx = patStep / 16
-                        let vol   = Float((barIdx == 1 ? bar1Volumes : bar0Volumes)[track.id] ?? 1.0)
+                        let barIdx   = patStep / 16
+                        let trackVol = Float((barIdx == 1 ? bar1Volumes : bar0Volumes)[track.id] ?? 1.0)
+                        let isAccented = capturedAccents[track.id]?.indices.contains(patStep) == true
+                                      && capturedAccents[track.id]![patStep]
+                        let accentMult = AudioEngine.accentGains[track.id] ?? 1.25
+                        let vol = trackVol * (isAccented ? accentMult : 1.0)
                         let count = Int(buf.frameLength)
                         for i in 0..<count {
                             let idx = offset + i

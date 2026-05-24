@@ -16,4 +16,25 @@ enum Theme {
     static let cornerSmall: CGFloat = 6
     static let cornerMedium: CGFloat = 10
     static let cornerLarge: CGFloat = 16
+
+    /// Pill-shaped thumb with three vertical grip lines, used across all sliders.
+    static func makeGripThumb() -> UIImage {
+        let w: CGFloat = 20, h: CGFloat = 34
+        return UIGraphicsImageRenderer(size: CGSize(width: w, height: h)).image { ctx in
+            let cgCtx = ctx.cgContext
+            let path  = UIBezierPath(roundedRect: CGRect(x: 0.5, y: 0.5, width: w-1, height: h-1), cornerRadius: 4)
+            Theme.backgroundElevated2.setFill(); path.fill()
+            cgCtx.setStrokeColor(Theme.border.withAlphaComponent(0.7).cgColor)
+            cgCtx.setLineWidth(1); path.stroke()
+            cgCtx.setStrokeColor(Theme.textFaint.cgColor)
+            cgCtx.setLineWidth(1); cgCtx.setLineCap(.round)
+            let cx = w/2, cy = h/2
+            for i: CGFloat in [-1, 0, 1] {
+                let gx = cx + i * 3.5
+                cgCtx.move(to: CGPoint(x: gx, y: cy-6))
+                cgCtx.addLine(to: CGPoint(x: gx, y: cy+6))
+            }
+            cgCtx.strokePath()
+        }
+    }
 }

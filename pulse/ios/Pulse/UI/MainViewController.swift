@@ -85,34 +85,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         moreCfg.background.cornerRadius = 6
         moreCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
         moreButton.configuration = moreCfg
-        moreButton.showsMenuAsPrimaryAction = true
-        moreButton.menu = UIMenu(children: [
-            UIDeferredMenuElement.uncached { [weak self] completion in
-                guard let self else { completion([]); return }
-                let save = UIAction(title: "Save Mix",
-                                    image: UIImage(systemName: "plus.circle")) { [weak self] _ in
-                    self?.quickSaveTapped()
-                }
-                let undo = UIAction(title: "Undo",
-                                    image: UIImage(systemName: "arrow.uturn.backward"),
-                                    attributes: self.store.canUndo ? [] : .disabled) { [weak self] _ in
-                    self?.undoTapped()
-                }
-                let exportWAV = UIAction(title: "Export WAV",
-                                         image: UIImage(systemName: "waveform")) { [weak self] _ in
-                    self?.showLoopPicker(format: .wav)
-                }
-                let exportM4A = UIAction(title: "Export M4A",
-                                         image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
-                    self?.showLoopPicker(format: .m4a)
-                }
-                let settings = UIAction(title: "Settings",
-                                        image: UIImage(systemName: "gear")) { [weak self] _ in
-                    self?.showSettings()
-                }
-                completion([save, undo, exportWAV, exportM4A, settings])
-            }
-        ])
+        moreButton.addTarget(self, action: #selector(showActionsPanel), for: .touchUpInside)
         moreButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(moreButton)
 
@@ -245,7 +218,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func updateUndoState() {
-        // moreButton menu rebuilds fresh via UIDeferredMenuElement.uncached — nothing else to update
+        // no-op: undo state tracked by store; ActionsViewController has no live undo button
     }
 
     private func scheduleSessionSave() {
@@ -282,6 +255,51 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     func sequencerDidRequestPatternLength(_ length: Int) {
         if length == 32 { handleExpandToTwoBars() } else { handleCollapseToOneBar() }
+    }
+
+    func sequencerDidRequestTrackActions(_ track: Track) {
+        let panel = TrackActionsViewController(track: track)
+        panel.onPreviewSound = { [weak self] in self?.engine.preview(trackId: track.id) }
+        panel.onClearTrack = { [weak self] in
+            self?.store.clearTrack(trackId: track.id)
+            self?.toast.show("\(track.name) cleared", tone: .ok)
+        }
+        panel.onShiftLeft = { [weak self] in
+            self?.store.shiftTrack(trackId: track.id, by: 1)
+            self?.toast.show("\(track.name) shifted left", tone: .ok)
+        }
+        panel.onShiftRight = { [weak self] in
+            self?.store.shiftTrack(trackId: track.id, by: -1)
+            self?.toast.show("\(track.name) shifted right", tone: .ok)
+        }
+        panel.onRandomizeTrack = { [weak self] in
+            self?.store.randomizeTrack(track.id)
+            self?.toast.show("\(track.name) randomized", tone: .ok)
+        }
+        presentWhenReady(panel)
+    }
+
+    func sequencerDidToggleAccent(isAccented: Bool) {
+        toast.show(isAccented ? "Accent added · louder hit" : "Accent removed", tone: .ok)
+    }
+
+    func sequencerDidRequestBarActions(barIndex: Int) {
+        let panel = BarActionsViewController(barIndex: barIndex)
+        panel.onClearBar = { [weak self] in
+            self?.store.clearBar(barIndex)
+            self?.toast.show("Bar \(barIndex + 1) cleared", tone: .ok)
+        }
+        panel.onRandomizeBar = { [weak self] in
+            self?.store.randomizeBar(barIndex)
+            self?.toast.show("Bar \(barIndex + 1) randomized", tone: .ok)
+        }
+        panel.onHumanizeBar = { [weak self] in
+            self?.store.humanizeBar(barIndex)
+            self?.toast.show("Bar \(barIndex + 1) humanized", tone: .ok)
+        }
+        panel.onDuplicateToBar2 = { [weak self] in self?.copyBar1ToBar2() }
+        panel.onCopyBar1Here = { [weak self] in self?.copyBar1ToBar2() }
+        presentWhenReady(panel)
     }
 
     private func handleExpandToTwoBars() {
@@ -322,9 +340,8 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         }
 
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        sheet.popoverPresentationController?.sourceView = transportView
-        sheet.popoverPresentationController?.sourceRect = CGRect(
-            x: transportView.bounds.midX, y: transportView.bounds.midY, width: 1, height: 1)
+        sheet.popoverPresentationController?.sourceView = transportView.patternLengthButton
+        sheet.popoverPresentationController?.sourceRect = transportView.patternLengthButton.bounds
 
         presentWhenReady(sheet)
     }
@@ -396,6 +413,36 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             sheet.prefersGrabberVisible = true
         }
         present(settings, animated: true)
+    }
+
+    @objc private func showActionsPanel() {
+        if AppSettings.hapticsEnabled { UISelectionFeedbackGenerator().selectionChanged() }
+        let panel = ActionsViewController()
+        panel.patternLength = store.patternLength
+        panel.currentBar = sequencerView.currentBar
+        panel.canUndo = store.canUndo
+        panel.onSaveMix = { [weak self] in self?.quickSaveTapped() }
+        panel.onUndo = { [weak self] in self?.undoTapped() }
+        panel.onHumanizeGroove = { [weak self] in
+            self?.store.humanizeGroove()
+            self?.applyTrackVolumesToEngine()
+            self?.applyTrackEffectsToEngine()
+            self?.toast.show("Groove humanized", tone: .ok)
+        }
+        panel.onRandomizeGroove = { [weak self] in
+            self?.store.randomizeGroove()
+            self?.applyTrackVolumesToEngine()
+            self?.applyTrackEffectsToEngine()
+            self?.toast.show("Groove randomized", tone: .ok)
+        }
+        panel.onClearBar = { [weak self] barIndex in
+            self?.store.clearBar(barIndex)
+            self?.toast.show("Bar \(barIndex + 1) cleared", tone: .ok)
+        }
+        panel.onExportWAV = { [weak self] in self?.showLoopPicker(format: .wav) }
+        panel.onExportM4A = { [weak self] in self?.showLoopPicker(format: .m4a) }
+        panel.onSettings = { [weak self] in self?.showSettings() }
+        presentWhenReady(panel)
     }
 
     @objc private func showKitPicker() {

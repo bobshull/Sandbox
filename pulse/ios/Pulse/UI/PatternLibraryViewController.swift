@@ -23,13 +23,17 @@ final class PatternLibraryViewController: UIViewController,
         ("Electronic",    Theme.accent,
              ["jungle-chop", "808-memphis", "arcade-rush", "space-drift"]),
         ("Hip-Hop",       UIColor(red: 1.00, green: 0.820, blue: 0.400, alpha: 1),
-             ["boom-bap-classic", "dusty-breaks", "jazz-brush"]),
+             ["boom-bap-classic", "dusty-breaks", "jazz-brush",
+              "concrete-jungle", "soul-choppa", "late-night-808"]),
         ("Chill / Lo-Fi", Theme.accent2,
-             ["rainy-lofi", "marimba-groove"]),
+             ["rainy-lofi", "marimba-groove",
+              "coffee-shop", "bedroom-sessions", "rainy-window", "3am-vibes"]),
         ("Ambient",       Theme.textDim,
-             ["music-box-fantasy", "empty"]),
+             ["music-box-fantasy", "empty",
+              "glass-garden", "drifting-smoke", "wind-through-chimes", "toy-dream"]),
     ]
     private static let userColor = Theme.ok
+    private static let hiddenPresetsKey = "hiddenBuiltinPresetIds"
 
     private var categories: [Category] = []
     private var userPatterns: [Pattern] = []
@@ -174,7 +178,19 @@ final class PatternLibraryViewController: UIViewController,
 
     // MARK: - Data
 
+    private var hiddenPresetIds: Set<String> {
+        Set(UserDefaults.standard.array(forKey: Self.hiddenPresetsKey) as? [String] ?? [])
+    }
+
+    private func hidePreset(baseId: String) {
+        var hidden = hiddenPresetIds
+        hidden.insert(baseId)
+        UserDefaults.standard.set(Array(hidden), forKey: Self.hiddenPresetsKey)
+        reload()
+    }
+
     func reload() {
+        let hidden = hiddenPresetIds
         var byBase: [String: (oneBar: Pattern?, twoBar: Pattern?)] = [:]
         for p in Presets.all {
             let baseId = p.basePresetId ?? p.id
@@ -185,7 +201,7 @@ final class PatternLibraryViewController: UIViewController,
             }
         }
         categories = Self.presetMeta.compactMap { title, color, baseIds in
-            let groups: [PresetGroup] = baseIds.compactMap { baseId in
+            let groups: [PresetGroup] = baseIds.filter { !hidden.contains($0) }.compactMap { baseId in
                 guard let oneBar = byBase[baseId]?.oneBar else { return nil }
                 return PresetGroup(baseId: baseId, name: oneBar.name,
                                    oneBar: oneBar, twoBar: byBase[baseId]?.twoBar)
@@ -200,15 +216,20 @@ final class PatternLibraryViewController: UIViewController,
 
     // MARK: - DataSource
 
-    private var userSection: Int { categories.count }
+    /// True when the "My Mixes" section should appear (user has saved mixes).
+    private var hasUserSection: Bool { !userPatterns.isEmpty }
+
+    /// My Mixes is always section 0 when visible; category sections follow.
+    private func isUserSection(_ section: Int) -> Bool { hasUserSection && section == 0 }
+    private func categoryIndex(for section: Int) -> Int { hasUserSection ? section - 1 : section }
 
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        categories.count + 1
+        categories.count + (hasUserSection ? 1 : 0)
     }
 
     func collectionView(_ collectionView: UICollectionView,
                         numberOfItemsInSection section: Int) -> Int {
-        section < categories.count ? categories[section].groups.count : userPatterns.count
+        isUserSection(section) ? userPatterns.count : categories[categoryIndex(for: section)].groups.count
     }
 
     func collectionView(_ collectionView: UICollectionView,
@@ -216,18 +237,19 @@ final class PatternLibraryViewController: UIViewController,
         let cell = collectionView.dequeueReusableCell(
             withReuseIdentifier: MixCardCell.id, for: indexPath) as! MixCardCell
 
-        if indexPath.section < categories.count {
-            let group = categories[indexPath.section].groups[indexPath.row]
-            let color = categories[indexPath.section].color
-            let isActive = group.oneBar.id == currentPatternId
-                        || group.twoBar?.id == currentPatternId
-            cell.configure(with: group, color: color, isActive: isActive)
-        } else {
+        if isUserSection(indexPath.section) {
             let pattern = userPatterns[indexPath.row]
             let wrapped = PresetGroup(baseId: pattern.id, name: pattern.name,
                                       oneBar: pattern, twoBar: nil)
             cell.configure(with: wrapped, color: Self.userColor,
                            isActive: pattern.id == currentPatternId)
+        } else {
+            let catIdx = categoryIndex(for: indexPath.section)
+            let group  = categories[catIdx].groups[indexPath.row]
+            let color  = categories[catIdx].color
+            let isActive = group.oneBar.id == currentPatternId
+                        || group.twoBar?.id == currentPatternId
+            cell.configure(with: group, color: color, isActive: isActive)
         }
         return cell
     }
@@ -238,11 +260,11 @@ final class PatternLibraryViewController: UIViewController,
         let v = collectionView.dequeueReusableSupplementaryView(
             ofKind: kind, withReuseIdentifier: LibrarySectionHeader.id,
             for: indexPath) as! LibrarySectionHeader
-        if indexPath.section < categories.count {
-            v.configure(title: categories[indexPath.section].title,
-                        color: categories[indexPath.section].color)
-        } else {
+        if isUserSection(indexPath.section) {
             v.configure(title: "My Mixes", color: Self.userColor)
+        } else {
+            let cat = categories[categoryIndex(for: indexPath.section)]
+            v.configure(title: cat.title, color: cat.color)
         }
         return v
     }
@@ -250,11 +272,11 @@ final class PatternLibraryViewController: UIViewController,
     func collectionView(_ collectionView: UICollectionView,
                         didSelectItemAt indexPath: IndexPath) {
         let pattern: Pattern
-        if indexPath.section < categories.count {
-            pattern = categories[indexPath.section].groups[indexPath.row].oneBar
-        } else {
+        if isUserSection(indexPath.section) {
             guard !userPatterns.isEmpty else { return }
             pattern = userPatterns[indexPath.row]
+        } else {
+            pattern = categories[categoryIndex(for: indexPath.section)].groups[indexPath.row].oneBar
         }
         dismiss(animated: true) { [weak self] in self?.delegate?.patternLibraryDidPick(pattern) }
     }
@@ -262,16 +284,29 @@ final class PatternLibraryViewController: UIViewController,
     func collectionView(_ collectionView: UICollectionView,
                         contextMenuConfigurationForItemAt indexPath: IndexPath,
                         point: CGPoint) -> UIContextMenuConfiguration? {
-        guard indexPath.section == userSection, !userPatterns.isEmpty else { return nil }
-        let pattern = userPatterns[indexPath.row]
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
-            let delete = UIAction(title: "Delete",
-                                  image: UIImage(systemName: "trash"),
-                                  attributes: .destructive) { [weak self] _ in
-                PatternStore.delete(id: pattern.id)
-                self?.reload()
+        if isUserSection(indexPath.section) {
+            guard !userPatterns.isEmpty else { return nil }
+            let pattern = userPatterns[indexPath.row]
+            return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+                let delete = UIAction(title: "Delete",
+                                      image: UIImage(systemName: "trash"),
+                                      attributes: .destructive) { [weak self] _ in
+                    PatternStore.delete(id: pattern.id)
+                    self?.reload()
+                }
+                return UIMenu(title: pattern.name, children: [delete])
             }
-            return UIMenu(title: pattern.name, children: [delete])
+        } else {
+            let catIdx = categoryIndex(for: indexPath.section)
+            let group  = categories[catIdx].groups[indexPath.row]
+            return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+                let hide = UIAction(title: "Remove",
+                                    image: UIImage(systemName: "eye.slash"),
+                                    attributes: .destructive) { [weak self] _ in
+                    self?.hidePreset(baseId: group.baseId)
+                }
+                return UIMenu(title: group.name, children: [hide])
+            }
         }
     }
 }

@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 enum StateSection {
-    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects, patternLength
+    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects, patternLength, accent
 }
 
 final class Store {
@@ -17,6 +17,7 @@ final class Store {
     // Per-bar volumes and effects (index 0 = Bar 1, index 1 = Bar 2)
     private(set) var barVolumes: [[String: Float]] = [[:], [:]]
     private(set) var barEffects: [[String: TrackEffects]] = [[:], [:]]
+    private(set) var accents: [String: [Bool]] = [:]
 
     var volumes: [String: Float] { barVolumes[0] }
     var effects: [String: TrackEffects] { barEffects[0] }
@@ -78,9 +79,10 @@ final class Store {
         let patternLength: Int
         let sequenceStart: Int
         let sequenceLength: Int
+        let accents: [String: [Bool]]
     }
     private let snapshotLock = NSLock()
-    private var snapshot = AudioSnapshot(rows: [:], mutes: [:], patternLength: 16, sequenceStart: 0, sequenceLength: 16)
+    private var snapshot = AudioSnapshot(rows: [:], mutes: [:], patternLength: 16, sequenceStart: 0, sequenceLength: 16, accents: [:])
 
     func audioSnapshot() -> AudioSnapshot {
         snapshotLock.lock()
@@ -91,7 +93,8 @@ final class Store {
     private func refreshSnapshot() {
         snapshotLock.lock()
         snapshot = AudioSnapshot(rows: rows, mutes: mutes, patternLength: patternLength,
-                                 sequenceStart: sequenceStart, sequenceLength: sequenceLength)
+                                 sequenceStart: sequenceStart, sequenceLength: sequenceLength,
+                                 accents: accents)
         snapshotLock.unlock()
     }
 
@@ -102,6 +105,7 @@ final class Store {
             barVolumes[1][t.id] = 1.0
             barEffects[0][t.id] = .default
             barEffects[1][t.id] = .default
+            accents[t.id] = Array(repeating: false, count: 16)
         }
         refreshSnapshot()
     }
@@ -226,15 +230,14 @@ final class Store {
             for t in Tracks.all {
                 let current = rows[t.id] ?? Array(repeating: false, count: 16)
                 if current.count < 32 {
-                    // Pad with blank Bar 2 only when not already 32 steps
                     rows[t.id] = Array(current.prefix(16)) + Array(repeating: false, count: 16)
                 }
-                // If rows are already 32 steps, keep them (restores preserved Bar 2)
+                let curAccents = accents[t.id] ?? Array(repeating: false, count: 16)
+                if curAccents.count < 32 {
+                    accents[t.id] = Array(curAccents.prefix(16)) + Array(repeating: false, count: 16)
+                }
             }
         } else {
-            // Switching to 1 bar: keep rows as-is so Bar 2 is preserved in memory.
-            // The audio engine and sequencer respect patternLength, so Bar 2 is
-            // silently skipped. Switching back to 2 bars restores it automatically.
             enabledBars = [true]
         }
         refreshSnapshot()
@@ -294,9 +297,14 @@ final class Store {
     func clearPattern() {
         pushUndo()
         rows = Presets.emptyRows(length: patternLength)
+        for t in Tracks.all { accents[t.id] = Array(repeating: false, count: patternLength) }
+        currentPatternId = ""
+        patternName = "Untitled"
         refreshSnapshot()
-        isDirty = true
+        isDirty = false
         changes.send(.pattern)
+        changes.send(.accent)
+        changes.send(.name)
     }
 
     func loadPattern(_ pattern: Pattern) {
@@ -316,6 +324,9 @@ final class Store {
             barEffects[1][t.id] = pattern.bar2Effects?[t.id] ?? .default
         }
         currentKitId = pattern.kitId ?? "studio"
+        for t in Tracks.all {
+            accents[t.id] = pattern.accents?[t.id] ?? Array(repeating: false, count: patternLength)
+        }
         refreshSnapshot()
         isDirty = false
         changes.send(.kit)
@@ -328,16 +339,23 @@ final class Store {
         let exportRows = patternLength == 16
             ? rows.mapValues { Array($0.prefix(16)) }
             : rows
+        let exportAccents = patternLength == 16
+            ? accents.mapValues { Array($0.prefix(16)) }
+            : accents
         return Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing,
                 rows: exportRows, volumes: barVolumes[0], mutes: mutes, effects: barEffects[0],
                 kitId: currentKitId, patternLength: patternLength,
-                bar2Volumes: barVolumes[1], bar2Effects: barEffects[1])
+                bar2Volumes: barVolumes[1], bar2Effects: barEffects[1],
+                accents: exportAccents)
     }
 
     func sessionState() -> SessionState {
         let snapRows = patternLength == 16
             ? rows.mapValues { Array($0.prefix(16)) }
             : rows
+        let snapAccents = patternLength == 16
+            ? accents.mapValues { Array($0.prefix(16)) }
+            : accents
         return SessionState(
             patternName: patternName,
             tempo: tempo,
@@ -352,7 +370,8 @@ final class Store {
             patternLength: patternLength,
             enabledBars: enabledBars,
             bar2Volumes: barVolumes[1],
-            bar2Effects: barEffects[1]
+            bar2Effects: barEffects[1],
+            accents: snapAccents
         )
     }
 
@@ -373,9 +392,201 @@ final class Store {
             barEffects[1][t.id] = session.bar2Effects?[t.id] ?? .default
         }
         currentKitId = session.kitId ?? "studio"
+        for t in Tracks.all {
+            accents[t.id] = session.accents?[t.id] ?? Array(repeating: false, count: patternLength)
+        }
         refreshSnapshot()
         isDirty = false
         changes.send(.patternLength)
         changes.send(.load)
+    }
+
+    // MARK: - Accent
+
+    func toggleAccent(trackId: String, step: Int) {
+        guard var arr = accents[trackId], arr.indices.contains(step) else { return }
+        pushUndo()
+        arr[step].toggle()
+        accents[trackId] = arr
+        isDirty = true
+        refreshSnapshot()
+        changes.send(.accent)
+    }
+
+    // MARK: - Track Actions
+
+    func clearTrack(trackId: String) {
+        pushUndo()
+        rows[trackId] = Array(repeating: false, count: patternLength)
+        accents[trackId] = Array(repeating: false, count: patternLength)
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    /// Positive delta = shift right, negative = shift left. Wraps within patternLength.
+    func shiftTrack(trackId: String, by delta: Int) {
+        guard var arr = rows[trackId], !arr.isEmpty else { return }
+        pushUndo()
+        let len = arr.count
+        let d = ((delta % len) + len) % len
+        arr = Array(arr[d...]) + Array(arr[..<d])
+        rows[trackId] = arr
+        if var accArr = accents[trackId], accArr.count == len {
+            accArr = Array(accArr[d...]) + Array(accArr[..<d])
+            accents[trackId] = accArr
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+    }
+
+    func randomizeTrack(_ trackId: String) {
+        guard let track = Tracks.find(trackId) else { return }
+        pushUndo()
+        rows[trackId] = generateTrackSteps(voice: track.voice, length: patternLength)
+        accents[trackId] = Array(repeating: false, count: patternLength)
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    // MARK: - Bar Actions
+
+    func clearBar(_ barIndex: Int) {
+        pushUndo()
+        let start = barIndex == 0 ? 0 : 16
+        for trackId in rows.keys {
+            guard var arr = rows[trackId], arr.count > start else { continue }
+            let end = min(start + 16, arr.count)
+            for i in start..<end { arr[i] = false }
+            rows[trackId] = arr
+            if var accArr = accents[trackId], accArr.count > start {
+                for i in start..<min(start + 16, accArr.count) { accArr[i] = false }
+                accents[trackId] = accArr
+            }
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    func randomizeBar(_ barIndex: Int) {
+        pushUndo()
+        let start = barIndex == 0 ? 0 : 16
+        for track in Tracks.all {
+            guard var arr = rows[track.id], arr.count > start else { continue }
+            let barSteps = randomBarSteps(voice: track.voice)
+            let end = min(start + 16, arr.count)
+            for i in start..<end { arr[i] = barSteps[i - start] }
+            rows[track.id] = arr
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+    }
+
+    func humanizeBar(_ barIndex: Int) {
+        pushUndo()
+        let start = barIndex == 0 ? 0 : 16
+        for trackId in rows.keys {
+            guard var arr = rows[trackId], arr.count > start else { continue }
+            var accArr = accents[trackId] ?? Array(repeating: false, count: arr.count)
+            let end = min(start + 16, arr.count)
+            for i in start..<end {
+                if arr[i] {
+                    if Double.random(in: 0...1) < 0.25 { accArr[i].toggle() }
+                    if Double.random(in: 0...1) < 0.07 { arr[i] = false; accArr[i] = false }
+                } else if i % 4 == 2, Double.random(in: 0...1) < 0.05 {
+                    arr[i] = true
+                }
+            }
+            rows[trackId] = arr
+            accents[trackId] = accArr
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    // MARK: - Groove Actions
+
+    func humanizeGroove() {
+        pushUndo()
+        for trackId in rows.keys {
+            guard var arr = rows[trackId] else { continue }
+            var accArr = accents[trackId] ?? Array(repeating: false, count: arr.count)
+            for i in arr.indices {
+                if arr[i] {
+                    if Double.random(in: 0...1) < 0.30 { accArr[i].toggle() }
+                    if Double.random(in: 0...1) < 0.06 { arr[i] = false; accArr[i] = false }
+                } else if i % 4 == 2, Double.random(in: 0...1) < 0.04 {
+                    arr[i] = true
+                }
+            }
+            rows[trackId] = arr
+            accents[trackId] = accArr
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    func randomizeGroove() {
+        pushUndo()
+        for track in Tracks.all {
+            rows[track.id] = generateTrackSteps(voice: track.voice, length: patternLength)
+            accents[track.id] = Array(repeating: false, count: patternLength)
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    // MARK: - Private helpers
+
+    private func generateTrackSteps(voice: VoiceKind, length: Int) -> [Bool] {
+        var result = Array(repeating: false, count: length)
+        let bar1 = randomBarSteps(voice: voice)
+        for i in 0..<min(16, length) { result[i] = bar1[i] }
+        if length == 32 {
+            let bar2 = randomBarSteps(voice: voice)
+            for i in 0..<16 { result[16 + i] = bar2[i] }
+        }
+        return result
+    }
+
+    private func randomBarSteps(voice: VoiceKind) -> [Bool] {
+        var r = Array(repeating: false, count: 16)
+        switch voice {
+        case .kick:
+            for b in [0, 8] { if Double.random(in: 0...1) < 0.85 { r[b] = true } }
+            for b in [2, 4, 6, 10, 12, 14] { if Double.random(in: 0...1) < 0.25 { r[b] = true } }
+        case .snare:
+            for b in [4, 12] { if Double.random(in: 0...1) < 0.90 { r[b] = true } }
+            for b in [2, 6, 10, 14] { if Double.random(in: 0...1) < 0.15 { r[b] = true } }
+        case .hat:
+            let stride = Bool.random() ? 2 : 1
+            for i in Swift.stride(from: 0, to: 16, by: stride) { r[i] = Double.random(in: 0...1) < 0.80 }
+        case .clap:
+            for b in [4, 12] { if Double.random(in: 0...1) < 0.75 { r[b] = true } }
+            for b in [6, 14] { if Double.random(in: 0...1) < 0.20 { r[b] = true } }
+        case .bass:
+            for b in [0, 8] { if Double.random(in: 0...1) < 0.70 { r[b] = true } }
+            for b in [3, 5, 10, 13] { if Double.random(in: 0...1) < 0.30 { r[b] = true } }
+        case .pluck:
+            for b in [2, 5, 7, 9, 11, 13, 14, 15] { if Double.random(in: 0...1) < 0.30 { r[b] = true } }
+        case .pad:
+            for b in [0, 4, 8, 12] { if Double.random(in: 0...1) < 0.35 { r[b] = true } }
+        case .perc:
+            for b in [1, 3, 5, 7, 9, 11, 13, 15] { if Double.random(in: 0...1) < 0.30 { r[b] = true } }
+        }
+        return r
     }
 }
