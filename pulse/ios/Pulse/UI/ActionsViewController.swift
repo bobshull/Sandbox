@@ -10,6 +10,7 @@ final class ActionsViewController: UIViewController {
     var onExportWAV: (() -> Void)?
     var onExportM4A: (() -> Void)?
     var onSettings: (() -> Void)?
+    var onCopyBar1ToBar2: (() -> Void)?
 
     /// Set before presenting: used to label "Clear Bar N" and to scope the clear action.
     var patternLength: Int = 16
@@ -128,10 +129,14 @@ final class ActionsViewController: UIViewController {
         m4aBtn.addTarget(self, action: #selector(exportM4ATapped), for: .touchUpInside)
         stack.addArrangedSubview(row([wavBtn, m4aBtn]))
 
-        // Row 5: Settings  (neutral — full width)
-        let settingsBtn = actionButton("Settings", icon: "gear", group: .neutral)
+        // Row 5: Settings + Copy Bar 1 to Bar 2
+        let settingsBtn = actionButton("Settings", icon: "gear", group: .settings)
         settingsBtn.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
-        stack.addArrangedSubview(row([settingsBtn]))
+        let copyDisabled = patternLength != 32
+        let copyBtn = actionButton("Copy Bar 1 to Bar 2", icon: "doc.on.doc", group: .mix, isDimmed: copyDisabled)
+        copyBtn.isEnabled = !copyDisabled
+        copyBtn.addTarget(self, action: #selector(copyBar1ToBar2Tapped), for: .touchUpInside)
+        stack.addArrangedSubview(row([copyBtn, settingsBtn]))
 
         return stack
     }
@@ -139,7 +144,7 @@ final class ActionsViewController: UIViewController {
     // MARK: - Button factory
 
     private enum ButtonGroup {
-        case mix, creative, clear, export, neutral
+        case mix, creative, clear, export, neutral, settings
 
         /// Low-opacity tinted background — dark base stays visible.
         var bgColor: UIColor {
@@ -149,6 +154,7 @@ final class ActionsViewController: UIViewController {
             case .clear:    return UIColor(red: 0.71, green: 0.20, blue: 0.22, alpha: 0.11)
             case .export:   return UIColor(red: 0.12, green: 0.61, blue: 0.51, alpha: 0.13)
             case .neutral:  return Theme.backgroundElevated
+            case .settings: return UIColor(red: 0.65, green: 0.38, blue: 0.10, alpha: 0.14)
             }
         }
 
@@ -160,6 +166,7 @@ final class ActionsViewController: UIViewController {
             case .clear:    return UIColor(red: 0.86, green: 0.31, blue: 0.33, alpha: 0.28)
             case .export:   return UIColor(red: 0.16, green: 0.75, blue: 0.63, alpha: 0.30)
             case .neutral:  return Theme.border
+            case .settings: return UIColor(red: 0.85, green: 0.52, blue: 0.18, alpha: 0.30)
             }
         }
 
@@ -171,6 +178,7 @@ final class ActionsViewController: UIViewController {
             case .clear:    return UIColor(red: 1.00, green: 0.49, blue: 0.50, alpha: 1.0)
             case .export:   return UIColor(red: 0.20, green: 0.85, blue: 0.71, alpha: 1.0)
             case .neutral:  return Theme.textDim
+            case .settings: return UIColor(red: 1.00, green: 0.68, blue: 0.28, alpha: 1.0)
             }
         }
     }
@@ -258,6 +266,10 @@ final class ActionsViewController: UIViewController {
 
     @objc private func settingsTapped() {
         dismiss(animated: true) { [weak self] in self?.onSettings?() }
+    }
+
+    @objc private func copyBar1ToBar2Tapped() {
+        dismiss(animated: true) { [weak self] in self?.onCopyBar1ToBar2?() }
     }
 
     @objc private func dismissSelf() { dismiss(animated: true) }

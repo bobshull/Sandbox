@@ -442,6 +442,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         panel.onExportWAV = { [weak self] in self?.showLoopPicker(format: .wav) }
         panel.onExportM4A = { [weak self] in self?.showLoopPicker(format: .m4a) }
         panel.onSettings = { [weak self] in self?.showSettings() }
+        panel.onCopyBar1ToBar2 = { [weak self] in
+            self?.copyBar1ToBar2()
+            self?.toast.show("Bar 1 copied to Bar 2", tone: .ok)
+        }
         presentWhenReady(panel)
     }
 
