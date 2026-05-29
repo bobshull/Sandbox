@@ -587,6 +587,15 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         }
     }
 
+    func trackHeaderDidResetTrack(_ track: Track) {
+        let bar = store.patternLength == 32 ? activePage : 0
+        store.resetTrackControls(trackId: track.id, bar: bar)
+        if liveEngineShouldFollow(bar: bar) {
+            engine.setTrackGain(track.id, 1.0)
+            engine.setTrackEffects(track.id, .default)
+        }
+    }
+
     private func liveEngineShouldFollow(bar: Int) -> Bool {
         guard engine.isPlaying, store.patternLength == 32, store.activeStep >= 0 else { return true }
         return store.activeStep / 16 == bar

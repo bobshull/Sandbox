@@ -8,6 +8,7 @@ final class TrackDetailViewController: UIViewController {
 
     var onVolumeChange: ((Float) -> Void)?
     var onEffectsChange: ((TrackEffects) -> Void)?
+    var onReset: (() -> Void)?
 
     private let panel = UIView()
 
@@ -196,8 +197,7 @@ final class TrackDetailViewController: UIViewController {
         for fader in [volFader, panFader, pitchFader, rvbFader, dlyFader, dstFader] {
             fader.setNeedsDisplay()
         }
-        onVolumeChange?(volume)
-        onEffectsChange?(effects)
+        onReset?()
     }
 
     @objc private func volChanged() {

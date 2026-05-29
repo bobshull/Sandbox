@@ -274,6 +274,18 @@ final class Store {
         changes.send(.effects)
     }
 
+    /// Resets volume and all effects for a track to defaults as a single undoable step.
+    func resetTrackControls(trackId: String, bar: Int = 0) {
+        guard isValidBar(bar) else { return }
+        pushUndo()
+        barVolumes[bar][trackId] = 1.0
+        barEffects[bar][trackId] = .default
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.volumes)
+        changes.send(.effects)
+    }
+
     func setActiveStep(_ step: Int) {
         activeStep = step
         changes.send(.step)
