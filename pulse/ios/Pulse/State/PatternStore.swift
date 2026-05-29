@@ -20,20 +20,25 @@ struct SessionState: Codable {
 }
 
 enum PatternStore {
-    private static let cloud = NSUbiquitousKeyValueStore.default
     private static var local = UserDefaults.standard
+    private static var cloudObserver: NSObjectProtocol?
 
     private static let patternsKey = "pulse.userPatterns.v1"
     private static let sessionKey = "pulse.session.v1"
     private static let syncKey = "pulse.iCloudSyncEnabled"
+    private static var cloud: NSUbiquitousKeyValueStore { .default }
+    private static var canUseCloud: Bool {
+        iCloudSyncEnabled && FileManager.default.ubiquityIdentityToken != nil
+    }
 
     static func useLocalStore(_ store: UserDefaults) {
         local = store
     }
 
     static func startCloudSync() {
-        _ = NotificationCenter.default.addObserver(forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-                                                   object: cloud, queue: .main) { _ in
+        guard canUseCloud, cloudObserver == nil else { return }
+        cloudObserver = NotificationCenter.default.addObserver(forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+                                                               object: cloud, queue: .main) { _ in
             NotificationCenter.default.post(name: .patternStoreDidChange, object: nil)
         }
         cloud.synchronize()
@@ -41,13 +46,16 @@ enum PatternStore {
 
     static var iCloudSyncEnabled: Bool {
         get { local.object(forKey: syncKey) == nil ? true : local.bool(forKey: syncKey) }
-        set { local.set(newValue, forKey: syncKey) }
+        set {
+            local.set(newValue, forKey: syncKey)
+            if newValue { startCloudSync() }
+        }
     }
 
     // MARK: - User Patterns
 
     static func userPatterns() -> [Pattern] {
-        let data = (iCloudSyncEnabled ? cloud.data(forKey: patternsKey) : nil)
+        let data = (canUseCloud ? cloud.data(forKey: patternsKey) : nil)
             ?? local.data(forKey: patternsKey)
         guard let data else { return [] }
         do {
@@ -80,7 +88,7 @@ enum PatternStore {
         do {
             let data = try JSONEncoder().encode(list)
             local.set(data, forKey: patternsKey)
-            if iCloudSyncEnabled {
+            if canUseCloud {
                 cloud.set(data, forKey: patternsKey)
                 cloud.synchronize()
             }
@@ -98,7 +106,7 @@ enum PatternStore {
         do {
             let data = try JSONEncoder().encode(state)
             local.set(data, forKey: sessionKey)
-            if iCloudSyncEnabled {
+            if canUseCloud {
                 cloud.set(data, forKey: sessionKey)
                 cloud.synchronize()
             }
@@ -108,7 +116,7 @@ enum PatternStore {
     }
 
     static func loadSession() -> SessionState? {
-        let data = (iCloudSyncEnabled ? cloud.data(forKey: sessionKey) : nil)
+        let data = (canUseCloud ? cloud.data(forKey: sessionKey) : nil)
             ?? local.data(forKey: sessionKey)
         guard let data else { return nil }
         do {

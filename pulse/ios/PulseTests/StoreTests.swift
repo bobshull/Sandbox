@@ -693,6 +693,92 @@ final class StoreTests: XCTestCase {
         }
     }
 
+    // MARK: - Accent Actions
+
+    func test_accentTrack_downbeatAccentsOnlyDownbeatHits() {
+        store.toggleStep(trackId: "kick", step: 0)
+        store.toggleStep(trackId: "kick", step: 2)
+        store.toggleStep(trackId: "kick", step: 4)
+        store.toggleStep(trackId: "kick", step: 8)
+
+        store.accentTrack(trackId: "kick", pattern: .downbeat)
+
+        XCTAssertTrue(store.accents["kick"]?[0] == true)
+        XCTAssertFalse(store.accents["kick"]?[2] == true)
+        XCTAssertTrue(store.accents["kick"]?[4] == true)
+        XCTAssertTrue(store.accents["kick"]?[8] == true)
+    }
+
+    func test_accentTrack_upbeatAccentsOnlyUpbeatHits() {
+        store.toggleStep(trackId: "hat", step: 0)
+        store.toggleStep(trackId: "hat", step: 2)
+        store.toggleStep(trackId: "hat", step: 6)
+
+        store.accentTrack(trackId: "hat", pattern: .upbeat)
+
+        XCTAssertFalse(store.accents["hat"]?[0] == true)
+        XCTAssertTrue(store.accents["hat"]?[2] == true)
+        XCTAssertTrue(store.accents["hat"]?[6] == true)
+    }
+
+    func test_clearTrackAccents_clearsOnlySelectedTrack() {
+        store.toggleStep(trackId: "kick", step: 0)
+        store.toggleStep(trackId: "snare", step: 4)
+        store.accentTrack(trackId: "kick", pattern: .downbeat)
+        store.accentTrack(trackId: "snare", pattern: .downbeat)
+
+        store.clearTrackAccents(trackId: "kick")
+
+        XCTAssertFalse(store.accents["kick"]?[0] == true)
+        XCTAssertTrue(store.accents["snare"]?[4] == true)
+    }
+
+    func test_accentBar_downbeatScopesToSelectedBar() {
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "kick", step: 0)
+        store.toggleStep(trackId: "kick", step: 16)
+
+        store.accentBar(1, pattern: .downbeat)
+
+        XCTAssertFalse(store.accents["kick"]?[0] == true)
+        XCTAssertTrue(store.accents["kick"]?[16] == true)
+    }
+
+    func test_accentBar_upbeatScopesToSelectedBar() {
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "hat", step: 2)
+        store.toggleStep(trackId: "hat", step: 18)
+
+        store.accentBar(1, pattern: .upbeat)
+
+        XCTAssertFalse(store.accents["hat"]?[2] == true)
+        XCTAssertTrue(store.accents["hat"]?[18] == true)
+    }
+
+    func test_clearBarAccents_scopesToSelectedBar() {
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "kick", step: 0)
+        store.toggleStep(trackId: "kick", step: 16)
+        store.accentGroove(pattern: .downbeat)
+
+        store.clearBarAccents(0)
+
+        XCTAssertFalse(store.accents["kick"]?[0] == true)
+        XCTAssertTrue(store.accents["kick"]?[16] == true)
+    }
+
+    func test_clearGrooveAccents_clearsAllAccents() {
+        store.toggleStep(trackId: "kick", step: 0)
+        store.toggleStep(trackId: "snare", step: 4)
+        store.accentGroove(pattern: .downbeat)
+
+        store.clearGrooveAccents()
+
+        for track in Tracks.all {
+            XCTAssertTrue(store.accents[track.id]?.allSatisfy { !$0 } == true)
+        }
+    }
+
     // MARK: - hasBar2Content / hasPreservedBar2
 
     func test_hasBar2Content_falseWhenNoBar2Steps() {
@@ -1179,7 +1265,7 @@ final class StoreTests: XCTestCase {
         store.setTrackEffects(trackId: trackId, fx, bar: 1)
 
         let snap = store.audioSnapshot()
-        XCTAssertEqual(snap.barVolumes[1][trackId], Float(0.37), accuracy: Float(0.001))
+        XCTAssertEqual(snap.barVolumes[1][trackId] ?? 0, Float(0.37), accuracy: Float(0.001))
         XCTAssertEqual(snap.barEffects[1][trackId]?.delayWet, 44)
     }
 
@@ -1210,7 +1296,7 @@ final class StoreTests: XCTestCase {
 
         store.generateBar2Variation()
 
-        XCTAssertEqual(store.volumes(for: 1)[trackId], Float(0.41), accuracy: Float(0.001))
+        XCTAssertEqual(store.volumes(for: 1)[trackId] ?? 0, Float(0.41), accuracy: Float(0.001))
         XCTAssertEqual(store.effects(for: 1)[trackId]?.reverbWet, 35)
     }
 

@@ -25,6 +25,24 @@ enum RandomizeIntensity: CaseIterable {
     }
 }
 
+enum AccentPattern: CaseIterable {
+    case downbeat, upbeat
+
+    var title: String {
+        switch self {
+        case .downbeat: return "Downbeats"
+        case .upbeat: return "Upbeats"
+        }
+    }
+
+    fileprivate func contains(localStep: Int) -> Bool {
+        switch self {
+        case .downbeat: return [0, 4, 8, 12].contains(localStep)
+        case .upbeat: return [2, 6, 10, 14].contains(localStep)
+        }
+    }
+}
+
 final class Store {
     // Settings
     private(set) var tempo: Double = AppSettings.defaultTempo
@@ -413,7 +431,7 @@ final class Store {
         currentPatternId = ""
         patternName = "Untitled"
         refreshSnapshot()
-        isDirty = false
+        isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
         changes.send(.name)
@@ -529,6 +547,28 @@ final class Store {
         changes.send(.accent)
     }
 
+    func accentTrack(trackId: String, pattern: AccentPattern) {
+        guard let steps = rows[trackId] else { return }
+        pushUndo()
+        refreshGrooveSeed()
+        var accArr = normalizedFlags(accents[trackId], length: steps.count)
+        applyAccents(pattern: pattern, steps: steps, range: steps.indices, accents: &accArr)
+        accents[trackId] = accArr
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.accent)
+    }
+
+    func clearTrackAccents(trackId: String) {
+        guard accents[trackId] != nil else { return }
+        pushUndo()
+        refreshGrooveSeed()
+        accents[trackId] = Array(repeating: false, count: patternLength)
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.accent)
+    }
+
     // MARK: - Track Actions
 
     func clearTrack(trackId: String) {
@@ -591,6 +631,38 @@ final class Store {
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    func accentBar(_ barIndex: Int, pattern: AccentPattern) {
+        pushUndo()
+        refreshGrooveSeed()
+        let start = barIndex == 0 ? 0 : 16
+        for track in Tracks.all {
+            guard let steps = rows[track.id], steps.count > start else { continue }
+            var accArr = normalizedFlags(accents[track.id], length: steps.count)
+            applyAccents(pattern: pattern,
+                         steps: steps,
+                         range: start..<min(start + 16, steps.count),
+                         accents: &accArr)
+            accents[track.id] = accArr
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.accent)
+    }
+
+    func clearBarAccents(_ barIndex: Int) {
+        pushUndo()
+        refreshGrooveSeed()
+        let start = barIndex == 0 ? 0 : 16
+        for trackId in accents.keys {
+            guard var accArr = accents[trackId], accArr.count > start else { continue }
+            for i in start..<min(start + 16, accArr.count) { accArr[i] = false }
+            accents[trackId] = accArr
+        }
+        refreshSnapshot()
+        isDirty = true
         changes.send(.accent)
     }
 
@@ -666,6 +738,31 @@ final class Store {
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
+        changes.send(.accent)
+    }
+
+    func accentGroove(pattern: AccentPattern) {
+        pushUndo()
+        refreshGrooveSeed()
+        for track in Tracks.all {
+            guard let steps = rows[track.id] else { continue }
+            var accArr = normalizedFlags(accents[track.id], length: steps.count)
+            applyAccents(pattern: pattern, steps: steps, range: steps.indices, accents: &accArr)
+            accents[track.id] = accArr
+        }
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.accent)
+    }
+
+    func clearGrooveAccents() {
+        pushUndo()
+        refreshGrooveSeed()
+        for track in Tracks.all {
+            accents[track.id] = Array(repeating: false, count: patternLength)
+        }
+        refreshSnapshot()
+        isDirty = true
         changes.send(.accent)
     }
 
@@ -767,6 +864,15 @@ final class Store {
         } else if Double.random(in: 0...1) < addChance {
             steps[absoluteStep] = true
             accents[absoluteStep] = Double.random(in: 0...1) < accentChance
+        }
+    }
+
+    private func applyAccents(pattern: AccentPattern,
+                              steps: [Bool],
+                              range: Range<Int>,
+                              accents: inout [Bool]) {
+        for step in range where steps.indices.contains(step) && accents.indices.contains(step) {
+            accents[step] = steps[step] && pattern.contains(localStep: step % 16)
         }
     }
 }

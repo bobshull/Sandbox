@@ -13,7 +13,9 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     private let patternsButton  = UIButton(type: .system)
     private let kitsButton      = UIButton(type: .system)
+    private let undoButton      = UIButton(type: .system)
     private let moreButton      = UIButton(type: .system)
+    private let settingsButton  = UIButton(type: .system)
     private let headerSeparator = UIView()
 
     private var levelMeterStrip: LevelMeterStripView?
@@ -79,20 +81,26 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         kitsButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(kitsButton)
 
+        // ── Save button ─────────────────────────────────────────────────────
+        undoButton.configuration = headerIconButtonConfig(systemName: "arrow.uturn.backward")
+        undoButton.accessibilityLabel = "Undo"
+        undoButton.addTarget(self, action: #selector(undoTapped), for: .touchUpInside)
+        undoButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(undoButton)
+
         // ── ••• menu button ───────────────────────────────────────────────
-        var moreCfg = UIButton.Configuration.plain()
-        moreCfg.image = UIImage(systemName: "ellipsis",
-                                withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .medium))
-        moreCfg.baseForegroundColor = Theme.textDim
-        moreCfg.background.backgroundColor = Theme.backgroundElevated2
-        moreCfg.background.strokeColor = Theme.border
-        moreCfg.background.strokeWidth = 1
-        moreCfg.background.cornerRadius = 6
-        moreCfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
-        moreButton.configuration = moreCfg
+        moreButton.configuration = headerIconButtonConfig(systemName: "rectangle.split.2x1")
+        moreButton.accessibilityLabel = "Bar Actions"
         moreButton.addTarget(self, action: #selector(showActionsPanel), for: .touchUpInside)
         moreButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(moreButton)
+
+        // ── Settings gear button (far right) ──────────────────────────────
+        settingsButton.configuration = headerIconButtonConfig(systemName: "gear")
+        settingsButton.accessibilityLabel = "Settings"
+        settingsButton.addTarget(self, action: #selector(showSettings), for: .touchUpInside)
+        settingsButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(settingsButton)
 
         // ── Transport ─────────────────────────────────────────────────────
         transportView.delegate = self
@@ -115,15 +123,24 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         let safe = view.safeAreaLayoutGuide
 
         NSLayoutConstraint.activate([
-            // Right side: Library → Kits → ••• (fixed, no responsive swap)
-            patternsButton.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
+            // Right side: ••• → Save → Kits → Mixes → Settings (gear far right)
+            settingsButton.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
+            settingsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
+            settingsButton.widthAnchor.constraint(equalToConstant: 38),
+
+            patternsButton.trailingAnchor.constraint(equalTo: settingsButton.leadingAnchor, constant: -8),
             patternsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
             kitsButton.trailingAnchor.constraint(equalTo: patternsButton.leadingAnchor, constant: -8),
             kitsButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
 
-            moreButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
+            undoButton.trailingAnchor.constraint(equalTo: kitsButton.leadingAnchor, constant: -8),
+            undoButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
+            undoButton.widthAnchor.constraint(equalToConstant: 38),
+
+            moreButton.trailingAnchor.constraint(equalTo: undoButton.leadingAnchor, constant: -8),
             moreButton.centerYAnchor.constraint(equalTo: transportView.centerYAnchor),
+            moreButton.widthAnchor.constraint(equalToConstant: 38),
 
             // Header separator — centered in the 8pt gap between header and grid
             headerSeparator.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
@@ -147,6 +164,8 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         let fillBottom = sequencerView.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8)
         fillBottom.priority = .defaultHigh
         fillBottom.isActive = true
+
+        updateUndoState()
 
         if UIDevice.current.userInterfaceIdiom == .pad {
             let strip = LevelMeterStripView()
@@ -174,6 +193,19 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         cfg.background.strokeWidth = 1
         cfg.background.cornerRadius = 6
         cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
+        return cfg
+    }
+
+    private func headerIconButtonConfig(systemName: String) -> UIButton.Configuration {
+        var cfg = UIButton.Configuration.plain()
+        cfg.image = UIImage(systemName: systemName,
+                            withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .medium))
+        cfg.baseForegroundColor = Theme.textDim
+        cfg.background.backgroundColor = Theme.backgroundElevated2
+        cfg.background.strokeColor = Theme.border
+        cfg.background.strokeWidth = 1
+        cfg.background.cornerRadius = 6
+        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
         return cfg
     }
 
@@ -229,7 +261,8 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func updateUndoState() {
-        // no-op: undo state tracked by store; ActionsViewController has no live undo button
+        undoButton.isEnabled = store.canUndo
+        undoButton.alpha = store.canUndo ? 1.0 : 0.35
     }
 
     private func scheduleSessionSave() {
@@ -270,6 +303,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     func sequencerDidRequestTrackActions(_ track: Track) {
         let panel = TrackActionsViewController(track: track)
+        panel.trackHasAccents = store.accents[track.id]?.contains(true) ?? false
         panel.onPreviewSound = { [weak self] in self?.engine.preview(trackId: track.id) }
         panel.onClearTrack = { [weak self] in
             self?.store.clearTrack(trackId: track.id)
@@ -286,6 +320,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         panel.onRandomizeTrack = { [weak self] intensity in
             self?.store.randomizeTrack(track.id, intensity: intensity)
             self?.toast.show("\(track.name) randomized: \(intensity.title)", tone: .ok)
+        }
+        panel.onClearTrackAccents = { [weak self] in
+            self?.store.clearTrackAccents(trackId: track.id)
+            self?.toast.show("\(track.name) accents cleared", tone: .ok)
         }
         presentWhenReady(panel)
     }
@@ -307,6 +345,14 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         panel.onHumanizeBar = { [weak self] in
             self?.store.humanizeBar(barIndex)
             self?.toast.show("Bar \(barIndex + 1) mutated", tone: .ok)
+        }
+        panel.onAccentBar = { [weak self] pattern in
+            self?.store.accentBar(barIndex, pattern: pattern)
+            self?.toast.show("Bar \(barIndex + 1) \(pattern.title.lowercased()) accented", tone: .ok)
+        }
+        panel.onClearBarAccents = { [weak self] in
+            self?.store.clearBarAccents(barIndex)
+            self?.toast.show("Bar \(barIndex + 1) accents cleared", tone: .ok)
         }
         panel.onDuplicateToBar2 = { [weak self] in self?.copyBar1ToBar2() }
         panel.onGenerateBar2Variation = { [weak self] in self?.generateBar2Variation() }
@@ -449,7 +495,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     // MARK: - Pattern library
 
-    private func showSettings() {
+    @objc private func showSettings() {
         let settings = SettingsViewController()
         settings.modalPresentationStyle = .pageSheet
         if let sheet = settings.sheetPresentationController {
@@ -464,28 +510,13 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         let panel = ActionsViewController()
         panel.patternLength = store.patternLength
         panel.currentBar = sequencerView.currentBar
-        panel.canUndo = store.canUndo
-        panel.onSaveMix = { [weak self] in self?.quickSaveTapped() }
-        panel.onUndo = { [weak self] in self?.undoTapped() }
-        panel.onHumanizeGroove = { [weak self] in
-            self?.store.humanizeGroove()
-            self?.applyTrackVolumesToEngine()
-            self?.applyTrackEffectsToEngine()
-            self?.toast.show("Groove mutated", tone: .ok)
-        }
-        panel.onRandomizeGroove = { [weak self] intensity in
-            self?.store.randomizeGroove(intensity: intensity)
-            self?.applyTrackVolumesToEngine()
-            self?.applyTrackEffectsToEngine()
-            self?.toast.show("Groove randomized: \(intensity.title)", tone: .ok)
-        }
+        panel.onSaveMix = { [weak self] in self?.promptSave(completion: nil) }
         panel.onClearBar = { [weak self] barIndex in
             self?.store.clearBar(barIndex)
             self?.toast.show("Bar \(barIndex + 1) cleared", tone: .ok)
         }
         panel.onExportWAV = { [weak self] in self?.showLoopPicker(format: .wav) }
         panel.onExportM4A = { [weak self] in self?.showLoopPicker(format: .m4a) }
-        panel.onSettings = { [weak self] in self?.showSettings() }
         panel.onCopyBar1ToBar2 = { [weak self] in
             self?.copyBar1ToBar2()
             self?.toast.show("Bar 1 copied to Bar 2", tone: .ok)
@@ -542,8 +573,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         applyTrackEffectsToEngine()
         engine.reloadKit(store.currentKitId)
     }
-
-    @objc private func quickSaveTapped() { promptSave(completion: nil) }
 
     private func showLoopPicker(format: ExportFormat) {
         let title = format == .wav ? "Export WAV" : "Export M4A"
@@ -610,15 +639,15 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             toast.show("Updated \"\(pattern.name)\"", tone: .ok)
             completion?(true)
         } else {
-            toast.show("Could not save pattern", tone: .warn)
+            toast.show("Could not save mix", tone: .warn)
             completion?(false)
         }
     }
 
     private func promptSaveAsNew(completion: ((Bool) -> Void)?) {
-        let alert = UIAlertController(title: "Save Pattern", message: nil, preferredStyle: .alert)
+        let alert = UIAlertController(title: "Save Mix", message: nil, preferredStyle: .alert)
         alert.addTextField { tf in
-            tf.placeholder = "Pattern name"
+            tf.placeholder = "Mix name"
             tf.text = self.store.patternName == "Untitled" ? "" : self.store.patternName
             tf.autocapitalizationType = .words
         }

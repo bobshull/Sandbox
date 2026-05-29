@@ -8,6 +8,8 @@ final class BarActionsViewController: UIViewController {
     var onDuplicateToBar2: (() -> Void)?
     var onGenerateBar2Variation: (() -> Void)?
     var onCopyBar1Here: (() -> Void)?
+    var onAccentBar: ((AccentPattern) -> Void)?
+    var onClearBarAccents: (() -> Void)?
 
     private let barIndex: Int
     private let panel = UIView()
@@ -113,6 +115,18 @@ final class BarActionsViewController: UIViewController {
             stack.addArrangedSubview(row([humanizeBtn, copyBtn]))
         }
 
+        let downbeatBtn = actionButton("Accent Downbeats", icon: "arrow.down.to.line")
+        downbeatBtn.tag = 0
+        downbeatBtn.addTarget(self, action: #selector(accentTapped(_:)), for: .touchUpInside)
+        let upbeatBtn = actionButton("Accent Upbeats", icon: "arrow.up.to.line")
+        upbeatBtn.tag = 1
+        upbeatBtn.addTarget(self, action: #selector(accentTapped(_:)), for: .touchUpInside)
+        stack.addArrangedSubview(row([downbeatBtn, upbeatBtn]))
+
+        let clearAccentsBtn = actionButton("Clear Accents", icon: "bolt.slash")
+        clearAccentsBtn.addTarget(self, action: #selector(clearAccentsTapped), for: .touchUpInside)
+        stack.addArrangedSubview(row([clearAccentsBtn]))
+
         return stack
     }
 
@@ -184,6 +198,15 @@ final class BarActionsViewController: UIViewController {
 
     @objc private func copyBar1Tapped() {
         dismiss(animated: true) { [weak self] in self?.onCopyBar1Here?() }
+    }
+
+    @objc private func accentTapped(_ sender: UIButton) {
+        let pattern: AccentPattern = sender.tag == 0 ? .downbeat : .upbeat
+        dismiss(animated: true) { [weak self] in self?.onAccentBar?(pattern) }
+    }
+
+    @objc private func clearAccentsTapped() {
+        dismiss(animated: true) { [weak self] in self?.onClearBarAccents?() }
     }
 
     @objc private func dismissSelf() { dismiss(animated: true) }

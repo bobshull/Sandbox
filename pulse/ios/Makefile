@@ -2,7 +2,7 @@ DERIVED_DATA := .scratch/xcode-derived
 MODULE_CACHE := .scratch/module-cache
 PROJECT := Pulse.xcodeproj
 SCHEME := Pulse
-TEST_DESTINATION ?= platform=iOS Simulator,name=iPhone 16
+TEST_DESTINATION ?= platform=iOS Simulator,name=iPhone 17,OS=26.5
 
 .PHONY: generate typecheck build test
 
