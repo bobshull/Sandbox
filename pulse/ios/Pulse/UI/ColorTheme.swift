@@ -15,16 +15,156 @@ struct ColorTheme {
     var primaryColor: UIColor { color(for: "kick") }
 
     static var current: ColorTheme {
-        all.first { $0.id == AppSettings.colorThemeId } ?? neon
+        all.first { $0.id == AppSettings.colorThemeId } ?? mangoTango
     }
 
-    static let all: [ColorTheme] = [
-        neon, olive, dusk, aurora, crimson, lemon, acid, teal,
-        violet, magenta, midnight, forest, tangerine, mint, steel, lavender,
-    ]
+    /// Theme tiles ordered by primary tile color similarity.
+    static let all: [ColorTheme] = sortByPrimaryColorSimilarity([
+        candyNoir,
+        cherryBomb,
+        bubblegumHaze,
+        mangoTango,
+        lemonDrop,
+        goldfinger,
+        pickleJuice,
+        electricLime,
+        emeraldCity,
+        mintCondition,
+        poolParty,
+        silverLining,
+        aurora,
+        blueLagoon,
+        ultraviolet,
+        plumCrazy,
+    ])
 
-    // ── Neon Night ─────────────────────────────────────────────────────────
-    static let neon = ColorTheme(id: "neon", name: "Neon Night", colors: [
+    private static func sortByPrimaryColorSimilarity(_ themes: [ColorTheme]) -> [ColorTheme] {
+        themes.sorted { lhs, rhs in
+            let left = lhs.primaryColorSortKey
+            let right = rhs.primaryColorSortKey
+
+            if left.isNeutral != right.isNeutral { return !left.isNeutral }
+            if left.hue != right.hue { return left.hue < right.hue }
+            if left.saturation != right.saturation { return left.saturation > right.saturation }
+            if left.brightness != right.brightness { return left.brightness > right.brightness }
+            return lhs.id < rhs.id
+        }
+    }
+
+    private var primaryColorSortKey: (isNeutral: Bool, hue: CGFloat, saturation: CGFloat, brightness: CGFloat) {
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        primaryColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+
+        let redStart: CGFloat = 0.94
+        let shiftedHue = hue >= redStart ? hue - redStart : hue + (1 - redStart)
+        return (saturation < 0.25, shiftedHue, saturation, brightness)
+    }
+
+    // MARK: - New replacement themes
+
+    // ── Cherry Bomb ────────────────────────────────────────────────────────
+    static let cherryBomb = ColorTheme(id: "cherryBomb", name: "Cherry Bomb", colors: [
+        "kick":  (hex("e11d48"), hex("aa1435")),   // cherry red
+        "snare": (hex("22c55e"), hex("16883f")),   // circuit green
+        "hat":   (hex("38bdf8"), hex("2589b8")),   // bright cyan
+        "clap":  (hex("facc15"), hex("b9970e")),   // signal yellow
+        "bass":  (hex("7f1d1d"), hex("531212")),   // dark cherry
+        "pluck": (hex("a855f7"), hex("7a35bd")),   // electric violet
+        "pad":   (hex("2563eb"), hex("1b49ad")),   // saturated blue
+        "perc":  (hex("f472b6"), hex("bd4d89")),   // hot pink
+    ])
+
+    // ── Electric Lime ──────────────────────────────────────────────────────
+    static let electricLime = ColorTheme(id: "electricLime", name: "Electric Lime", colors: [
+        "kick":  (hex("84cc16"), hex("5f9710")),   // electric lime
+        "snare": (hex("9333ea"), hex("6923a9")),   // purple complement
+        "hat":   (hex("bef264"), hex("8fbd47")),   // lime glow
+        "clap":  (hex("ef4444"), hex("b52d2d")),   // red pop
+        "bass":  (hex("365314"), hex("24370d")),   // deep green
+        "pluck": (hex("06b6d4"), hex("07869c")),   // cyan bite
+        "pad":   (hex("64748b"), hex("475569")),   // cool slate
+        "perc":  (hex("f9a8d4"), hex("c878a4")),   // soft pink
+    ])
+
+    // ── Emerald City ───────────────────────────────────────────────────────
+    static let emeraldCity = ColorTheme(id: "emeraldCity", name: "Emerald City", colors: [
+        "kick":  (hex("16a34a"), hex("0f7333")),   // jade green
+        "snare": (hex("dc2626"), hex("9f1b1b")),   // temple red
+        "hat":   (hex("f5d76e"), hex("bea74f")),   // muted gold
+        "clap":  (hex("0891b2"), hex("066b85")),   // blue teal
+        "bass":  (hex("14532d"), hex("0c351c")),   // deep jade
+        "pluck": (hex("c084fc"), hex("925ec6")),   // orchid contrast
+        "pad":   (hex("22c55e"), hex("178d42")),   // bright leaf
+        "perc":  (hex("fb7185"), hex("c95062")),   // rose accent
+    ])
+
+    // ── Pool Party ─────────────────────────────────────────────────────────
+    static let poolParty = ColorTheme(id: "poolParty", name: "Pool Party", colors: [
+        "kick":  (hex("0e7490"), hex("09576d")),   // ocean teal
+        "snare": (hex("e879f9"), hex("b454c3")),   // anemone violet
+        "hat":   (hex("67e8f9"), hex("43b8c7")),   // bright surf
+        "clap":  (hex("fbbf24"), hex("c89117")),   // beacon gold
+        "bass":  (hex("164e63"), hex("0d3442")),   // deep water
+        "pluck": (hex("38bdf8"), hex("268dbb")),   // blue glint
+        "pad":   (hex("2dd4bf"), hex("1fa094")),   // sea glass
+        "perc":  (hex("a3e635"), hex("7bad24")),   // reef lime
+    ])
+
+    // ── Blue Lagoon ────────────────────────────────────────────────────────
+    static let blueLagoon = ColorTheme(id: "blueLagoon", name: "Blue Lagoon", colors: [
+        "kick":  (hex("2563eb"), hex("1d4fb8")),   // cobalt
+        "snare": (hex("f59e0b"), hex("bd7608")),   // gold contrast
+        "hat":   (hex("7dd3fc"), hex("55a4cb")),   // sky blue
+        "clap":  (hex("fb7185"), hex("c94d60")),   // rose punch
+        "bass":  (hex("1e3a8a"), hex("13265d")),   // deep cobalt
+        "pluck": (hex("c084fc"), hex("925ec6")),   // violet shimmer
+        "pad":   (hex("22d3ee"), hex("18a1b6")),   // cyan pulse
+        "perc":  (hex("fde047"), hex("c2a92e")),   // bright yellow
+    ])
+
+    // ── Plum Crazy ─────────────────────────────────────────────────────────
+    static let plumCrazy = ColorTheme(id: "plumCrazy", name: "Plum Crazy", colors: [
+        "kick":  (hex("a21caf"), hex("78127f")),   // electric plum
+        "snare": (hex("84cc16"), hex("60960f")),   // lime complement
+        "hat":   (hex("f0abfc"), hex("bd7ac9")),   // lilac flash
+        "clap":  (hex("14b8a6"), hex("0f887b")),   // teal voltage
+        "bass":  (hex("581c87"), hex("3a105d")),   // deep plum
+        "pluck": (hex("f43f5e"), hex("b92d45")),   // rose spark
+        "pad":   (hex("c084fc"), hex("925ec6")),   // violet haze
+        "perc":  (hex("facc15"), hex("bd970e")),   // electric gold
+    ])
+
+    // ── Lemon Drop ─────────────────────────────────────────────────────────
+    static let lemonDrop = ColorTheme(id: "lemonDrop", name: "Lemon Drop", colors: [
+        "kick":  (hex("facc15"), hex("bd970e")),   // signal yellow
+        "snare": (hex("f97316"), hex("be530f")),   // hot orange
+        "hat":   (hex("fde047"), hex("c2a92e")),   // bright sun
+        "clap":  (hex("ec4899"), hex("b83475")),   // punch pink
+        "bass":  (hex("b45309"), hex("813b06")),   // amber shadow
+        "pluck": (hex("a3e635"), hex("79ad24")),   // acid lime
+        "pad":   (hex("fb7185"), hex("c94d60")),   // neon rose
+        "perc":  (hex("22d3ee"), hex("18a1b6")),   // cyan spark
+    ])
+
+    // ── Silver Lining ──────────────────────────────────────────────────────
+    static let silverLining = ColorTheme(id: "silverLining", name: "Silver Lining", colors: [
+        "kick":  (hex("6f7d86"), hex("4f5d65")),   // lighter gunmetal
+        "snare": (hex("d6a15f"), hex("a77843")),   // brushed brass
+        "hat":   (hex("9fc5d3"), hex("7497a4")),   // pale steel blue
+        "clap":  (hex("b7cf7a"), hex("899f57")),   // muted lime
+        "bass":  (hex("43515a"), hex("303c43")),   // lifted graphite
+        "pluck": (hex("b08adf"), hex("8362ad")),   // muted violet
+        "pad":   (hex("7fa6b8"), hex("5d7d8d")),   // blue gray
+        "perc":  (hex("e4c56f"), hex("ad934d")),   // soft brass
+    ])
+
+    // MARK: - Kept themes from the original file. Do not alter these palettes.
+
+    // ── Mango Tango ────────────────────────────────────────────────────────
+    static let mangoTango = ColorTheme(id: "mangoTango", name: "Mango Tango", colors: [
         "kick":  (hex("ff6b4a"), hex("d94a2e")),   // coral flame
         "snare": (hex("ffd166"), hex("dca842")),   // warm yellow
         "hat":   (hex("4ddfff"), hex("22aeca")),   // electric cyan
@@ -35,8 +175,8 @@ struct ColorTheme {
         "perc":  (hex("f5f06a"), hex("c9c344")),   // acid yellow
     ])
 
-    // ── Olive Grove ────────────────────────────────────────────────────────
-    static let olive = ColorTheme(id: "olive", name: "Olive Grove", colors: [
+    // ── Pickle Juice ───────────────────────────────────────────────────────
+    static let pickleJuice = ColorTheme(id: "pickleJuice", name: "Pickle Juice", colors: [
         "kick":  (hex("6f7f32"), hex("4f5f20")),   // olive
         "snare": (hex("b05a38"), hex("854029")),   // rust complement
         "hat":   (hex("c7b84f"), hex("9b8e36")),   // brass khaki
@@ -47,8 +187,8 @@ struct ColorTheme {
         "perc":  (hex("c08345"), hex("93602f")),   // leather brown
     ])
 
-    // ── Pastel Dusk ────────────────────────────────────────────────────────
-    static let dusk = ColorTheme(id: "dusk", name: "Pastel Dusk", colors: [
+    // ── Bubblegum Haze ─────────────────────────────────────────────────────
+    static let bubblegumHaze = ColorTheme(id: "bubblegumHaze", name: "Bubblegum Haze", colors: [
         "kick":  (hex("d86f83"), hex("ad4e61")),   // dusty rose
         "snare": (hex("d6a45f"), hex("a97a3f")),   // antique gold
         "hat":   (hex("72add0"), hex("4f84a4")),   // dusk blue
@@ -71,56 +211,8 @@ struct ColorTheme {
         "perc":  (hex("c8f27a"), hex("9fc551")),   // soft lime
     ])
 
-    // ── Blood Orange ───────────────────────────────────────────────────────
-    static let crimson = ColorTheme(id: "crimson", name: "Blood Orange", colors: [
-        "kick":  (hex("c21f32"), hex("921524")),   // blood red
-        "snare": (hex("30a66f"), hex("227d52")),   // emerald complement
-        "hat":   (hex("ff8a5b"), hex("cf653e")),   // blood orange
-        "clap":  (hex("26b3a3"), hex("1a867a")),   // teal contrast
-        "bass":  (hex("5c111c"), hex("390911")),   // dark wine
-        "pluck": (hex("e05261"), hex("ad3845")),   // cherry red
-        "pad":   (hex("8f3545"), hex("682531")),   // raspberry shadow
-        "perc":  (hex("e0a048"), hex("ad7830")),   // copper gold
-    ])
-
-    // ── Citrus Pop ─────────────────────────────────────────────────────────
-    static let lemon = ColorTheme(id: "lemon", name: "Citrus Pop", colors: [
-        "kick":  (hex("f7d447"), hex("c9a82f")),   // lemon
-        "snare": (hex("267fc7"), hex("1b5f96")),   // blue complement
-        "hat":   (hex("b9e34f"), hex("8eb53a")),   // lime
-        "clap":  (hex("ff6f61"), hex("cc4f45")),   // grapefruit
-        "bass":  (hex("66761f"), hex("465315")),   // bitter rind
-        "pluck": (hex("f47b2f"), hex("c45620")),   // orange
-        "pad":   (hex("55c6c8"), hex("36999b")),   // aqua soda
-        "perc":  (hex("d96bb0"), hex("aa4c88")),   // berry candy
-    ])
-
-    // ── Acid Bloom ─────────────────────────────────────────────────────────
-    static let acid = ColorTheme(id: "acid", name: "Acid Bloom", colors: [
-        "kick":  (hex("c6f432"), hex("9dc724")),   // acid chartreuse
-        "snare": (hex("8b45d9"), hex("6531a8")),   // purple complement
-        "hat":   (hex("f2e94e"), hex("c4ba34")),   // electric yellow
-        "clap":  (hex("ff4f7d"), hex("cc365b")),   // hot coral
-        "bass":  (hex("43520f"), hex("2b3608")),   // dark acid green
-        "pluck": (hex("23d9c0"), hex("17a894")),   // toxic mint
-        "pad":   (hex("4fdb55"), hex("36ad3b")),   // laser green
-        "perc":  (hex("ff9f35"), hex("cf7523")),   // orange pop
-    ])
-
-    // ── Ocean Glass ────────────────────────────────────────────────────────
-    static let teal = ColorTheme(id: "teal", name: "Ocean Glass", colors: [
-        "kick":  (hex("16a6a6"), hex("0d7d80")),   // teal
-        "snare": (hex("f26f5e"), hex("c84f43")),   // coral complement
-        "hat":   (hex("8fd6e8"), hex("62abc0")),   // pale aqua
-        "clap":  (hex("f2c36b"), hex("c99843")),   // beach gold
-        "bass":  (hex("164f63"), hex("0b3442")),   // deep sea
-        "pluck": (hex("5d8fc9"), hex("3d69a0")),   // ocean blue
-        "pad":   (hex("46c2b8"), hex("2a958f")),   // seafoam
-        "perc":  (hex("d99a72"), hex("ae7150")),   // shell clay
-    ])
-
     // ── Ultraviolet ────────────────────────────────────────────────────────
-    static let violet = ColorTheme(id: "violet", name: "Ultraviolet", colors: [
+    static let ultraviolet = ColorTheme(id: "ultraviolet", name: "Ultraviolet", colors: [
         "kick":  (hex("7b3ff2"), hex("5828bd")),   // ultraviolet
         "snare": (hex("f0c84b"), hex("bc9a32")),   // gold complement
         "hat":   (hex("b58cff"), hex("8d63d4")),   // lavender
@@ -132,7 +224,7 @@ struct ColorTheme {
     ])
 
     // ── Candy Noir ─────────────────────────────────────────────────────────
-    static let magenta = ColorTheme(id: "magenta", name: "Candy Noir", colors: [
+    static let candyNoir = ColorTheme(id: "candyNoir", name: "Candy Noir", colors: [
         "kick":  (hex("d93f8c"), hex("aa2d6c")),   // magenta
         "snare": (hex("37c987"), hex("279965")),   // mint green complement
         "hat":   (hex("f0b95a"), hex("c7903f")),   // warm gold
@@ -143,44 +235,20 @@ struct ColorTheme {
         "perc":  (hex("d9824f"), hex("a96037")),   // copper orange
     ])
 
-    // ── Midnight City ──────────────────────────────────────────────────────
-    static let midnight = ColorTheme(id: "midnight", name: "Midnight City", colors: [
-        "kick":  (hex("25318f"), hex("161f68")),   // royal midnight
-        "snare": (hex("f2a23a"), hex("bd7926")),   // streetlight amber
-        "hat":   (hex("7aa7ff"), hex("527bd4")),   // moon blue
-        "clap":  (hex("d86f76"), hex("ad4f57")),   // muted neon red
-        "bass":  (hex("10183a"), hex("080e24")),   // deep navy
-        "pluck": (hex("c79bff"), hex("956cd7")),   // city violet
-        "pad":   (hex("4d6fb8"), hex("334d90")),   // dusk blue
-        "perc":  (hex("f0c66b"), hex("bd9846")),   // warm gold
+    // ── Goldfinger ─────────────────────────────────────────────────────────
+    static let goldfinger = ColorTheme(id: "goldfinger", name: "Goldfinger", colors: [
+        "kick":  (hex("c89010"), hex("9e6e0c")),   // ochre mustard
+        "snare": (hex("904028"), hex("6e2e1c")),   // brick
+        "hat":   (hex("c87870"), hex("9e5c56")),   // dusty rose
+        "clap":  (hex("208878"), hex("16685c")),   // teal
+        "bass":  (hex("605040"), hex("483c30")),   // warm taupe
+        "pluck": (hex("9858b8"), hex("74408e")),   // violet
+        "pad":   (hex("489870"), hex("347858")),   // sage
+        "perc":  (hex("e8d0b8"), hex("c0a890")),   // warm ivory
     ])
 
-    // ── Forest Floor ───────────────────────────────────────────────────────
-    static let forest = ColorTheme(id: "forest", name: "Forest Floor", colors: [
-        "kick":  (hex("3f8f4e"), hex("2d6b3a")),   // moss green
-        "snare": (hex("9b6a45"), hex("70472e")),   // bark brown
-        "hat":   (hex("b9c46a"), hex("8f9a47")),   // lichen yellow
-        "clap":  (hex("8a4f63"), hex("663747")),   // wild berry
-        "bass":  (hex("1f4a2c"), hex("122f1b")),   // deep pine
-        "pluck": (hex("48a7a0"), hex("357d78")),   // creek teal
-        "pad":   (hex("6d8a58"), hex("4d683d")),   // moss gray-green
-        "perc":  (hex("c48f57"), hex("94683d")),   // mushroom tan
-    ])
-
-    // ── Tangerine Sky ──────────────────────────────────────────────────────
-    static let tangerine = ColorTheme(id: "tangerine", name: "Tangerine Sky", colors: [
-        "kick":  (hex("f97332"), hex("c85221")),   // tangerine
-        "snare": (hex("2f93d1"), hex("216d9d")),   // blue complement
-        "hat":   (hex("f6c453"), hex("c79735")),   // citrus gold
-        "clap":  (hex("8ccf5f"), hex("669f43")),   // lime leaf
-        "bass":  (hex("8f3a14"), hex("622509")),   // burnt orange
-        "pluck": (hex("ff9b55"), hex("d17437")),   // orange cream
-        "pad":   (hex("d95f45"), hex("a84431")),   // red orange
-        "perc":  (hex("4cb7b0"), hex("358b86")),   // teal pop
-    ])
-
-    // ── Mint Circuit ───────────────────────────────────────────────────────
-    static let mint = ColorTheme(id: "mint", name: "Mint Circuit", colors: [
+    // ── Mint Condition ─────────────────────────────────────────────────────
+    static let mintCondition = ColorTheme(id: "mintCondition", name: "Mint Condition", colors: [
         "kick":  (hex("56d6a9"), hex("37a982")),   // mint
         "snare": (hex("f08a72"), hex("bf6655")),   // peach coral complement
         "hat":   (hex("c9e89c"), hex("9abb70")),   // pale green
@@ -191,45 +259,6 @@ struct ColorTheme {
         "perc":  (hex("e6c76f"), hex("b99c4d")),   // soft gold
     ])
 
-    // ── Slate & Copper ─────────────────────────────────────────────────────
-    static let steel = ColorTheme(id: "steel", name: "Slate & Copper", colors: [
-        "kick":  (hex("52656f"), hex("35464f")),   // slate
-        "snare": (hex("c98243"), hex("99602f")),   // copper
-        "hat":   (hex("91a2aa"), hex("6b7b83")),   // light steel
-        "clap":  (hex("d9a066"), hex("a9784a")),   // brushed brass
-        "bass":  (hex("26343a"), hex("141f23")),   // dark graphite
-        "pluck": (hex("5f9fb0"), hex("437886")),   // oxidized blue
-        "pad":   (hex("6f8790"), hex("506871")),   // blue steel
-        "perc":  (hex("e0b36f"), hex("ad874f")),   // warm metal
-    ])
-
-    // ── Lavender Cream ─────────────────────────────────────────────────────
-    static let lavender = ColorTheme(id: "lavender", name: "Lavender Cream", colors: [
-        "kick":  (hex("a98be8"), hex("8065bf")),   // lavender
-        "snare": (hex("e6c76f"), hex("b99c4d")),   // cream gold complement
-        "hat":   (hex("c9b5f2"), hex("9d82d4")),   // lilac
-        "clap":  (hex("8fbf9f"), hex("6a9478")),   // sage
-        "bass":  (hex("5a3f88"), hex("3b2860")),   // deep lavender
-        "pluck": (hex("d99ec6"), hex("aa75a0")),   // mauve pink
-        "pad":   (hex("8b9ed8"), hex("6679b0")),   // soft periwinkle
-        "perc":  (hex("f0d79a"), hex("bea76f")),   // vanilla
-    ])
-
-    // Compatibility aliases for older references that existed in the original file
-    // but were not included in ColorTheme.all.
-    static let synthwave = forest
-    static let lava = crimson
-    static let sand = ColorTheme(id: "sand", name: "Desert Bloom", colors: [
-        "kick":  (hex("d0a15f"), hex("a1763f")),   // sand
-        "snare": (hex("bd6a4a"), hex("8f4b34")),   // terracotta
-        "hat":   (hex("e8c66f"), hex("b99a4c")),   // desert sun
-        "clap":  (hex("a35f7a"), hex("794558")),   // desert flower
-        "bass":  (hex("5b4331"), hex("38291e")),   // dry earth
-        "pluck": (hex("6f9a72"), hex("527653")),   // cactus green
-        "pad":   (hex("c5885b"), hex("976340")),   // clay
-        "perc":  (hex("3f9fa8"), hex("2b777d")),   // turquoise
-    ])
-    static let cherry = magenta
 }
 
 private func hex(_ h: String) -> UIColor {

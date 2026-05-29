@@ -58,13 +58,13 @@ final class AppSettingsTests: XCTestCase {
 
     // MARK: - colorThemeId
 
-    func test_colorThemeId_defaultIsNeon() {
-        XCTAssertEqual(AppSettings.colorThemeId, "neon")
+    func test_colorThemeId_defaultIsMangoTango() {
+        XCTAssertEqual(AppSettings.colorThemeId, "mangoTango")
     }
 
     func test_colorThemeId_set() {
-        AppSettings.colorThemeId = "dusk"
-        XCTAssertEqual(AppSettings.colorThemeId, "dusk")
+        AppSettings.colorThemeId = "bubblegumHaze"
+        XCTAssertEqual(AppSettings.colorThemeId, "bubblegumHaze")
     }
 
     func test_colorThemeId_sendsNotification() {
@@ -72,13 +72,13 @@ final class AppSettingsTests: XCTestCase {
         let obs = NotificationCenter.default.addObserver(
             forName: .colorThemeDidChange, object: nil, queue: .main
         ) { _ in received = true }
-        AppSettings.colorThemeId = "midnight"
+        AppSettings.colorThemeId = "plumCrazy"
         NotificationCenter.default.removeObserver(obs)
         XCTAssertTrue(received)
     }
 
     func test_colorThemeId_persistsValue() {
-        AppSettings.colorThemeId = "teal"
-        XCTAssertEqual(AppSettings.colorThemeId, "teal")
+        AppSettings.colorThemeId = "poolParty"
+        XCTAssertEqual(AppSettings.colorThemeId, "poolParty")
     }
 }

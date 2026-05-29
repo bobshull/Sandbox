@@ -120,7 +120,7 @@ final class SettingsViewController: UIViewController {
         topRow.alignment = .center
 
         let tagline = UILabel()
-        tagline.text = "Every message is read and genuinely appreciated."
+        tagline.text = "We take feedback seriously. Every message is read and genuinely appreciated."
         tagline.font = .systemFont(ofSize: 11)
         tagline.textColor = Theme.textFaint
         tagline.textAlignment = .center

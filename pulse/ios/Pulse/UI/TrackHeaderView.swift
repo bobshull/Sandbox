@@ -5,6 +5,7 @@ protocol TrackHeaderViewDelegate: AnyObject {
     func trackHeaderDidToggleMute(_ track: Track)
     func trackHeaderDidChangeVolume(_ track: Track, value: Float)
     func trackHeaderDidChangeEffects(_ track: Track, effects: TrackEffects)
+    func trackHeaderDidResetTrack(_ track: Track)
     func trackHeaderDidRequestActions(_ track: Track)
 }
 
@@ -138,6 +139,12 @@ final class TrackHeaderView: UIView {
             guard let self else { return }
             self.setEffects(fx)
             self.delegate?.trackHeaderDidChangeEffects(self.track, effects: fx)
+        }
+        vc.onReset = { [weak self] in
+            guard let self else { return }
+            self.setVolume(1.0)
+            self.setEffects(.default)
+            self.delegate?.trackHeaderDidResetTrack(self.track)
         }
         parentVC.present(vc, animated: true)
     }
