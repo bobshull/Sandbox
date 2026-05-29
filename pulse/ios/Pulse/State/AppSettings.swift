@@ -20,7 +20,7 @@ enum AppSettings {
     }
 
     static var colorThemeId: String {
-        get { local.string(forKey: colorThemeKey) ?? "neon" }
+        get { local.string(forKey: colorThemeKey) ?? "mangoTango" }
         set {
             local.set(newValue, forKey: colorThemeKey)
             NotificationCenter.default.post(name: .colorThemeDidChange, object: nil)

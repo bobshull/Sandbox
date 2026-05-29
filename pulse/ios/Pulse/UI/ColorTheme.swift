@@ -15,27 +15,27 @@ struct ColorTheme {
     var primaryColor: UIColor { color(for: "kick") }
 
     static var current: ColorTheme {
-        all.first { $0.id == AppSettings.colorThemeId } ?? neon
+        all.first { $0.id == AppSettings.colorThemeId } ?? mangoTango
     }
 
     /// Theme tiles ordered by primary tile color similarity.
     static let all: [ColorTheme] = sortByPrimaryColorSimilarity([
         candyNoir,
-        cherryCircuit,
-        pastel,
-        neon,
-        mangoRiot,
-        mustard,
-        olive,
+        cherryBomb,
+        bubblegumHaze,
+        mangoTango,
+        lemonDrop,
+        goldfinger,
+        pickleJuice,
         electricLime,
-        jadeTemple,
-        mint,
-        deepOcean,
-        gunmetalGlow,
+        emeraldCity,
+        mintCondition,
+        poolParty,
+        silverLining,
         aurora,
-        cobaltPulse,
+        blueLagoon,
         ultraviolet,
-        plumVoltage,
+        plumCrazy,
     ])
 
     private static func sortByPrimaryColorSimilarity(_ themes: [ColorTheme]) -> [ColorTheme] {
@@ -65,8 +65,8 @@ struct ColorTheme {
 
     // MARK: - New replacement themes
 
-    // ── Cherry Circuit ─────────────────────────────────────────────────────
-    static let cherryCircuit = ColorTheme(id: "cherryCircuit", name: "Cherry Circuit", colors: [
+    // ── Cherry Bomb ────────────────────────────────────────────────────────
+    static let cherryBomb = ColorTheme(id: "cherryBomb", name: "Cherry Bomb", colors: [
         "kick":  (hex("e11d48"), hex("aa1435")),   // cherry red
         "snare": (hex("22c55e"), hex("16883f")),   // circuit green
         "hat":   (hex("38bdf8"), hex("2589b8")),   // bright cyan
@@ -89,8 +89,8 @@ struct ColorTheme {
         "perc":  (hex("f9a8d4"), hex("c878a4")),   // soft pink
     ])
 
-    // ── Jade Temple ────────────────────────────────────────────────────────
-    static let jadeTemple = ColorTheme(id: "jadeTemple", name: "Jade Temple", colors: [
+    // ── Emerald City ───────────────────────────────────────────────────────
+    static let emeraldCity = ColorTheme(id: "emeraldCity", name: "Emerald City", colors: [
         "kick":  (hex("16a34a"), hex("0f7333")),   // jade green
         "snare": (hex("dc2626"), hex("9f1b1b")),   // temple red
         "hat":   (hex("f5d76e"), hex("bea74f")),   // muted gold
@@ -101,8 +101,8 @@ struct ColorTheme {
         "perc":  (hex("fb7185"), hex("c95062")),   // rose accent
     ])
 
-    // ── Deep Ocean ─────────────────────────────────────────────────────────
-    static let deepOcean = ColorTheme(id: "deepOcean", name: "Deep Ocean", colors: [
+    // ── Pool Party ─────────────────────────────────────────────────────────
+    static let poolParty = ColorTheme(id: "poolParty", name: "Pool Party", colors: [
         "kick":  (hex("0e7490"), hex("09576d")),   // ocean teal
         "snare": (hex("e879f9"), hex("b454c3")),   // anemone violet
         "hat":   (hex("67e8f9"), hex("43b8c7")),   // bright surf
@@ -113,8 +113,8 @@ struct ColorTheme {
         "perc":  (hex("a3e635"), hex("7bad24")),   // reef lime
     ])
 
-    // ── Cobalt Pulse ───────────────────────────────────────────────────────
-    static let cobaltPulse = ColorTheme(id: "cobaltPulse", name: "Cobalt Pulse", colors: [
+    // ── Blue Lagoon ────────────────────────────────────────────────────────
+    static let blueLagoon = ColorTheme(id: "blueLagoon", name: "Blue Lagoon", colors: [
         "kick":  (hex("2563eb"), hex("1d4fb8")),   // cobalt
         "snare": (hex("f59e0b"), hex("bd7608")),   // gold contrast
         "hat":   (hex("7dd3fc"), hex("55a4cb")),   // sky blue
@@ -125,8 +125,8 @@ struct ColorTheme {
         "perc":  (hex("fde047"), hex("c2a92e")),   // bright yellow
     ])
 
-    // ── Plum Voltage ────────────────────────────────────────────────────────
-    static let plumVoltage = ColorTheme(id: "plumVoltage", name: "Plum Voltage", colors: [
+    // ── Plum Crazy ─────────────────────────────────────────────────────────
+    static let plumCrazy = ColorTheme(id: "plumCrazy", name: "Plum Crazy", colors: [
         "kick":  (hex("a21caf"), hex("78127f")),   // electric plum
         "snare": (hex("84cc16"), hex("60960f")),   // lime complement
         "hat":   (hex("f0abfc"), hex("bd7ac9")),   // lilac flash
@@ -137,8 +137,8 @@ struct ColorTheme {
         "perc":  (hex("facc15"), hex("bd970e")),   // electric gold
     ])
 
-    // ── Mango Riot ─────────────────────────────────────────────────────────
-    static let mangoRiot = ColorTheme(id: "mangoRiot", name: "Mango Riot", colors: [
+    // ── Lemon Drop ─────────────────────────────────────────────────────────
+    static let lemonDrop = ColorTheme(id: "lemonDrop", name: "Lemon Drop", colors: [
         "kick":  (hex("facc15"), hex("bd970e")),   // signal yellow
         "snare": (hex("f97316"), hex("be530f")),   // hot orange
         "hat":   (hex("fde047"), hex("c2a92e")),   // bright sun
@@ -149,8 +149,8 @@ struct ColorTheme {
         "perc":  (hex("22d3ee"), hex("18a1b6")),   // cyan spark
     ])
 
-    // ── Gunmetal Glow ──────────────────────────────────────────────────────
-    static let gunmetalGlow = ColorTheme(id: "gunmetalGlow", name: "Gunmetal Glow", colors: [
+    // ── Silver Lining ──────────────────────────────────────────────────────
+    static let silverLining = ColorTheme(id: "silverLining", name: "Silver Lining", colors: [
         "kick":  (hex("6f7d86"), hex("4f5d65")),   // lighter gunmetal
         "snare": (hex("d6a15f"), hex("a77843")),   // brushed brass
         "hat":   (hex("9fc5d3"), hex("7497a4")),   // pale steel blue
@@ -163,8 +163,8 @@ struct ColorTheme {
 
     // MARK: - Kept themes from the original file. Do not alter these palettes.
 
-    // ── Neon Night ─────────────────────────────────────────────────────────
-    static let neon = ColorTheme(id: "neon", name: "Neon Night", colors: [
+    // ── Mango Tango ────────────────────────────────────────────────────────
+    static let mangoTango = ColorTheme(id: "mangoTango", name: "Mango Tango", colors: [
         "kick":  (hex("ff6b4a"), hex("d94a2e")),   // coral flame
         "snare": (hex("ffd166"), hex("dca842")),   // warm yellow
         "hat":   (hex("4ddfff"), hex("22aeca")),   // electric cyan
@@ -175,8 +175,8 @@ struct ColorTheme {
         "perc":  (hex("f5f06a"), hex("c9c344")),   // acid yellow
     ])
 
-    // ── Olive Grove ────────────────────────────────────────────────────────
-    static let olive = ColorTheme(id: "olive", name: "Olive Grove", colors: [
+    // ── Pickle Juice ───────────────────────────────────────────────────────
+    static let pickleJuice = ColorTheme(id: "pickleJuice", name: "Pickle Juice", colors: [
         "kick":  (hex("6f7f32"), hex("4f5f20")),   // olive
         "snare": (hex("b05a38"), hex("854029")),   // rust complement
         "hat":   (hex("c7b84f"), hex("9b8e36")),   // brass khaki
@@ -187,8 +187,8 @@ struct ColorTheme {
         "perc":  (hex("c08345"), hex("93602f")),   // leather brown
     ])
 
-    // ── Pastel Dusk ────────────────────────────────────────────────────────
-    static let pastel = ColorTheme(id: "pastel", name: "Pastel Dusk", colors: [
+    // ── Bubblegum Haze ─────────────────────────────────────────────────────
+    static let bubblegumHaze = ColorTheme(id: "bubblegumHaze", name: "Bubblegum Haze", colors: [
         "kick":  (hex("d86f83"), hex("ad4e61")),   // dusty rose
         "snare": (hex("d6a45f"), hex("a97a3f")),   // antique gold
         "hat":   (hex("72add0"), hex("4f84a4")),   // dusk blue
@@ -235,8 +235,8 @@ struct ColorTheme {
         "perc":  (hex("d9824f"), hex("a96037")),   // copper orange
     ])
 
-    // ── Mustard ────────────────────────────────────────────────────────────
-    static let mustard = ColorTheme(id: "mustard", name: "Mustard", colors: [
+    // ── Goldfinger ─────────────────────────────────────────────────────────
+    static let goldfinger = ColorTheme(id: "goldfinger", name: "Goldfinger", colors: [
         "kick":  (hex("c89010"), hex("9e6e0c")),   // ochre mustard
         "snare": (hex("904028"), hex("6e2e1c")),   // brick
         "hat":   (hex("c87870"), hex("9e5c56")),   // dusty rose
@@ -247,8 +247,8 @@ struct ColorTheme {
         "perc":  (hex("e8d0b8"), hex("c0a890")),   // warm ivory
     ])
 
-    // ── Mint Circuit ───────────────────────────────────────────────────────
-    static let mint = ColorTheme(id: "mint", name: "Mint Circuit", colors: [
+    // ── Mint Condition ─────────────────────────────────────────────────────
+    static let mintCondition = ColorTheme(id: "mintCondition", name: "Mint Condition", colors: [
         "kick":  (hex("56d6a9"), hex("37a982")),   // mint
         "snare": (hex("f08a72"), hex("bf6655")),   // peach coral complement
         "hat":   (hex("c9e89c"), hex("9abb70")),   // pale green
@@ -259,24 +259,6 @@ struct ColorTheme {
         "perc":  (hex("e6c76f"), hex("b99c4d")),   // soft gold
     ])
 
-    // MARK: - Compatibility aliases for older references used elsewhere in the app.
-
-    static let dusk = pastel
-    static let violet = ultraviolet
-    static let magenta = candyNoir
-    static let tangerine = mustard
-    static let crimson = cherryCircuit
-    static let lemon = electricLime
-    static let acid = neon
-    static let teal = deepOcean
-    static let midnight = plumVoltage
-    static let forest = jadeTemple
-    static let steel = gunmetalGlow
-    static let lavender = pastel
-    static let synthwave = neon
-    static let lava = cherryCircuit
-    static let sand = mangoRiot
-    static let cherry = candyNoir
 }
 
 private func hex(_ h: String) -> UIColor {

@@ -29,22 +29,22 @@ final class ColorThemeTests: XCTestCase {
 
     func test_all_isSortedByPrimaryColorSimilarity() {
         XCTAssertEqual(ColorTheme.all.map(\.id), [
-            "cherryCircuit",
-            "pastel",
-            "neon",
-            "mustard",
-            "mangoRiot",
-            "olive",
+            "cherryBomb",
+            "bubblegumHaze",
+            "mangoTango",
+            "goldfinger",
+            "lemonDrop",
+            "pickleJuice",
             "electricLime",
-            "jadeTemple",
-            "mint",
-            "deepOcean",
+            "emeraldCity",
+            "mintCondition",
+            "poolParty",
             "aurora",
-            "cobaltPulse",
+            "blueLagoon",
             "ultraviolet",
-            "plumVoltage",
+            "plumCrazy",
             "candyNoir",
-            "gunmetalGlow",
+            "silverLining",
         ])
     }
 
@@ -60,39 +60,12 @@ final class ColorThemeTests: XCTestCase {
     // MARK: - current
 
     func test_current_returnsTheme_whenColorThemeIdMatches() {
-        AppSettings.colorThemeId = "midnight"
-        XCTAssertEqual(ColorTheme.current.id, "midnight")
+        AppSettings.colorThemeId = "plumCrazy"
+        XCTAssertEqual(ColorTheme.current.id, "plumCrazy")
     }
 
-    func test_current_fallsBackToNeon_whenColorThemeIdUnknown() {
+    func test_current_fallsBackToMangoTango_whenColorThemeIdUnknown() {
         AppSettings.colorThemeId = "definitely-not-a-real-theme"
-        XCTAssertEqual(ColorTheme.current.id, "neon")
-    }
-
-    // MARK: - Compatibility aliases
-    // These themes were removed from ColorTheme.all but still need to be
-    // referenceable so old saved settings / old code paths don't crash.
-
-    func test_alias_synthwave_resolvesToAValidTheme() {
-        let theme = ColorTheme.synthwave
-        XCTAssertFalse(theme.id.isEmpty)
-        XCTAssertFalse(theme.definedTrackIds.isEmpty)
-    }
-
-    func test_alias_lava_resolvesToAValidTheme() {
-        let theme = ColorTheme.lava
-        XCTAssertFalse(theme.id.isEmpty)
-        XCTAssertFalse(theme.definedTrackIds.isEmpty)
-    }
-
-    func test_alias_cherry_resolvesToAValidTheme() {
-        let theme = ColorTheme.cherry
-        XCTAssertFalse(theme.id.isEmpty)
-        XCTAssertFalse(theme.definedTrackIds.isEmpty)
-    }
-
-    func test_alias_sand_resolvesToAValidTheme() {
-        let theme = ColorTheme.sand
-        XCTAssertFalse(theme.definedTrackIds.isEmpty)
+        XCTAssertEqual(ColorTheme.current.id, "mangoTango")
     }
 }
