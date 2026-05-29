@@ -5,7 +5,7 @@ final class ActionsViewController: UIViewController {
     var onSaveMix: (() -> Void)?
     var onUndo: (() -> Void)?
     var onHumanizeGroove: (() -> Void)?
-    var onRandomizeGroove: (() -> Void)?
+    var onRandomizeGroove: ((RandomizeIntensity) -> Void)?
     var onClearBar: ((Int) -> Void)?
     var onExportWAV: (() -> Void)?
     var onExportM4A: (() -> Void)?
@@ -104,8 +104,8 @@ final class ActionsViewController: UIViewController {
         undoBtn.isEnabled = canUndo
         stack.addArrangedSubview(row([saveMixBtn, undoBtn]))
 
-        // Row 2: Humanize + Randomize  (creative group — purple)
-        let humanizeBtn = actionButton("Humanize Groove", icon: "wand.and.stars", group: .creative)
+        // Row 2: Mutate + Randomize  (creative group — purple)
+        let humanizeBtn = actionButton("Mutate Groove", icon: "wand.and.stars", group: .creative)
         humanizeBtn.addTarget(self, action: #selector(humanizeTapped), for: .touchUpInside)
         let randomizeBtn = actionButton("Randomize Groove", icon: "dice", group: .creative)
         randomizeBtn.addTarget(self, action: #selector(randomizeTapped), for: .touchUpInside)
@@ -232,15 +232,16 @@ final class ActionsViewController: UIViewController {
     }
 
     @objc private func randomizeTapped() {
-        let alert = UIAlertController(
-            title: "Randomize Groove?",
-            message: "This replaces all track patterns with new musical sequences.",
-            preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Randomize", style: .default) { [weak self] _ in
-            self?.dismiss(animated: true) { self?.onRandomizeGroove?() }
-        })
-        present(alert, animated: true)
+        let sheet = UIAlertController(title: "Randomize Groove", message: nil, preferredStyle: .actionSheet)
+        for intensity in RandomizeIntensity.allCases {
+            sheet.addAction(UIAlertAction(title: intensity.title, style: .default) { [weak self] _ in
+                self?.dismiss(animated: true) { self?.onRandomizeGroove?(intensity) }
+            })
+        }
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.popoverPresentationController?.sourceView = view
+        sheet.popoverPresentationController?.sourceRect = view.bounds
+        present(sheet, animated: true)
     }
 
     @objc private func clearBarTapped(_ sender: UIButton) {

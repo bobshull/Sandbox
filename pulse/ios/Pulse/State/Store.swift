@@ -5,6 +5,26 @@ enum StateSection {
     case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects, patternLength, accent
 }
 
+enum RandomizeIntensity: CaseIterable {
+    case light, medium, wild
+
+    var title: String {
+        switch self {
+        case .light: return "Light"
+        case .medium: return "Medium"
+        case .wild: return "Wild"
+        }
+    }
+
+    fileprivate var density: Double {
+        switch self {
+        case .light: return 0.65
+        case .medium: return 1.0
+        case .wild: return 1.45
+        }
+    }
+}
+
 final class Store {
     // Settings
     private(set) var tempo: Double = AppSettings.defaultTempo
@@ -18,6 +38,7 @@ final class Store {
     private(set) var barVolumes: [[String: Float]] = [[:], [:]]
     private(set) var barEffects: [[String: TrackEffects]] = [[:], [:]]
     private(set) var accents: [String: [Bool]] = [:]
+    private(set) var grooveSeed: UInt64 = UInt64.random(in: 1...UInt64.max)
 
     var volumes: [String: Float] { barVolumes[0] }
     var effects: [String: TrackEffects] { barEffects[0] }
@@ -93,12 +114,14 @@ final class Store {
         let sequenceStart: Int
         let sequenceLength: Int
         let accents: [String: [Bool]]
+        let grooveSeed: UInt64
     }
     private let snapshotLock = NSLock()
     private var snapshot = AudioSnapshot(tempo: AppSettings.defaultTempo, swing: 0.18, masterGain: 0.85,
                                          rows: [:], mutes: [:], barVolumes: [[:], [:]],
                                          barEffects: [[:], [:]], patternLength: 16,
-                                         sequenceStart: 0, sequenceLength: 16, accents: [:])
+                                         sequenceStart: 0, sequenceLength: 16, accents: [:],
+                                         grooveSeed: 1)
 
     func audioSnapshot() -> AudioSnapshot {
         snapshotLock.lock()
@@ -113,7 +136,7 @@ final class Store {
                                  barVolumes: barVolumes, barEffects: barEffects,
                                  patternLength: patternLength,
                                  sequenceStart: sequenceStart, sequenceLength: sequenceLength,
-                                 accents: accents)
+                                 accents: accents, grooveSeed: grooveSeed)
         snapshotLock.unlock()
     }
 
@@ -137,6 +160,10 @@ final class Store {
         changes.send(.undo)
     }
 
+    private func refreshGrooveSeed() {
+        grooveSeed = UInt64.random(in: 1...UInt64.max)
+    }
+
     func undo() {
         guard let snap = undoStack.popLast() else { return }
         patternName = snap.patternName
@@ -145,6 +172,7 @@ final class Store {
         masterGain = snap.masterGain
         let prevLength = snap.patternLength ?? 16
         let prevBars = snap.enabledBars ?? (prevLength == 32 ? [true, true] : [true])
+        grooveSeed = snap.grooveSeed ?? UInt64.random(in: 1...UInt64.max)
         if prevLength != patternLength || prevBars != enabledBars {
             patternLength = prevLength
             enabledBars = prevBars
@@ -196,6 +224,7 @@ final class Store {
     func toggleStep(trackId: String, step: Int) {
         guard var arr = rows[trackId], (0..<arr.count).contains(step) else { return }
         pushUndo()
+        refreshGrooveSeed()
         arr[step].toggle()
         rows[trackId] = arr
         refreshSnapshot()
@@ -251,6 +280,7 @@ final class Store {
     func setPatternLength(_ length: Int) {
         guard length == 16 || length == 32, length != patternLength else { return }
         pushUndo()
+        refreshGrooveSeed()
         patternLength = length
         if length == 32 {
             enabledBars = [true, true]
@@ -276,6 +306,7 @@ final class Store {
     func expandToTwoBarsDuplicate() {
         guard patternLength == 16 else { return }
         pushUndo()
+        refreshGrooveSeed()
         patternLength = 32
         enabledBars = [true, true]
         for t in Tracks.all {
@@ -298,6 +329,7 @@ final class Store {
         let wouldDisable = enabledBars[index]
         if wouldDisable && enabledBars.filter({ $0 }).count == 1 { return }
         enabledBars[index].toggle()
+        refreshGrooveSeed()
         refreshSnapshot()
         isDirty = true
         changes.send(.patternLength)   // reuses existing section; SequencerView listens to it
@@ -306,6 +338,7 @@ final class Store {
     func duplicateBar1() {
         guard patternLength == 32 else { return }
         pushUndo()
+        refreshGrooveSeed()
         for t in Tracks.all {
             guard var arr = rows[t.id], arr.count == 32 else { continue }
             let bar1 = Array(arr.prefix(16))
@@ -321,8 +354,60 @@ final class Store {
         changes.send(.effects)
     }
 
+    func generateBar2Variation() {
+        if patternLength == 16 {
+            pushUndo()
+            patternLength = 32
+            enabledBars = [true, true]
+            for t in Tracks.all {
+                let bar1 = Array((rows[t.id] ?? Array(repeating: false, count: 16)).prefix(16))
+                rows[t.id] = bar1 + bar1
+                let bar1Accents = Array(normalizedFlags(accents[t.id], length: 16).prefix(16))
+                accents[t.id] = bar1Accents + bar1Accents
+                barVolumes[1][t.id] = barVolumes[0][t.id]
+                barEffects[1][t.id] = barEffects[0][t.id]
+            }
+        } else {
+            pushUndo()
+            for t in Tracks.all {
+                guard var arr = rows[t.id], arr.count == 32 else { continue }
+                let bar1 = Array(arr.prefix(16))
+                arr.replaceSubrange(16..., with: bar1)
+                rows[t.id] = arr
+
+                var accArr = normalizedFlags(accents[t.id], length: 32)
+                let bar1Accents = Array(accArr.prefix(16))
+                accArr.replaceSubrange(16..., with: bar1Accents)
+                accents[t.id] = accArr
+
+                barVolumes[1][t.id] = barVolumes[0][t.id]
+                barEffects[1][t.id] = barEffects[0][t.id]
+            }
+        }
+
+        refreshGrooveSeed()
+        for track in Tracks.all {
+            guard var arr = rows[track.id], arr.count == 32 else { continue }
+            var accArr = normalizedFlags(accents[track.id], length: 32)
+            for step in 16..<32 {
+                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr, accents: &accArr)
+            }
+            rows[track.id] = arr
+            accents[track.id] = accArr
+        }
+
+        refreshSnapshot()
+        isDirty = true
+        changes.send(.patternLength)
+        changes.send(.pattern)
+        changes.send(.accent)
+        changes.send(.volumes)
+        changes.send(.effects)
+    }
+
     func clearPattern() {
         pushUndo()
+        refreshGrooveSeed()
         rows = Presets.emptyRows(length: patternLength)
         for t in Tracks.all { accents[t.id] = Array(repeating: false, count: patternLength) }
         currentPatternId = ""
@@ -340,6 +425,7 @@ final class Store {
         currentPatternId = pattern.id
         tempo = pattern.id == "empty" ? AppSettings.defaultTempo : pattern.tempo
         swing = pattern.swing
+        grooveSeed = pattern.grooveSeed ?? UInt64.random(in: 1...UInt64.max)
         patternLength = pattern.patternLength ?? 16
         enabledBars = patternLength == 32 ? [true, true] : [true]
         rows = Presets.filledRows(from: pattern.rows, length: patternLength)
@@ -373,7 +459,7 @@ final class Store {
                 rows: exportRows, volumes: barVolumes[0], mutes: mutes, effects: barEffects[0],
                 kitId: currentKitId, patternLength: patternLength,
                 bar2Volumes: barVolumes[1], bar2Effects: barEffects[1],
-                accents: exportAccents)
+                accents: exportAccents, grooveSeed: grooveSeed)
     }
 
     func sessionState() -> SessionState {
@@ -398,7 +484,8 @@ final class Store {
             enabledBars: enabledBars,
             bar2Volumes: barVolumes[1],
             bar2Effects: barEffects[1],
-            accents: snapAccents
+            accents: snapAccents,
+            grooveSeed: grooveSeed
         )
     }
 
@@ -408,6 +495,7 @@ final class Store {
         tempo = session.tempo
         swing = session.swing
         masterGain = session.masterGain
+        grooveSeed = session.grooveSeed ?? UInt64.random(in: 1...UInt64.max)
         patternLength = session.patternLength ?? 16
         enabledBars = session.enabledBars ?? (patternLength == 32 ? [true, true] : [true])
         rows = Presets.filledRows(from: session.rows, length: patternLength)
@@ -433,6 +521,7 @@ final class Store {
     func toggleAccent(trackId: String, step: Int) {
         guard var arr = accents[trackId], arr.indices.contains(step) else { return }
         pushUndo()
+        refreshGrooveSeed()
         arr[step].toggle()
         accents[trackId] = arr
         isDirty = true
@@ -444,6 +533,7 @@ final class Store {
 
     func clearTrack(trackId: String) {
         pushUndo()
+        refreshGrooveSeed()
         rows[trackId] = Array(repeating: false, count: patternLength)
         accents[trackId] = Array(repeating: false, count: patternLength)
         refreshSnapshot()
@@ -456,6 +546,7 @@ final class Store {
     func shiftTrack(trackId: String, by delta: Int) {
         guard var arr = rows[trackId], !arr.isEmpty else { return }
         pushUndo()
+        refreshGrooveSeed()
         let len = arr.count
         let d = ((delta % len) + len) % len
         arr = Array(arr[d...]) + Array(arr[..<d])
@@ -469,10 +560,11 @@ final class Store {
         changes.send(.pattern)
     }
 
-    func randomizeTrack(_ trackId: String) {
+    func randomizeTrack(_ trackId: String, intensity: RandomizeIntensity = .medium) {
         guard let track = Tracks.find(trackId) else { return }
         pushUndo()
-        rows[trackId] = generateTrackSteps(voice: track.voice, length: patternLength)
+        refreshGrooveSeed()
+        rows[trackId] = generateTrackSteps(voice: track.voice, length: patternLength, intensity: intensity)
         accents[trackId] = Array(repeating: false, count: patternLength)
         refreshSnapshot()
         isDirty = true
@@ -484,6 +576,7 @@ final class Store {
 
     func clearBar(_ barIndex: Int) {
         pushUndo()
+        refreshGrooveSeed()
         let start = barIndex == 0 ? 0 : 16
         for trackId in rows.keys {
             guard var arr = rows[trackId], arr.count > start else { continue }
@@ -501,38 +594,41 @@ final class Store {
         changes.send(.accent)
     }
 
-    func randomizeBar(_ barIndex: Int) {
+    func randomizeBar(_ barIndex: Int, intensity: RandomizeIntensity = .medium) {
         pushUndo()
+        refreshGrooveSeed()
         let start = barIndex == 0 ? 0 : 16
         for track in Tracks.all {
             guard var arr = rows[track.id], arr.count > start else { continue }
-            let barSteps = randomBarSteps(voice: track.voice)
+            var accArr = normalizedFlags(accents[track.id], length: arr.count)
+            let barSteps = randomBarSteps(voice: track.voice, intensity: intensity)
             let end = min(start + 16, arr.count)
-            for i in start..<end { arr[i] = barSteps[i - start] }
+            for i in start..<end {
+                arr[i] = barSteps[i - start]
+                accArr[i] = false
+            }
             rows[track.id] = arr
+            accents[track.id] = accArr
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
+        changes.send(.accent)
     }
 
     func humanizeBar(_ barIndex: Int) {
         pushUndo()
+        refreshGrooveSeed()
         let start = barIndex == 0 ? 0 : 16
-        for trackId in rows.keys {
-            guard var arr = rows[trackId], arr.count > start else { continue }
-            var accArr = accents[trackId] ?? Array(repeating: false, count: arr.count)
+        for track in Tracks.all {
+            guard var arr = rows[track.id], arr.count > start else { continue }
+            var accArr = normalizedFlags(accents[track.id], length: arr.count)
             let end = min(start + 16, arr.count)
-            for i in start..<end {
-                if arr[i] {
-                    if Double.random(in: 0...1) < 0.25 { accArr[i].toggle() }
-                    if Double.random(in: 0...1) < 0.07 { arr[i] = false; accArr[i] = false }
-                } else if i % 4 == 2, Double.random(in: 0...1) < 0.05 {
-                    arr[i] = true
-                }
+            for step in start..<end {
+                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr, accents: &accArr)
             }
-            rows[trackId] = arr
-            accents[trackId] = accArr
+            rows[track.id] = arr
+            accents[track.id] = accArr
         }
         refreshSnapshot()
         isDirty = true
@@ -544,19 +640,15 @@ final class Store {
 
     func humanizeGroove() {
         pushUndo()
-        for trackId in rows.keys {
-            guard var arr = rows[trackId] else { continue }
-            var accArr = accents[trackId] ?? Array(repeating: false, count: arr.count)
-            for i in arr.indices {
-                if arr[i] {
-                    if Double.random(in: 0...1) < 0.30 { accArr[i].toggle() }
-                    if Double.random(in: 0...1) < 0.06 { arr[i] = false; accArr[i] = false }
-                } else if i % 4 == 2, Double.random(in: 0...1) < 0.04 {
-                    arr[i] = true
-                }
+        refreshGrooveSeed()
+        for track in Tracks.all {
+            guard var arr = rows[track.id] else { continue }
+            var accArr = normalizedFlags(accents[track.id], length: arr.count)
+            for step in arr.indices {
+                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr, accents: &accArr)
             }
-            rows[trackId] = arr
-            accents[trackId] = accArr
+            rows[track.id] = arr
+            accents[track.id] = accArr
         }
         refreshSnapshot()
         isDirty = true
@@ -564,10 +656,11 @@ final class Store {
         changes.send(.accent)
     }
 
-    func randomizeGroove() {
+    func randomizeGroove(intensity: RandomizeIntensity = .medium) {
         pushUndo()
+        refreshGrooveSeed()
         for track in Tracks.all {
-            rows[track.id] = generateTrackSteps(voice: track.voice, length: patternLength)
+            rows[track.id] = generateTrackSteps(voice: track.voice, length: patternLength, intensity: intensity)
             accents[track.id] = Array(repeating: false, count: patternLength)
         }
         refreshSnapshot()
@@ -578,42 +671,102 @@ final class Store {
 
     // MARK: - Private helpers
 
-    private func generateTrackSteps(voice: VoiceKind, length: Int) -> [Bool] {
+    private func generateTrackSteps(voice: VoiceKind, length: Int, intensity: RandomizeIntensity) -> [Bool] {
         var result = Array(repeating: false, count: length)
-        let bar1 = randomBarSteps(voice: voice)
+        let bar1 = randomBarSteps(voice: voice, intensity: intensity)
         for i in 0..<min(16, length) { result[i] = bar1[i] }
         if length == 32 {
-            let bar2 = randomBarSteps(voice: voice)
+            let bar2 = randomBarSteps(voice: voice, intensity: intensity)
             for i in 0..<16 { result[16 + i] = bar2[i] }
         }
         return result
     }
 
-    private func randomBarSteps(voice: VoiceKind) -> [Bool] {
+    private func roll(_ probability: Double, intensity: RandomizeIntensity, anchor: Bool = false) -> Bool {
+        let scaled = min(max(probability * (anchor ? max(0.85, intensity.density) : intensity.density), 0), 0.98)
+        return Double.random(in: 0...1) < scaled
+    }
+
+    private func randomBarSteps(voice: VoiceKind, intensity: RandomizeIntensity) -> [Bool] {
         var r = Array(repeating: false, count: 16)
         switch voice {
         case .kick:
-            for b in [0, 8] { if Double.random(in: 0...1) < 0.85 { r[b] = true } }
-            for b in [2, 4, 6, 10, 12, 14] { if Double.random(in: 0...1) < 0.25 { r[b] = true } }
+            for b in [0, 8] { if roll(0.85, intensity: intensity, anchor: true) { r[b] = true } }
+            for b in [2, 4, 6, 10, 12, 14] { if roll(0.25, intensity: intensity) { r[b] = true } }
         case .snare:
-            for b in [4, 12] { if Double.random(in: 0...1) < 0.90 { r[b] = true } }
-            for b in [2, 6, 10, 14] { if Double.random(in: 0...1) < 0.15 { r[b] = true } }
+            for b in [4, 12] { if roll(0.90, intensity: intensity, anchor: true) { r[b] = true } }
+            for b in [2, 6, 10, 14] { if roll(0.15, intensity: intensity) { r[b] = true } }
         case .hat:
-            let stride = Bool.random() ? 2 : 1
-            for i in Swift.stride(from: 0, to: 16, by: stride) { r[i] = Double.random(in: 0...1) < 0.80 }
+            let stride = intensity == .light ? 2 : (Bool.random() ? 2 : 1)
+            for i in Swift.stride(from: 0, to: 16, by: stride) { r[i] = roll(0.80, intensity: intensity) }
         case .clap:
-            for b in [4, 12] { if Double.random(in: 0...1) < 0.75 { r[b] = true } }
-            for b in [6, 14] { if Double.random(in: 0...1) < 0.20 { r[b] = true } }
+            for b in [4, 12] { if roll(0.75, intensity: intensity, anchor: true) { r[b] = true } }
+            for b in [6, 14] { if roll(0.20, intensity: intensity) { r[b] = true } }
         case .bass:
-            for b in [0, 8] { if Double.random(in: 0...1) < 0.70 { r[b] = true } }
-            for b in [3, 5, 10, 13] { if Double.random(in: 0...1) < 0.30 { r[b] = true } }
+            for b in [0, 8] { if roll(0.70, intensity: intensity, anchor: true) { r[b] = true } }
+            for b in [3, 5, 10, 13] { if roll(0.30, intensity: intensity) { r[b] = true } }
         case .pluck:
-            for b in [2, 5, 7, 9, 11, 13, 14, 15] { if Double.random(in: 0...1) < 0.30 { r[b] = true } }
+            for b in [2, 5, 7, 9, 11, 13, 14, 15] { if roll(0.30, intensity: intensity) { r[b] = true } }
         case .pad:
-            for b in [0, 4, 8, 12] { if Double.random(in: 0...1) < 0.35 { r[b] = true } }
+            for b in [0, 4, 8, 12] { if roll(0.35, intensity: intensity, anchor: true) { r[b] = true } }
         case .perc:
-            for b in [1, 3, 5, 7, 9, 11, 13, 15] { if Double.random(in: 0...1) < 0.30 { r[b] = true } }
+            for b in [1, 3, 5, 7, 9, 11, 13, 15] { if roll(0.30, intensity: intensity) { r[b] = true } }
         }
         return r
+    }
+
+    private func mutateStep(voice: VoiceKind,
+                            absoluteStep: Int,
+                            steps: inout [Bool],
+                            accents: inout [Bool]) {
+        let localStep = absoluteStep % 16
+        let isAnchor: Bool
+        let accentChance: Double
+        let removeChance: Double
+        let addChance: Double
+
+        switch voice {
+        case .kick:
+            isAnchor = localStep == 0 || localStep == 8
+            accentChance = 0.18
+            removeChance = isAnchor ? 0.01 : 0.035
+            addChance = [2, 6, 10, 14].contains(localStep) ? 0.045 : 0.012
+        case .snare, .clap:
+            isAnchor = localStep == 4 || localStep == 12
+            accentChance = 0.22
+            removeChance = isAnchor ? 0.01 : 0.04
+            addChance = [2, 6, 10, 14].contains(localStep) ? 0.035 : 0.01
+        case .hat, .perc:
+            isAnchor = false
+            accentChance = 0.32
+            removeChance = 0.08
+            addChance = localStep % 2 == 1 ? 0.055 : 0.035
+        case .bass:
+            isAnchor = localStep == 0 || localStep == 8
+            accentChance = 0.16
+            removeChance = isAnchor ? 0.015 : 0.04
+            addChance = [3, 5, 10, 13].contains(localStep) ? 0.035 : 0.008
+        case .pluck:
+            isAnchor = false
+            accentChance = 0.24
+            removeChance = 0.055
+            addChance = [2, 5, 7, 9, 11, 14].contains(localStep) ? 0.045 : 0.012
+        case .pad:
+            isAnchor = localStep % 4 == 0
+            accentChance = 0.10
+            removeChance = isAnchor ? 0.015 : 0.025
+            addChance = localStep % 4 == 0 ? 0.025 : 0.004
+        }
+
+        if steps[absoluteStep] {
+            if Double.random(in: 0...1) < accentChance { accents[absoluteStep].toggle() }
+            if Double.random(in: 0...1) < removeChance {
+                steps[absoluteStep] = false
+                accents[absoluteStep] = false
+            }
+        } else if Double.random(in: 0...1) < addChance {
+            steps[absoluteStep] = true
+            accents[absoluteStep] = Double.random(in: 0...1) < accentChance
+        }
     }
 }

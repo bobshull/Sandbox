@@ -16,6 +16,7 @@ struct Pattern: Codable {
     var basePresetId: String?
     var barLength: Int?
     var accents: [String: [Bool]]?
+    var grooveSeed: UInt64? = nil
 }
 
 enum Presets {

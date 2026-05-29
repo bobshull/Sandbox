@@ -6,7 +6,7 @@ final class TrackActionsViewController: UIViewController {
     var onClearTrack: (() -> Void)?
     var onShiftLeft: (() -> Void)?
     var onShiftRight: (() -> Void)?
-    var onRandomizeTrack: (() -> Void)?
+    var onRandomizeTrack: ((RandomizeIntensity) -> Void)?
 
     private let track: Track
     private let panel = UIView()
@@ -173,7 +173,16 @@ final class TrackActionsViewController: UIViewController {
     }
 
     @objc private func randomizeTapped() {
-        dismiss(animated: true) { [weak self] in self?.onRandomizeTrack?() }
+        let sheet = UIAlertController(title: "Randomize \(track.name)", message: nil, preferredStyle: .actionSheet)
+        for intensity in RandomizeIntensity.allCases {
+            sheet.addAction(UIAlertAction(title: intensity.title, style: .default) { [weak self] _ in
+                self?.dismiss(animated: true) { self?.onRandomizeTrack?(intensity) }
+            })
+        }
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.popoverPresentationController?.sourceView = view
+        sheet.popoverPresentationController?.sourceRect = view.bounds
+        present(sheet, animated: true)
     }
 
     @objc private func dismissSelf() { dismiss(animated: true) }

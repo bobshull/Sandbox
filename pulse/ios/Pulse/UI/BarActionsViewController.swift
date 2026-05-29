@@ -3,9 +3,10 @@ import UIKit
 final class BarActionsViewController: UIViewController {
 
     var onClearBar: (() -> Void)?
-    var onRandomizeBar: (() -> Void)?
+    var onRandomizeBar: ((RandomizeIntensity) -> Void)?
     var onHumanizeBar: (() -> Void)?
     var onDuplicateToBar2: (() -> Void)?
+    var onGenerateBar2Variation: (() -> Void)?
     var onCopyBar1Here: (() -> Void)?
 
     private let barIndex: Int
@@ -95,13 +96,17 @@ final class BarActionsViewController: UIViewController {
         randomizeBtn.addTarget(self, action: #selector(randomizeTapped), for: .touchUpInside)
         stack.addArrangedSubview(row([clearBtn, randomizeBtn]))
 
-        let humanizeBtn = actionButton("Humanize Bar", icon: "wand.and.stars")
+        let humanizeBtn = actionButton("Mutate Bar", icon: "wand.and.stars")
         humanizeBtn.addTarget(self, action: #selector(humanizeTapped), for: .touchUpInside)
 
         if barIndex == 0 {
             let dupBtn = actionButton("Duplicate to Bar 2", icon: "doc.on.doc")
             dupBtn.addTarget(self, action: #selector(duplicateTapped), for: .touchUpInside)
             stack.addArrangedSubview(row([humanizeBtn, dupBtn]))
+
+            let variationBtn = actionButton("Vary to Bar 2", icon: "sparkles")
+            variationBtn.addTarget(self, action: #selector(variationTapped), for: .touchUpInside)
+            stack.addArrangedSubview(row([variationBtn]))
         } else {
             let copyBtn = actionButton("Copy Bar 1 Here", icon: "arrow.down.doc")
             copyBtn.addTarget(self, action: #selector(copyBar1Tapped), for: .touchUpInside)
@@ -153,7 +158,16 @@ final class BarActionsViewController: UIViewController {
     }
 
     @objc private func randomizeTapped() {
-        dismiss(animated: true) { [weak self] in self?.onRandomizeBar?() }
+        let sheet = UIAlertController(title: "Randomize Bar \(barIndex + 1)", message: nil, preferredStyle: .actionSheet)
+        for intensity in RandomizeIntensity.allCases {
+            sheet.addAction(UIAlertAction(title: intensity.title, style: .default) { [weak self] _ in
+                self?.dismiss(animated: true) { self?.onRandomizeBar?(intensity) }
+            })
+        }
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.popoverPresentationController?.sourceView = view
+        sheet.popoverPresentationController?.sourceRect = view.bounds
+        present(sheet, animated: true)
     }
 
     @objc private func humanizeTapped() {
@@ -162,6 +176,10 @@ final class BarActionsViewController: UIViewController {
 
     @objc private func duplicateTapped() {
         dismiss(animated: true) { [weak self] in self?.onDuplicateToBar2?() }
+    }
+
+    @objc private func variationTapped() {
+        dismiss(animated: true) { [weak self] in self?.onGenerateBar2Variation?() }
     }
 
     @objc private func copyBar1Tapped() {

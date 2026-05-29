@@ -1183,6 +1183,59 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(snap.barEffects[1][trackId]?.delayWet, 44)
     }
 
+    func test_audioSnapshot_grooveSeedChangesWhenPatternChanges() {
+        let before = store.audioSnapshot().grooveSeed
+        store.toggleStep(trackId: Tracks.all[0].id, step: 0)
+        XCTAssertNotEqual(store.audioSnapshot().grooveSeed, before)
+    }
+
+    // MARK: - generateBar2Variation
+
+    func test_generateBar2Variation_expandsToTwoBars() {
+        store.generateBar2Variation()
+        XCTAssertEqual(store.patternLength, 32)
+        XCTAssertEqual(store.enabledBars, [true, true])
+        for track in Tracks.all {
+            XCTAssertEqual(store.rows[track.id]?.count, 32)
+            XCTAssertEqual(store.accents[track.id]?.count, 32)
+        }
+    }
+
+    func test_generateBar2Variation_copiesBarSettingsToBar2() {
+        let trackId = Tracks.all[0].id
+        var fx = TrackEffects()
+        fx.reverbWet = 35
+        store.setVolume(trackId: trackId, value: 0.41, bar: 0)
+        store.setTrackEffects(trackId: trackId, fx, bar: 0)
+
+        store.generateBar2Variation()
+
+        XCTAssertEqual(store.volumes(for: 1)[trackId], Float(0.41), accuracy: Float(0.001))
+        XCTAssertEqual(store.effects(for: 1)[trackId]?.reverbWet, 35)
+    }
+
+    // MARK: - randomize intensity
+
+    func test_randomizeTrack_lightKeepsPatternLength() {
+        let trackId = Tracks.all[0].id
+        store.randomizeTrack(trackId, intensity: .light)
+        XCTAssertEqual(store.rows[trackId]?.count, 16)
+        XCTAssertEqual(store.accents[trackId]?.count, 16)
+    }
+
+    func test_randomizeBar_wildClearsBarAccents() {
+        let trackId = Tracks.all[0].id
+        store.toggleAccent(trackId: trackId, step: 0)
+        store.randomizeBar(0, intensity: .wild)
+        XCTAssertFalse(store.accents[trackId]?[0] == true)
+    }
+
+    func test_randomizeGroove_mediumRefreshesGrooveSeed() {
+        let before = store.audioSnapshot().grooveSeed
+        store.randomizeGroove(intensity: .medium)
+        XCTAssertNotEqual(store.audioSnapshot().grooveSeed, before)
+    }
+
     // MARK: - volumes(for:) / effects(for:)
 
     func test_volumesFor0_matchesVolumes() {

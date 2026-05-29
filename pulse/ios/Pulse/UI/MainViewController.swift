@@ -283,9 +283,9 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             self?.store.shiftTrack(trackId: track.id, by: -1)
             self?.toast.show("\(track.name) shifted right", tone: .ok)
         }
-        panel.onRandomizeTrack = { [weak self] in
-            self?.store.randomizeTrack(track.id)
-            self?.toast.show("\(track.name) randomized", tone: .ok)
+        panel.onRandomizeTrack = { [weak self] intensity in
+            self?.store.randomizeTrack(track.id, intensity: intensity)
+            self?.toast.show("\(track.name) randomized: \(intensity.title)", tone: .ok)
         }
         presentWhenReady(panel)
     }
@@ -300,15 +300,16 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             self?.store.clearBar(barIndex)
             self?.toast.show("Bar \(barIndex + 1) cleared", tone: .ok)
         }
-        panel.onRandomizeBar = { [weak self] in
-            self?.store.randomizeBar(barIndex)
-            self?.toast.show("Bar \(barIndex + 1) randomized", tone: .ok)
+        panel.onRandomizeBar = { [weak self] intensity in
+            self?.store.randomizeBar(barIndex, intensity: intensity)
+            self?.toast.show("Bar \(barIndex + 1) randomized: \(intensity.title)", tone: .ok)
         }
         panel.onHumanizeBar = { [weak self] in
             self?.store.humanizeBar(barIndex)
-            self?.toast.show("Bar \(barIndex + 1) humanized", tone: .ok)
+            self?.toast.show("Bar \(barIndex + 1) mutated", tone: .ok)
         }
         panel.onDuplicateToBar2 = { [weak self] in self?.copyBar1ToBar2() }
+        panel.onGenerateBar2Variation = { [weak self] in self?.generateBar2Variation() }
         panel.onCopyBar1Here = { [weak self] in self?.copyBar1ToBar2() }
         presentWhenReady(panel)
     }
@@ -333,6 +334,9 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             sheet.addAction(UIAlertAction(title: "Duplicate Current Bar 1", style: .default) { [weak self] _ in
                 self?.expandDuplicate()
             })
+            sheet.addAction(UIAlertAction(title: "Generate Bar 2 Variation", style: .default) { [weak self] _ in
+                self?.expandVariation()
+            })
             sheet.addAction(UIAlertAction(title: "Start with Blank Bar 2", style: .default) { [weak self] _ in
                 self?.store.setPatternLength(32)
             })
@@ -344,6 +348,9 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             }
             sheet.addAction(UIAlertAction(title: "Duplicate Bar 1", style: .default) { [weak self] _ in
                 self?.expandDuplicate()
+            })
+            sheet.addAction(UIAlertAction(title: "Generate Bar 2 Variation", style: .default) { [weak self] _ in
+                self?.expandVariation()
             })
             sheet.addAction(UIAlertAction(title: "Start with Blank Bar 2", style: .default) { [weak self] _ in
                 self?.store.setPatternLength(32)
@@ -361,6 +368,13 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         store.expandToTwoBarsDuplicate()
         applyTrackVolumesToEngine()
         applyTrackEffectsToEngine()
+    }
+
+    private func expandVariation() {
+        store.generateBar2Variation()
+        applyTrackVolumesToEngine()
+        applyTrackEffectsToEngine()
+        toast.show("Bar 2 variation generated", tone: .ok)
     }
 
     private func handleCollapseToOneBar() {
@@ -414,6 +428,25 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         present(alert, animated: true)
     }
 
+    private func generateBar2Variation() {
+        let bar2HasContent = store.rows.values.contains { arr in
+            arr.count == 32 && arr[16...].contains(true)
+        }
+        guard bar2HasContent else {
+            expandVariation()
+            return
+        }
+        let alert = UIAlertController(
+            title: "Overwrite Bar 2?",
+            message: "Bar 2 has steps. This will replace them with a variation of Bar 1.",
+            preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Generate Variation", style: .destructive) { [weak self] _ in
+            self?.expandVariation()
+        })
+        present(alert, animated: true)
+    }
+
     // MARK: - Pattern library
 
     private func showSettings() {
@@ -438,13 +471,13 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             self?.store.humanizeGroove()
             self?.applyTrackVolumesToEngine()
             self?.applyTrackEffectsToEngine()
-            self?.toast.show("Groove humanized", tone: .ok)
+            self?.toast.show("Groove mutated", tone: .ok)
         }
-        panel.onRandomizeGroove = { [weak self] in
-            self?.store.randomizeGroove()
+        panel.onRandomizeGroove = { [weak self] intensity in
+            self?.store.randomizeGroove(intensity: intensity)
             self?.applyTrackVolumesToEngine()
             self?.applyTrackEffectsToEngine()
-            self?.toast.show("Groove randomized", tone: .ok)
+            self?.toast.show("Groove randomized: \(intensity.title)", tone: .ok)
         }
         panel.onClearBar = { [weak self] barIndex in
             self?.store.clearBar(barIndex)
@@ -517,7 +550,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
         let stepDur = 60.0 / store.tempo / 4.0
         for reps in [1, 2, 4, 8] {
-            let secs = Int(Double(reps * store.patternLength) * stepDur)
+            let secs = Int(Double(reps * store.sequenceLength) * stepDur)
             let label = reps == 1 ? "1 Loop" : "\(reps) Loops"
             sheet.addAction(UIAlertAction(title: "\(label)  —  ~\(secs)s", style: .default) { [weak self] _ in
                 self?.runExport(reps: reps, format: format)
@@ -533,16 +566,18 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         present(progress, animated: true)
         engine.exportMix(reps: reps, format: format) { [weak self] result in
             guard let self else { return }
-            progress.dismiss(animated: true) {
-                switch result {
-                case .success(let url):
-                    let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-                    share.popoverPresentationController?.sourceView = self.moreButton
-                    share.completionWithItemsHandler = { _, _, _, _ in
-                        try? FileManager.default.removeItem(at: url)
-                    }
-                    self.present(share, animated: true)
-                case .failure(let err):
+            switch result {
+            case .success(let url):
+                progress.title = "Preparing Share…"
+                let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                share.popoverPresentationController?.sourceView = self.moreButton
+                share.completionWithItemsHandler = { _, _, _, _ in
+                    try? FileManager.default.removeItem(at: url)
+                    progress.dismiss(animated: true)
+                }
+                progress.present(share, animated: true)
+            case .failure(let err):
+                progress.dismiss(animated: true) {
                     self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)
                 }
             }
