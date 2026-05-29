@@ -168,7 +168,7 @@ struct ColorTheme {
     ])
 
     // ── Deep Jewel ─────────────────────────────────────────────────────────
-    static let tangerine = ColorTheme(id: "tangerine", name: "Deep Jewel", colors: [
+    static let tangerine = ColorTheme(id: "jewel", name: "Deep Jewel", colors: [
         "kick":  (hex("1a7a4a"), hex("115c36")),   // emerald
         "snare": (hex("b8860b"), hex("8a6408")),   // dark gold complement
         "hat":   (hex("1e6fa8"), hex("144f7a")),   // sapphire
