@@ -72,7 +72,7 @@ final class TrackHeaderView: UIView {
             var out = incoming; out.font = .systemFont(ofSize: 9, weight: .bold); return out
         }
         swatchCfg.baseForegroundColor = UIColor(white: 0.1, alpha: 0.9)
-        swatchCfg.background.backgroundColor = track.color
+        swatchCfg.background.backgroundColor = ColorTheme.current.color(for: track.id)
         swatchCfg.background.cornerRadius = 4
         swatchCfg.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 5, bottom: 3, trailing: 5)
         swatchButton.configuration = swatchCfg
@@ -92,7 +92,7 @@ final class TrackHeaderView: UIView {
         muteButton.accessibilityLabel = "Mute \(track.name)"
         addSubview(muteButton)
 
-        volumePill.fillColor = track.color
+        volumePill.fillColor = ColorTheme.current.color(for: track.id)
         volumePill.translatesAutoresizingMaskIntoConstraints = false
         volumePill.accessibilityLabel = "\(track.name) volume"
         volumePill.addTarget(self, action: #selector(volumeTapped), for: .touchUpInside)
@@ -208,4 +208,3 @@ private extension UIResponder {
         next as? UIViewController ?? next?.parentViewController
     }
 }
-

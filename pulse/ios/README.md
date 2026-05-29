@@ -6,7 +6,7 @@ Native iPhone/iPad port of the web `pulse` app. Same architecture, same eight sy
 
 ## Quick start
 
-The repo ships the Swift sources and a [XcodeGen](https://github.com/yonaskolb/XcodeGen) project spec instead of a committed `.xcodeproj`. That way the project file is generated reproducibly from `project.yml` rather than hand-edited.
+The repo includes a generated `Pulse.xcodeproj` plus the [XcodeGen](https://github.com/yonaskolb/XcodeGen) project spec used to recreate it. Treat `project.yml` as the source of truth when changing targets or build settings.
 
 On macOS:
 
@@ -15,7 +15,7 @@ On macOS:
 brew install xcodegen
 
 # In this folder:
-cd ios
+cd pulse/ios
 xcodegen generate
 open Pulse.xcodeproj
 ```
@@ -64,8 +64,9 @@ ios/Pulse/
 
 **Mirrors the web version's separation:**
 
-- `Audio/` has no UIKit imports — pure DSP and AVFoundation.
+- `Audio/` has no UIKit imports — pure DSP, scheduling, export, and AVFoundation.
 - `State/` has no UIKit either — just `Foundation` + `Combine`.
+- `Data/` stays UI-free track/preset metadata.
 - `UI/` reads from the store and forwards intent to the store and engine. No business logic lives here.
 
 ## How the audio engine works
@@ -80,18 +81,19 @@ Swing is applied per pair of 16th notes: offbeats are delayed by `swing × stepD
 
 ## Features
 
-- 8 tracks × 16 steps grid with horizontal scroll on narrow screens
+- 8 tracks × 16 or 32 steps with bar paging
 - Per-track mute, volume, and tap-to-preview
-- Tempo (60–200 BPM) and swing (0–60%)
-- 6 built-in presets + unlimited saved patterns (UserDefaults)
-- Export pattern JSON via the share sheet
+- Per-track FX, accents, kits, randomize/humanize actions, and undo
+- Tempo (40–220 BPM) and swing (0–60%)
+- Built-in presets + saved patterns (UserDefaults/iCloud key-value sync)
+- Export WAV or M4A audio via the share sheet
 - Background audio (keep playing when locked)
 - Dark mode forced (the design only makes sense dark)
-- Portrait + landscape, iPhone + iPad
+- Landscape, iPhone + iPad
 
 ## Bundle ID
 
-The default in `project.yml` is `com.outdoorcap.pulse.Pulse`. Change it before signing for distribution.
+The default in `project.yml` is `com.bobbyshull.pulse`. Change it before signing for distribution.
 
 ## License
 

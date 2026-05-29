@@ -203,7 +203,7 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
             let cell = tableView.dequeueReusableCell(withIdentifier: BpmAppearancePairCell.reuseID, for: indexPath) as! BpmAppearancePairCell
             cell.configure()
             return cell
-}
+        }
     }
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -245,7 +245,7 @@ private func makePairRow(left: UIView, right: UIView) -> UIStackView {
     pair.axis = .horizontal
     pair.spacing = 10
     pair.distribution = .fillEqually
-    pair.alignment = .top
+    pair.alignment = .fill
     return pair
 }
 
@@ -373,14 +373,88 @@ final class SyncHapticsPairCell: UITableViewCell {
     }
 }
 
+// MARK: - ThemeGridView
+
+private final class ThemeGridView: UIView {
+    var onSelect: ((String) -> Void)?
+
+    private let columns = 8
+    private let gap: CGFloat = 6
+    private var buttons: [UIButton] = []
+    private var selectedId: String = ""
+    private var currentTileSize: CGFloat = 0
+
+    private var rows: Int { (ColorTheme.all.count + columns - 1) / columns }
+
+    /// height = width * heightMultiplier + heightConstant
+    /// derived so that tiles exactly fill width with `gap` between columns
+    var heightMultiplier: CGFloat { CGFloat(rows) / CGFloat(columns) }
+    var heightConstant: CGFloat { gap * CGFloat(rows - columns) / CGFloat(columns) }
+
+    func configure(selectedId: String) {
+        self.selectedId = selectedId
+        if buttons.isEmpty { buildTiles() }
+        updateSelection()
+    }
+
+    private func buildTiles() {
+        for (i, theme) in ColorTheme.all.enumerated() {
+            let btn = UIButton(type: .custom)
+            btn.backgroundColor = theme.primaryColor
+            btn.layer.cornerRadius = 6
+            btn.layer.masksToBounds = true
+            btn.tag = i
+            btn.addTarget(self, action: #selector(tileTapped(_:)), for: .touchUpInside)
+            addSubview(btn)
+            buttons.append(btn)
+        }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds.width > 0 else { return }
+        let tile = ((bounds.width - gap * CGFloat(columns - 1)) / CGFloat(columns)).rounded(.down)
+        currentTileSize = tile
+        let step = tile + gap
+        for (i, btn) in buttons.enumerated() {
+            btn.frame = CGRect(x: CGFloat(i % columns) * step,
+                               y: CGFloat(i / columns) * step,
+                               width: tile, height: tile)
+        }
+        updateSelection()
+    }
+
+    private func updateSelection() {
+        for (i, btn) in buttons.enumerated() {
+            guard i < ColorTheme.all.count else { continue }
+            let isSelected = ColorTheme.all[i].id == selectedId
+            btn.layer.borderWidth = isSelected ? 2.5 : 0
+            btn.layer.borderColor = UIColor.white.cgColor
+            let pt = max(9, min(20, currentTileSize * 0.4))
+            let img = isSelected ? UIImage(systemName: "checkmark",
+                                           withConfiguration: UIImage.SymbolConfiguration(pointSize: pt, weight: .bold)) : nil
+            btn.setImage(img, for: .normal)
+            btn.tintColor = .white
+        }
+    }
+
+    @objc private func tileTapped(_ sender: UIButton) {
+        guard sender.tag < ColorTheme.all.count else { return }
+        selectedId = ColorTheme.all[sender.tag].id
+        updateSelection()
+        onSelect?(selectedId)
+    }
+}
+
 // MARK: - BpmAppearancePairCell  (left: Default BPM, right: Appearance)
 
 final class BpmAppearancePairCell: UITableViewCell {
     static let reuseID = "BpmAppearancePairCell"
 
-    private let slider     = UISlider()
-    private let valueLabel = UILabel()
-    private let segment    = UISegmentedControl()
+    private let slider          = UISlider()
+    private let valueLabel      = UILabel()
+    private let themeGrid       = ThemeGridView()
+    private let themeNameLabel  = UILabel()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .default, reuseIdentifier: reuseIdentifier)
@@ -388,7 +462,10 @@ final class BpmAppearancePairCell: UITableViewCell {
         selectionStyle = .none
         setupLayout()
         slider.addTarget(self, action: #selector(sliderChanged), for: .valueChanged)
-        segment.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
+        themeGrid.onSelect = { [weak self] id in
+            AppSettings.colorThemeId = id
+            self?.themeNameLabel.text = ColorTheme.current.name
+        }
         NotificationCenter.default.addObserver(self, selector: #selector(applyTheme),
                                                name: .colorThemeDidChange, object: nil)
     }
@@ -400,12 +477,7 @@ final class BpmAppearancePairCell: UITableViewCell {
         slider.minimumValue = 40; slider.maximumValue = 220
         slider.value = Float(bpm)
         valueLabel.text = "\(Int(bpm))"
-
-        segment.removeAllSegments()
-        for (i, theme) in ColorTheme.all.enumerated() {
-            segment.insertSegment(withTitle: theme.name, at: i, animated: false)
-            if theme.id == AppSettings.colorThemeId { segment.selectedSegmentIndex = i }
-        }
+        themeGrid.configure(selectedId: AppSettings.colorThemeId)
         applyTheme()
     }
 
@@ -413,7 +485,9 @@ final class BpmAppearancePairCell: UITableViewCell {
         let primary = ColorTheme.current.primaryColor
         valueLabel.textColor = primary
         slider.minimumTrackTintColor = primary
-        colorSegments()
+        themeNameLabel.text = ColorTheme.current.name
+        themeNameLabel.textColor = primary
+        themeGrid.configure(selectedId: AppSettings.colorThemeId)
     }
 
     private func setupLayout() {
@@ -459,18 +533,29 @@ final class BpmAppearancePairCell: UITableViewCell {
         let themeTitle = UILabel()
         themeTitle.text = "Appearance"
         themeTitle.font = .systemFont(ofSize: 14, weight: .semibold); themeTitle.textColor = Theme.text
-        let themeTitleRow = UIStackView(arrangedSubviews: [themeIcon, themeTitle])
+
+        themeNameLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        themeNameLabel.textAlignment = .right
+        themeNameLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let themeTitleRow = UIStackView(arrangedSubviews: [themeIcon, themeTitle, UIView(), themeNameLabel])
         themeTitleRow.axis = .horizontal; themeTitleRow.spacing = 6; themeTitleRow.alignment = .center
 
-        let themeDesc = UILabel()
-        themeDesc.text = "Sets the system theme color"
-        themeDesc.font = .systemFont(ofSize: 12); themeDesc.textColor = Theme.textFaint
+        // Grid fills the card width; height is pinned to width via aspect ratio so layout
+        // resolves in a single pass and the card can correctly drive the row height.
+        themeGrid.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            themeGrid.heightAnchor.constraint(equalTo: themeGrid.widthAnchor,
+                                              multiplier: themeGrid.heightMultiplier,
+                                              constant: themeGrid.heightConstant),
+        ])
 
-        let themeStack = UIStackView(arrangedSubviews: [themeTitleRow, segment, themeDesc])
+        let themeStack = UIStackView(arrangedSubviews: [themeTitleRow, themeGrid])
         themeStack.axis = .vertical; themeStack.spacing = 8
 
-        let pair = makePairRow(left: makeSettingCard(content: bpmStack),
-                               right: makeSettingCard(content: themeStack))
+        let bpmCard   = makeSettingCard(content: bpmStack)
+        let themeCard = makeSettingCard(content: themeStack)
+        let pair = makePairRow(left: bpmCard, right: themeCard)
         pair.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(pair)
         NSLayoutConstraint.activate([
@@ -478,26 +563,14 @@ final class BpmAppearancePairCell: UITableViewCell {
             pair.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
             pair.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             pair.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            // Force both cards to share a single height — match BPM to Appearance.
+            bpmCard.heightAnchor.constraint(equalTo: themeCard.heightAnchor),
         ])
-    }
-
-    private func colorSegments() {
-        segment.setTitleTextAttributes([.foregroundColor: Theme.text], for: .normal)
-        segment.setTitleTextAttributes([.foregroundColor: Theme.background], for: .selected)
-        if segment.selectedSegmentIndex >= 0, segment.selectedSegmentIndex < ColorTheme.all.count {
-            segment.selectedSegmentTintColor = ColorTheme.all[segment.selectedSegmentIndex].color(for: "kick")
-        }
     }
 
     @objc private func sliderChanged() {
         let snapped = Double(slider.value).rounded()
         valueLabel.text = "\(Int(snapped))"
         AppSettings.defaultTempo = snapped
-    }
-
-    @objc private func segmentChanged() {
-        colorSegments()
-        guard segment.selectedSegmentIndex >= 0 else { return }
-        AppSettings.colorThemeId = ColorTheme.all[segment.selectedSegmentIndex].id
     }
 }

@@ -25,9 +25,20 @@ final class LevelMeterStripView: UIView {
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
+        NotificationCenter.default.addObserver(self, selector: #selector(applyTheme),
+                                               name: .colorThemeDidChange, object: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        displayLink?.invalidate()
+    }
+
+    @objc private func applyTheme() {
+        bars.forEach { $0.applyThemeColor(ColorTheme.current.color(for: $0.trackId)) }
+    }
 
     func trigger(trackId: String) {
         guard let bar = bars.first(where: { $0.trackId == trackId }) else { return }
@@ -52,7 +63,7 @@ final class LevelMeterStripView: UIView {
 final class LevelMeterBar: UIView {
 
     let trackId: String
-    private let trackColor: UIColor
+    private var trackColor: UIColor
 
     private let bgLayer   = CALayer()
     private let fillLayer = CALayer()
@@ -69,15 +80,15 @@ final class LevelMeterBar: UIView {
 
     init(track: Track) {
         trackId    = track.id
-        trackColor = track.color
+        trackColor = ColorTheme.current.color(for: track.id)
         super.init(frame: .zero)
 
-        bgLayer.backgroundColor = track.color.withAlphaComponent(0.10).cgColor
+        bgLayer.backgroundColor = trackColor.withAlphaComponent(0.10).cgColor
         bgLayer.cornerRadius = 5
         bgLayer.cornerCurve  = .continuous
         layer.addSublayer(bgLayer)
 
-        fillLayer.backgroundColor = track.color.cgColor
+        fillLayer.backgroundColor = trackColor.cgColor
         fillLayer.cornerRadius = 5
         fillLayer.cornerCurve  = .continuous
         layer.addSublayer(fillLayer)
@@ -90,7 +101,7 @@ final class LevelMeterBar: UIView {
 
         nameLabel.text      = track.name
         nameLabel.font      = .systemFont(ofSize: 10, weight: .semibold)
-        nameLabel.textColor = track.color.withAlphaComponent(0.55)
+        nameLabel.textColor = trackColor.withAlphaComponent(0.55)
         nameLabel.textAlignment = .center
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(nameLabel)
@@ -109,6 +120,13 @@ final class LevelMeterBar: UIView {
         super.layoutSubviews()
         bgLayer.frame = barRect
         redraw()
+    }
+
+    func applyThemeColor(_ color: UIColor) {
+        trackColor = color
+        bgLayer.backgroundColor = color.withAlphaComponent(0.10).cgColor
+        fillLayer.backgroundColor = color.cgColor
+        nameLabel.textColor = color.withAlphaComponent(0.55)
     }
 
     private var barH: CGFloat { bounds.height - labelH - 4 }

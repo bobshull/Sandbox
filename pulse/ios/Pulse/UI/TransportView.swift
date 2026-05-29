@@ -18,6 +18,10 @@ final class TransportView: UIView {
     private let masterChip      = UIButton(type: .system)
     private let lengthChip      = UIButton(type: .system)
 
+    /// Master pill shows the volume level as a very faint, theme-colored fill that
+    /// grows left-to-right behind the speaker icon.
+    private let masterFillLayer = CALayer()
+
     private var cancellables = Set<AnyCancellable>()
     private let store: Store
     private var isPlayingState = false
@@ -57,6 +61,9 @@ final class TransportView: UIView {
     @objc private func themeDidChange() {
         setIsPlaying(isPlayingState)
         syncLengthChip()
+        masterChip.layer.backgroundColor = Theme.backgroundElevated.cgColor
+        masterChip.layer.borderColor = Theme.border.cgColor
+        updateMasterFill()
     }
 
     func observe(_ store: Store) {
@@ -68,11 +75,11 @@ final class TransportView: UIView {
                 case .tempo, .swing:
                     self.setTempoSwingChip(tempo: store.tempo, swing: store.swing)
                 case .master:
-                    self.setChip(self.masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
+                    self.setMasterChip()
                 case .patternLength: self.syncLengthChip()
                 case .load:
                     self.setTempoSwingChip(tempo: store.tempo, swing: store.swing)
-                    self.setChip(self.masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
+                    self.setMasterChip()
                     self.syncLengthChip()
                 default: break
                 }
@@ -89,8 +96,17 @@ final class TransportView: UIView {
         addSubview(playButton)
 
         setupChip(tempoSwingChip, tag: 0, width: 120)
-        setupChip(masterChip,     tag: 1, width: 90)
+        setupChip(masterChip,     tag: 1, width: 52)
         setupChip(lengthChip,     tag: 2, width: 90)
+
+        // Pill chrome is drawn on the chip's own layer so the fill can sit above the
+        // background but below the icon, and clip to the rounded shape.
+        masterChip.layer.backgroundColor = Theme.backgroundElevated.cgColor
+        masterChip.layer.cornerRadius = 19
+        masterChip.layer.borderColor = Theme.border.cgColor
+        masterChip.layer.borderWidth = 1
+        masterChip.clipsToBounds = true
+        masterChip.layer.insertSublayer(masterFillLayer, at: 0)
 
         NSLayoutConstraint.activate([
             playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -122,29 +138,41 @@ final class TransportView: UIView {
         addSubview(button)
     }
 
-    private func setChip(_ button: UIButton, value: Double, suffix: String, icon: String) {
+    private func setMasterChip() {
         var cfg = UIButton.Configuration.plain()
-        cfg.image = UIImage(systemName: icon,
-                            withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .medium))
-        cfg.imagePadding = 5
-        cfg.title = "\(Int(value.rounded()))\(suffix)"
-        cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
-            var out = attrs
-            out.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
-            return out
-        }
+        cfg.image = UIImage(systemName: "speaker.wave.2",
+                            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .medium))
         cfg.baseForegroundColor = Theme.text
-        cfg.background.backgroundColor = Theme.backgroundElevated
-        cfg.background.strokeColor = Theme.border
-        cfg.background.strokeWidth = 1
-        cfg.background.cornerRadius = 19
-        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 12)
-        button.configuration = cfg
+        cfg.background.backgroundColor = .clear   // pill chrome is drawn on the chip's layer
+        cfg.background.strokeColor = .clear
+        cfg.background.strokeWidth = 0
+        cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+        masterChip.configuration = cfg
+        updateMasterFill()
+    }
+
+    private func updateMasterFill() {
+        masterFillLayer.backgroundColor = ColorTheme.current.primaryColor.withAlphaComponent(0.16).cgColor
+        layoutMasterFill()
+    }
+
+    private func layoutMasterFill() {
+        let level = CGFloat(min(max(store.masterGain, 0), 1))
+        let b = masterChip.bounds
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        masterFillLayer.frame = CGRect(x: 0, y: 0, width: b.width * level, height: b.height)
+        CATransaction.commit()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layoutMasterFill()
     }
 
     private func applyState() {
         setTempoSwingChip(tempo: store.tempo, swing: store.swing)
-        setChip(masterChip, value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2")
+        setMasterChip()
         syncLengthChip()
     }
 
@@ -201,9 +229,7 @@ final class TransportView: UIView {
         } else if sender.tag == 1 {
             showSlider(from: sender, title: "Master", min: 0, max: 100, step: 1,
                        value: Double(store.masterGain) * 100, suffix: "%", icon: "speaker.wave.2") { [weak self] v in
-                guard let self else { return }
-                self.setChip(self.masterChip, value: v, suffix: "%", icon: "speaker.wave.2")
-                self.delegate?.transportSetMaster(Float(v / 100))
+                self?.delegate?.transportSetMaster(Float(v / 100))
             }
         } else {
             // Length chip — show 1 Bar / 2 Bars picker

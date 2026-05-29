@@ -89,7 +89,13 @@ final class PatternLibraryViewController: UIViewController,
             header.heightAnchor.constraint(equalToConstant: 34),
         ])
 
+        NotificationCenter.default.addObserver(self, selector: #selector(patternStoreDidChange),
+                                               name: .patternStoreDidChange, object: nil)
         reload()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Header
@@ -103,7 +109,7 @@ final class PatternLibraryViewController: UIViewController,
         pillCfg.image = UIImage(systemName: "waveform",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
         pillCfg.imagePadding = 6
-        pillCfg.title = currentName
+        pillCfg.title = "Now Playing: \(currentName)"
         pillCfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { a in
             var out = a; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
         }
@@ -210,6 +216,10 @@ final class PatternLibraryViewController: UIViewController,
         }
         userPatterns = PatternStore.userPatterns()
         collectionView?.reloadData()
+    }
+
+    @objc private func patternStoreDidChange() {
+        reload()
     }
 
     @objc private func closeTapped() { dismiss(animated: true) }

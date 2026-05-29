@@ -6,7 +6,11 @@ final class TrackActionsViewController: UIViewController {
     var onClearTrack: (() -> Void)?
     var onShiftLeft: (() -> Void)?
     var onShiftRight: (() -> Void)?
-    var onRandomizeTrack: (() -> Void)?
+    var onRandomizeTrack: ((RandomizeIntensity) -> Void)?
+    var onClearTrackAccents: (() -> Void)?
+
+    /// Set before presenting: Clear Accents is only enabled when the track has accents.
+    var trackHasAccents: Bool = false
 
     private let track: Track
     private let panel = UIView()
@@ -39,7 +43,7 @@ final class TrackActionsViewController: UIViewController {
         view.addSubview(panel)
 
         let swatchView = UIView()
-        swatchView.backgroundColor = track.color
+        swatchView.backgroundColor = ColorTheme.current.color(for: track.id)
         swatchView.layer.cornerRadius = 5
         swatchView.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(swatchView)
@@ -61,6 +65,15 @@ final class TrackActionsViewController: UIViewController {
         let contentStack = makeContentStack()
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(contentStack)
+
+        let hintLabel = UILabel()
+        hintLabel.text = "Long-press a step to accent it for a louder hit."
+        hintLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        hintLabel.textColor = Theme.textFaint
+        hintLabel.textAlignment = .center
+        hintLabel.numberOfLines = 0
+        hintLabel.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(hintLabel)
 
         let safe = view.safeAreaLayoutGuide
         let preferred = panel.widthAnchor.constraint(equalToConstant: 400)
@@ -91,7 +104,11 @@ final class TrackActionsViewController: UIViewController {
             contentStack.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 14),
             contentStack.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 16),
             contentStack.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -16),
-            contentStack.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -16),
+
+            hintLabel.topAnchor.constraint(equalTo: contentStack.bottomAnchor, constant: 12),
+            hintLabel.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 16),
+            hintLabel.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -16),
+            hintLabel.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -14),
         ])
     }
 
@@ -102,9 +119,9 @@ final class TrackActionsViewController: UIViewController {
 
         let previewBtn = actionButton("Preview Sound", icon: "speaker.wave.2.fill")
         previewBtn.addTarget(self, action: #selector(previewTapped), for: .touchUpInside)
-        let clearBtn = actionButton("Clear Track", icon: "trash.fill", isDestructive: true)
-        clearBtn.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
-        stack.addArrangedSubview(row([previewBtn, clearBtn]))
+        let randomizeBtn = actionButton("Randomize Track", icon: "dice")
+        randomizeBtn.addTarget(self, action: #selector(randomizeTapped), for: .touchUpInside)
+        stack.addArrangedSubview(row([previewBtn, randomizeBtn]))
 
         let shiftLeftBtn = actionButton("Shift Left", icon: "arrow.left")
         shiftLeftBtn.addTarget(self, action: #selector(shiftLeftTapped), for: .touchUpInside)
@@ -112,9 +129,13 @@ final class TrackActionsViewController: UIViewController {
         shiftRightBtn.addTarget(self, action: #selector(shiftRightTapped), for: .touchUpInside)
         stack.addArrangedSubview(row([shiftLeftBtn, shiftRightBtn]))
 
-        let randomizeBtn = actionButton("Randomize Track", icon: "dice")
-        randomizeBtn.addTarget(self, action: #selector(randomizeTapped), for: .touchUpInside)
-        stack.addArrangedSubview(row([randomizeBtn]))
+        let clearAccentsBtn = actionButton("Clear Accents", icon: "bolt.slash", isDestructive: true)
+        clearAccentsBtn.addTarget(self, action: #selector(clearAccentsTapped), for: .touchUpInside)
+        clearAccentsBtn.isEnabled = trackHasAccents
+        clearAccentsBtn.alpha = trackHasAccents ? 1.0 : 0.35
+        let clearBtn = actionButton("Clear Track", icon: "trash.fill", isDestructive: true)
+        clearBtn.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
+        stack.addArrangedSubview(row([clearAccentsBtn, clearBtn]))
 
         return stack
     }
@@ -149,7 +170,7 @@ final class TrackActionsViewController: UIViewController {
     }
 
     @objc private func previewTapped() {
-        dismiss(animated: true) { [weak self] in self?.onPreviewSound?() }
+        onPreviewSound?()
     }
 
     @objc private func clearTapped() {
@@ -173,7 +194,20 @@ final class TrackActionsViewController: UIViewController {
     }
 
     @objc private func randomizeTapped() {
-        dismiss(animated: true) { [weak self] in self?.onRandomizeTrack?() }
+        let sheet = UIAlertController(title: "Randomize \(track.name)", message: nil, preferredStyle: .actionSheet)
+        for intensity in RandomizeIntensity.allCases {
+            sheet.addAction(UIAlertAction(title: intensity.title, style: .default) { [weak self] _ in
+                self?.dismiss(animated: true) { self?.onRandomizeTrack?(intensity) }
+            })
+        }
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.popoverPresentationController?.sourceView = view
+        sheet.popoverPresentationController?.sourceRect = view.bounds
+        present(sheet, animated: true)
+    }
+
+    @objc private func clearAccentsTapped() {
+        dismiss(animated: true) { [weak self] in self?.onClearTrackAccents?() }
     }
 
     @objc private func dismissSelf() { dismiss(animated: true) }
