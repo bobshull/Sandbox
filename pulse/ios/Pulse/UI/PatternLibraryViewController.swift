@@ -109,7 +109,7 @@ final class PatternLibraryViewController: UIViewController,
         pillCfg.image = UIImage(systemName: "waveform",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .bold))
         pillCfg.imagePadding = 6
-        pillCfg.title = currentName
+        pillCfg.title = "Now Playing: \(currentName)"
         pillCfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { a in
             var out = a; out.font = .systemFont(ofSize: 13, weight: .semibold); return out
         }
