@@ -3,14 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		02EABD489A957AEAA7991EF8 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42EC5B8C7893835120454B29 /* ToastView.swift */; };
-		AA001111000000000000AAA1 /* ActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001111000000000000BBB1 /* ActionsViewController.swift */; };
-		AA001111000000000000AAA2 /* TrackActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001111000000000000BBB2 /* TrackActionsViewController.swift */; };
-		AA001111000000000000AAA3 /* BarActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001111000000000000BBB3 /* BarActionsViewController.swift */; };
 		03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */; };
 		0695C41C5BFCD2213CD18550 /* PatternLibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */; };
 		0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51EDD8265DEB720F5F54516 /* Theme.swift */; };
@@ -20,10 +17,12 @@
 		191AE9FFB312C7AB639EE9A0 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */; };
 		2013364E56B47CDC09B19E61 /* TracksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982B0E039F5177C7BE9F9F13 /* TracksTests.swift */; };
 		2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A96046916DC293790338A29F /* CrashLogger.swift */; };
+		2758E91BE80F83E6B8A2EBD5 /* BarActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647DE86F341E5789862A04D3 /* BarActionsViewController.swift */; };
 		2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B482574CA195A1DAE016C145 /* PresetsTests.swift */; };
 		2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C227703998F168A936512CCB /* TrackHeaderView.swift */; };
 		425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C973180DE38EF31F813D0783 /* SceneDelegate.swift */; };
 		47ABBF89B33B0D9C0EB5145B /* SessionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */; };
+		4C0A2F7B7B5BC8EE64044055 /* TrackActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA0C4A10EE8077361EC0D6 /* TrackActionsViewController.swift */; };
 		593E0C3776C4B93E2CEBBFB4 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58355B633C2F1A2DAD18A896 /* StoreTests.swift */; };
 		5B1224B4A7B8F994B72217B7 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3905D7136357A9F65DDF822C /* Store.swift */; };
 		616B1E15A99B07B4D65A228F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */; };
@@ -37,7 +36,9 @@
 		9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */; };
 		A42EB5E151A566DA7D46C921 /* SampleKits.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB05F18EB784C467E9F52091 /* SampleKits.swift */; };
 		A4F508C5FF8E23F5C835CA8F /* PatternStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */; };
+		A8554BFC2497BF99FD3C8A1F /* ActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AD56778432E62F6FB02FAC8 /* ActionsViewController.swift */; };
 		B16E1AF171034F853892913B /* LevelMeterStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */; };
+		B225AC568F49DA00FC0EBC6C /* ColorThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC905516CE27C92C65B2F237 /* ColorThemeTests.swift */; };
 		BEF2EFE9CA34C7D767F58C56 /* PatternStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */; };
 		C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */; };
 		D137BDC802515EFD1669CAA2 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA857BE40CCB4925205352A /* AppSettingsTests.swift */; };
@@ -60,10 +61,7 @@
 
 /* Begin PBXFileReference section */
 		0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
-		AA001111000000000000BBB1 /* ActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsViewController.swift; sourceTree = "<group>"; };
-		AA001111000000000000BBB2 /* TrackActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionsViewController.swift; sourceTree = "<group>"; };
-		AA001111000000000000BBB3 /* BarActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarActionsViewController.swift; sourceTree = "<group>"; };
-		13FEF2D2118D74C3572DF349 /* Pulse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13FEF2D2118D74C3572DF349 /* Pulse.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
 		1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
 		2AE1C4767AB7667B0376366A /* CellButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellButton.swift; sourceTree = "<group>"; };
@@ -77,11 +75,13 @@
 		4FBA30D234A433E58E16508B /* PulseTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PulseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		58107A90060A6D3A39ED5760 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
 		58355B633C2F1A2DAD18A896 /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
+		647DE86F341E5789862A04D3 /* BarActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarActionsViewController.swift; sourceTree = "<group>"; };
 		6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStateTests.swift; sourceTree = "<group>"; };
 		702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
 		8050A11B221549612EC5112E /* TrackEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffectsTests.swift; sourceTree = "<group>"; };
 		82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportView.swift; sourceTree = "<group>"; };
+		8AD56778432E62F6FB02FAC8 /* ActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsViewController.swift; sourceTree = "<group>"; };
 		8FA857BE40CCB4925205352A /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStoreTests.swift; sourceTree = "<group>"; };
 		982B0E039F5177C7BE9F9F13 /* TracksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksTests.swift; sourceTree = "<group>"; };
@@ -89,6 +89,7 @@
 		A96046916DC293790338A29F /* CrashLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashLogger.swift; sourceTree = "<group>"; };
 		AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequencerView.swift; sourceTree = "<group>"; };
 		AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
+		AC905516CE27C92C65B2F237 /* ColorThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorThemeTests.swift; sourceTree = "<group>"; };
 		B482574CA195A1DAE016C145 /* PresetsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetsTests.swift; sourceTree = "<group>"; };
 		B7045A0EAF2A362DBDC67DCA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		BD0B6A0582997898623109FC /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
@@ -99,6 +100,7 @@
 		CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStore.swift; sourceTree = "<group>"; };
 		CF7709EC17543072039B4671 /* SampleKitsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKitsTests.swift; sourceTree = "<group>"; };
 		DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
+		E6DA0C4A10EE8077361EC0D6 /* TrackActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionsViewController.swift; sourceTree = "<group>"; };
 		EB05F18EB784C467E9F52091 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
 		FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -121,8 +123,8 @@
 		1BBA6FCCC1FA176AD6D36324 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				AA001111000000000000BBB1 /* ActionsViewController.swift */,
-				AA001111000000000000BBB3 /* BarActionsViewController.swift */,
+				8AD56778432E62F6FB02FAC8 /* ActionsViewController.swift */,
+				647DE86F341E5789862A04D3 /* BarActionsViewController.swift */,
 				2AE1C4767AB7667B0376366A /* CellButton.swift */,
 				FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */,
 				48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */,
@@ -135,9 +137,9 @@
 				BD0B6A0582997898623109FC /* SettingsViewController.swift */,
 				A51EDD8265DEB720F5F54516 /* Theme.swift */,
 				42EC5B8C7893835120454B29 /* ToastView.swift */,
+				E6DA0C4A10EE8077361EC0D6 /* TrackActionsViewController.swift */,
 				702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */,
 				C227703998F168A936512CCB /* TrackHeaderView.swift */,
-				AA001111000000000000BBB2 /* TrackActionsViewController.swift */,
 				896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */,
 			);
 			path = UI;
@@ -213,6 +215,7 @@
 			isa = PBXGroup;
 			children = (
 				8FA857BE40CCB4925205352A /* AppSettingsTests.swift */,
+				AC905516CE27C92C65B2F237 /* ColorThemeTests.swift */,
 				918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */,
 				B482574CA195A1DAE016C145 /* PresetsTests.swift */,
 				CF7709EC17543072039B4671 /* SampleKitsTests.swift */,
@@ -277,6 +280,7 @@
 						ProvisioningStyle = Automatic;
 					};
 					CF79B1BAD3D70F54153FE0B3 = {
+						DevelopmentTeam = "Bob Shull";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -291,6 +295,7 @@
 			);
 			mainGroup = 7A87E3B4AE2E59047EFB8F61;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -317,6 +322,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D137BDC802515EFD1669CAA2 /* AppSettingsTests.swift in Sources */,
+				B225AC568F49DA00FC0EBC6C /* ColorThemeTests.swift in Sources */,
 				BEF2EFE9CA34C7D767F58C56 /* PatternStoreTests.swift in Sources */,
 				2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */,
 				176B96B916D99A4B8D2A056F /* SampleKitsTests.swift in Sources */,
@@ -331,11 +337,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA001111000000000000AAA1 /* ActionsViewController.swift in Sources */,
+				A8554BFC2497BF99FD3C8A1F /* ActionsViewController.swift in Sources */,
 				9E7FC8D4372D7D6477B1E1CE /* AppDelegate.swift in Sources */,
 				191AE9FFB312C7AB639EE9A0 /* AppSettings.swift in Sources */,
-				AA001111000000000000AAA3 /* BarActionsViewController.swift in Sources */,
 				FB61F8B02D4E5452965B1AF2 /* AudioEngine.swift in Sources */,
+				2758E91BE80F83E6B8A2EBD5 /* BarActionsViewController.swift in Sources */,
 				F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */,
 				C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */,
 				2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */,
@@ -355,10 +361,10 @@
 				1588E0A7A2CC232214B932DC /* Synths.swift in Sources */,
 				0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */,
 				02EABD489A957AEAA7991EF8 /* ToastView.swift in Sources */,
+				4C0A2F7B7B5BC8EE64044055 /* TrackActionsViewController.swift in Sources */,
 				7D03AE0E0B1816039E741BA5 /* TrackDetailViewController.swift in Sources */,
 				DD600448B5D57F1D8F25DF5B /* TrackEffects.swift in Sources */,
 				2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */,
-				AA001111000000000000AAA2 /* TrackActionsViewController.swift in Sources */,
 				E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */,
 				03D09AF328EBE7357D8B3955 /* TransportView.swift in Sources */,
 			);
@@ -460,7 +466,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = Pulse/Pulse.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -480,7 +485,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = Pulse/Pulse.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = TX75WUA2RL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pulse/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

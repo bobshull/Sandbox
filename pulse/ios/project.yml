@@ -68,3 +68,14 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/Pulse.app/Pulse
         BUNDLE_LOADER: $(TEST_HOST)
         GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Pulse:
+    build:
+      targets:
+        Pulse: all
+        PulseTests: [test]
+    test:
+      targets:
+        - PulseTests
+      gatherCoverageData: true
