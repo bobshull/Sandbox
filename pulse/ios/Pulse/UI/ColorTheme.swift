@@ -167,16 +167,16 @@ struct ColorTheme {
         "perc":  (hex("c48f57"), hex("94683d")),   // mushroom tan
     ])
 
-    // ── Golden Hour ────────────────────────────────────────────────────────
-    static let tangerine = ColorTheme(id: "golden", name: "Golden Hour", colors: [
-        "kick":  (hex("c4556a"), hex("963f52")),   // deep rose
-        "snare": (hex("d4a843"), hex("a47e30")),   // warm gold
-        "hat":   (hex("e8a0b0"), hex("bb778a")),   // blush
-        "clap":  (hex("d96a3a"), hex("a84e28")),   // ember orange
-        "bass":  (hex("4a1a2c"), hex("2e0f1b")),   // deep wine
-        "pluck": (hex("c97840"), hex("9a582e")),   // amber
-        "pad":   (hex("a03a50"), hex("782a3c")),   // burgundy rose
-        "perc":  (hex("d4a882"), hex("a4785a")),   // champagne tan
+    // ── Volcanic ───────────────────────────────────────────────────────────
+    static let tangerine = ColorTheme(id: "volcanic", name: "Volcanic", colors: [
+        "kick":  (hex("d84820"), hex("a83412")),   // magma orange
+        "snare": (hex("404850"), hex("28303a")),   // obsidian
+        "hat":   (hex("d4bc28"), hex("a49018")),   // sulfur
+        "clap":  (hex("8090a0"), hex("5c6b78")),   // volcanic ash
+        "bass":  (hex("0c1018"), hex("060810")),   // deep obsidian
+        "pluck": (hex("a02c14"), hex("781e0c")),   // cooling lava
+        "pad":   (hex("2a3d50"), hex("1a2838")),   // basalt
+        "perc":  (hex("bcccd8"), hex("8fa0b0")),   // steam
     ])
 
     // ── Mint Circuit ───────────────────────────────────────────────────────
