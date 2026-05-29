@@ -167,16 +167,16 @@ struct ColorTheme {
         "perc":  (hex("c48f57"), hex("94683d")),   // mushroom tan
     ])
 
-    // ── Volcanic ───────────────────────────────────────────────────────────
-    static let tangerine = ColorTheme(id: "volcanic", name: "Volcanic", colors: [
-        "kick":  (hex("d84820"), hex("a83412")),   // magma orange
-        "snare": (hex("404850"), hex("28303a")),   // obsidian
-        "hat":   (hex("d4bc28"), hex("a49018")),   // sulfur
-        "clap":  (hex("8090a0"), hex("5c6b78")),   // volcanic ash
-        "bass":  (hex("0c1018"), hex("060810")),   // deep obsidian
-        "pluck": (hex("a02c14"), hex("781e0c")),   // cooling lava
-        "pad":   (hex("2a3d50"), hex("1a2838")),   // basalt
-        "perc":  (hex("bcccd8"), hex("8fa0b0")),   // steam
+    // ── Arctic ─────────────────────────────────────────────────────────────
+    static let tangerine = ColorTheme(id: "arctic", name: "Arctic", colors: [
+        "kick":  (hex("1a3860"), hex("0e2444")),   // polar night
+        "snare": (hex("3468a8"), hex("224e84")),   // glacier
+        "hat":   (hex("88b8e0"), hex("6090bc")),   // ice
+        "clap":  (hex("2858a0"), hex("1a4080")),   // steel ice
+        "bass":  (hex("060c20"), hex("030810")),   // polar void
+        "pluck": (hex("1448a8"), hex("0c3488")),   // cobalt cold
+        "pad":   (hex("5888b8"), hex("3c6898")),   // arctic silver
+        "perc":  (hex("c0d8f0"), hex("96b4d0")),   // snow
     ])
 
     // ── Mint Circuit ───────────────────────────────────────────────────────
