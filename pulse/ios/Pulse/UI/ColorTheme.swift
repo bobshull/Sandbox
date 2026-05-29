@@ -167,16 +167,16 @@ struct ColorTheme {
         "perc":  (hex("c48f57"), hex("94683d")),   // mushroom tan
     ])
 
-    // ── Deep Jewel ─────────────────────────────────────────────────────────
-    static let tangerine = ColorTheme(id: "jewel", name: "Deep Jewel", colors: [
-        "kick":  (hex("1a7a4a"), hex("115c36")),   // emerald
-        "snare": (hex("b8860b"), hex("8a6408")),   // dark gold complement
-        "hat":   (hex("1e6fa8"), hex("144f7a")),   // sapphire
-        "clap":  (hex("9b1b4a"), hex("731335")),   // ruby
-        "bass":  (hex("0d3d26"), hex("072618")),   // deep forest
-        "pluck": (hex("c47a1e"), hex("955b14")),   // amber
-        "pad":   (hex("2a5298"), hex("1c3a72")),   // deep cobalt
-        "perc":  (hex("7b2d8b"), hex("5a2067")),   // amethyst
+    // ── Golden Hour ────────────────────────────────────────────────────────
+    static let tangerine = ColorTheme(id: "golden", name: "Golden Hour", colors: [
+        "kick":  (hex("c4556a"), hex("963f52")),   // deep rose
+        "snare": (hex("d4a843"), hex("a47e30")),   // warm gold
+        "hat":   (hex("e8a0b0"), hex("bb778a")),   // blush
+        "clap":  (hex("d96a3a"), hex("a84e28")),   // ember orange
+        "bass":  (hex("4a1a2c"), hex("2e0f1b")),   // deep wine
+        "pluck": (hex("c97840"), hex("9a582e")),   // amber
+        "pad":   (hex("a03a50"), hex("782a3c")),   // burgundy rose
+        "perc":  (hex("d4a882"), hex("a4785a")),   // champagne tan
     ])
 
     // ── Mint Circuit ───────────────────────────────────────────────────────
