@@ -72,6 +72,15 @@ final class TrackDetailViewController: UIViewController {
         closeBtn.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(closeBtn)
 
+        let resetBtn = UIButton(type: .system)
+        resetBtn.setImage(UIImage(systemName: "arrow.counterclockwise",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)), for: .normal)
+        resetBtn.tintColor = Theme.textDim
+        resetBtn.accessibilityLabel = "Reset"
+        resetBtn.addTarget(self, action: #selector(resetTapped), for: .touchUpInside)
+        resetBtn.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(resetBtn)
+
         let headerDiv = makeDivider()
         panel.addSubview(headerDiv)
 
@@ -118,6 +127,11 @@ final class TrackDetailViewController: UIViewController {
             closeBtn.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -12),
             closeBtn.widthAnchor.constraint(equalToConstant: 28),
             closeBtn.heightAnchor.constraint(equalToConstant: 28),
+
+            resetBtn.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
+            resetBtn.trailingAnchor.constraint(equalTo: closeBtn.leadingAnchor, constant: -10),
+            resetBtn.widthAnchor.constraint(equalToConstant: 28),
+            resetBtn.heightAnchor.constraint(equalToConstant: 28),
 
             headerDiv.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 10),
             headerDiv.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
@@ -173,6 +187,18 @@ final class TrackDetailViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func close() { dismiss(animated: true) }
+
+    @objc private func resetTapped() {
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+        volume  = 1.0
+        effects = .default
+        populateValues()
+        for fader in [volFader, panFader, pitchFader, rvbFader, dlyFader, dstFader] {
+            fader.setNeedsDisplay()
+        }
+        onVolumeChange?(volume)
+        onEffectsChange?(effects)
+    }
 
     @objc private func volChanged() {
         volume             = volFader.value
