@@ -276,11 +276,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					26CB5097CD9CC52FD2F253AB = {
-						DevelopmentTeam = "Bob Shull";
+						DevelopmentTeam = TX75WUA2RL;
 						ProvisioningStyle = Automatic;
 					};
 					CF79B1BAD3D70F54153FE0B3 = {
-						DevelopmentTeam = "Bob Shull";
+						DevelopmentTeam = TX75WUA2RL;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -434,7 +434,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "Bob Shull";
+				DEVELOPMENT_TEAM = TX75WUA2RL;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -550,7 +550,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "Bob Shull";
+				DEVELOPMENT_TEAM = TX75WUA2RL;
 				ENABLE_PREVIEWS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;

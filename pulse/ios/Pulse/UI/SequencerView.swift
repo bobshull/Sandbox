@@ -574,13 +574,22 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     func trackHeaderDidChangeVolume(_ track: Track, value: Float) {
         let bar = store.patternLength == 32 ? activePage : 0
         store.setVolume(trackId: track.id, value: value, bar: bar)
-        engine.setTrackGain(track.id, value)
+        if liveEngineShouldFollow(bar: bar) {
+            engine.setTrackGain(track.id, value)
+        }
     }
 
     func trackHeaderDidChangeEffects(_ track: Track, effects: TrackEffects) {
         let bar = store.patternLength == 32 ? activePage : 0
         store.setTrackEffects(trackId: track.id, effects, bar: bar)
-        engine.setTrackEffects(track.id, effects)
+        if liveEngineShouldFollow(bar: bar) {
+            engine.setTrackEffects(track.id, effects)
+        }
+    }
+
+    private func liveEngineShouldFollow(bar: Int) -> Bool {
+        guard engine.isPlaying, store.patternLength == 32, store.activeStep >= 0 else { return true }
+        return store.activeStep / 16 == bar
     }
 
     func trackHeaderDidRequestActions(_ track: Track) {

@@ -51,12 +51,17 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func applyTrackVolumesToEngine() {
-        for (id, v) in store.volumes { engine.setTrackGain(id, v) }
+        for (id, v) in store.volumes(for: currentEngineBar) { engine.setTrackGain(id, v) }
         engine.setMasterGain(store.masterGain)
     }
 
     private func applyTrackEffectsToEngine() {
-        for (id, fx) in store.effects { engine.setTrackEffects(id, fx) }
+        for (id, fx) in store.effects(for: currentEngineBar) { engine.setTrackEffects(id, fx) }
+    }
+
+    private var currentEngineBar: Int {
+        guard store.patternLength == 32, store.activeStep >= 16 else { return 0 }
+        return 1
     }
 
     // MARK: - Layout
@@ -205,7 +210,13 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                     self.applyTrackEffectsToEngine()
                 }
                 if section == .tempo {
-                    self.engine.updateDelayTimes(tempo: self.store.tempo)
+                    if self.engine.isPlaying { self.applyTrackEffectsToEngine() }
+                }
+                if section == .volumes {
+                    if self.engine.isPlaying { self.applyTrackVolumesToEngine() }
+                }
+                if section == .effects {
+                    if self.engine.isPlaying { self.applyTrackEffectsToEngine() }
                 }
                 if section == .undo || section == .load {
                     self.updateUndoState()
@@ -527,6 +538,9 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 case .success(let url):
                     let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
                     share.popoverPresentationController?.sourceView = self.moreButton
+                    share.completionWithItemsHandler = { _, _, _, _ in
+                        try? FileManager.default.removeItem(at: url)
+                    }
                     self.present(share, animated: true)
                 case .failure(let err):
                     self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)

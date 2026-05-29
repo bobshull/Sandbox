@@ -6,20 +6,27 @@ final class PatternStoreTests: XCTestCase {
     private let patternsKey = "pulse.userPatterns.v1"
     private let sessionKey = "pulse.session.v1"
     private let syncKey = "pulse.iCloudSyncEnabled"
+    private var defaults: UserDefaults!
 
     override func setUp() {
         super.setUp()
+        let suiteName = "Pulse.PatternStoreTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        PatternStore.useLocalStore(defaults)
         // Disable iCloud sync so tests only touch UserDefaults, not NSUbiquitousKeyValueStore
         PatternStore.iCloudSyncEnabled = false
-        UserDefaults.standard.removeObject(forKey: patternsKey)
-        UserDefaults.standard.removeObject(forKey: sessionKey)
+        defaults.removeObject(forKey: patternsKey)
+        defaults.removeObject(forKey: sessionKey)
     }
 
     override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: patternsKey)
-        UserDefaults.standard.removeObject(forKey: sessionKey)
+        defaults.removeObject(forKey: patternsKey)
+        defaults.removeObject(forKey: sessionKey)
         // Restore default (true)
-        UserDefaults.standard.removeObject(forKey: syncKey)
+        defaults.removeObject(forKey: syncKey)
+        PatternStore.useLocalStore(.standard)
+        defaults = nil
         super.tearDown()
     }
 
@@ -192,19 +199,19 @@ final class PatternStoreTests: XCTestCase {
     // MARK: - Error handling (corrupt data)
 
     func test_userPatterns_corruptData_returnsEmpty() {
-        UserDefaults.standard.set(Data([0xDE, 0xAD, 0xBE, 0xEF]), forKey: patternsKey)
+        defaults.set(Data([0xDE, 0xAD, 0xBE, 0xEF]), forKey: patternsKey)
         XCTAssertTrue(PatternStore.userPatterns().isEmpty)
     }
 
     func test_loadSession_corruptData_returnsNil() {
-        UserDefaults.standard.set(Data([0xFF, 0xFE]), forKey: sessionKey)
+        defaults.set(Data([0xFF, 0xFE]), forKey: sessionKey)
         XCTAssertNil(PatternStore.loadSession())
     }
 
     // MARK: - iCloudSyncEnabled
 
     func test_iCloudSyncEnabled_defaultsToTrue() {
-        UserDefaults.standard.removeObject(forKey: syncKey)
+        defaults.removeObject(forKey: syncKey)
         XCTAssertTrue(PatternStore.iCloudSyncEnabled)
     }
 

@@ -89,7 +89,13 @@ final class PatternLibraryViewController: UIViewController,
             header.heightAnchor.constraint(equalToConstant: 34),
         ])
 
+        NotificationCenter.default.addObserver(self, selector: #selector(patternStoreDidChange),
+                                               name: .patternStoreDidChange, object: nil)
         reload()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Header
@@ -210,6 +216,10 @@ final class PatternLibraryViewController: UIViewController,
         }
         userPatterns = PatternStore.userPatterns()
         collectionView?.reloadData()
+    }
+
+    @objc private func patternStoreDidChange() {
+        reload()
     }
 
     @objc private func closeTapped() { dismiss(animated: true) }

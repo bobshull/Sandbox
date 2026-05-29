@@ -67,7 +67,8 @@ final class AudioEngine {
 
         engine.attach(masterMixer)
         engine.connect(masterMixer, to: engine.mainMixerNode, format: format)
-        engine.mainMixerNode.outputVolume = store.masterGain
+        let snap = store.audioSnapshot()
+        engine.mainMixerNode.outputVolume = snap.masterGain
 
         for track in Tracks.all {
             let player = AVAudioPlayerNode()
@@ -90,11 +91,11 @@ final class AudioEngine {
             engine.connect(delay,  to: reverb,      format: format)
             engine.connect(reverb, to: masterMixer, format: format)
 
-            player.volume = store.volumes(for: 0)[track.id] ?? 1.0
+            player.volume = snap.barVolumes[0][track.id] ?? 1.0
 
             let chain = TrackFXChain(player: player, eq: eq, pitchNode: ptch,
                                      distortion: dist, delay: delay, reverb: reverb)
-            applyFX(store.effects[track.id] ?? .default, chain: chain, tempo: store.tempo)
+            applyFX(snap.barEffects[0][track.id] ?? .default, chain: chain, tempo: snap.tempo)
 
             fxChains[track.id] = chain
 
@@ -192,13 +193,14 @@ final class AudioEngine {
 
     func setTrackEffects(_ id: String, _ fx: TrackEffects) {
         guard let chain = fxChains[id] else { return }
-        applyFX(fx, chain: chain, tempo: store.tempo)
+        applyFX(fx, chain: chain, tempo: store.audioSnapshot().tempo)
     }
 
     func updateDelayTimes(tempo: Double) {
+        let snap = store.audioSnapshot()
         for track in Tracks.all {
             guard let chain = fxChains[track.id],
-                  let fx = store.effects[track.id] else { continue }
+                  let fx = snap.barEffects[0][track.id] else { continue }
             chain.delay.delayTime = min(fx.delaySyncDivision.quarterNoteMultiplier * (60.0 / tempo), 2.0)
         }
     }
@@ -219,11 +221,36 @@ final class AudioEngine {
         chain.reverb.wetDryMix     = fx.reverbWet
     }
 
+    private func makeFXChain(in targetEngine: AVAudioEngine, output: AVAudioNode) -> TrackFXChain {
+        let player = AVAudioPlayerNode()
+        let eq     = AVAudioUnitEQ(numberOfBands: 1)
+        let ptch   = AVAudioUnitTimePitch()
+        let dist   = AVAudioUnitDistortion()
+        let delay  = AVAudioUnitDelay()
+        let reverb = AVAudioUnitReverb()
+
+        eq.bands[0].filterType = .lowPass
+        eq.bands[0].bypass     = true
+        dist.loadFactoryPreset(.multiDistortedFunk)
+        reverb.loadFactoryPreset(.mediumRoom)
+
+        for node: AVAudioNode in [player, eq, ptch, dist, delay, reverb] { targetEngine.attach(node) }
+        targetEngine.connect(player, to: eq,     format: format)
+        targetEngine.connect(eq,     to: ptch,   format: format)
+        targetEngine.connect(ptch,   to: dist,   format: format)
+        targetEngine.connect(dist,   to: delay,  format: format)
+        targetEngine.connect(delay,  to: reverb, format: format)
+        targetEngine.connect(reverb, to: output, format: format)
+
+        return TrackFXChain(player: player, eq: eq, pitchNode: ptch,
+                            distortion: dist, delay: delay, reverb: reverb)
+    }
+
     // MARK: - Scheduler
 
-    private func stepDuration() -> Double {
+    private func stepDuration(tempo: Double) -> Double {
         // 16th-note duration: 60 / BPM / 4
-        return 60.0 / store.tempo / 4.0
+        return 60.0 / tempo / 4.0
     }
 
     private func runScheduler() {
@@ -244,13 +271,14 @@ final class AudioEngine {
         }
     }
 
-    func applyBarSettings(barIndex: Int) {
-        let vols = store.volumes(for: barIndex)
-        let efxs = store.effects(for: barIndex)
+    func applyBarSettings(barIndex: Int, snapshot: Store.AudioSnapshot) {
+        let safeIndex = min(max(barIndex, 0), snapshot.barVolumes.count - 1)
+        let vols = snapshot.barVolumes[safeIndex]
+        let efxs = snapshot.barEffects[safeIndex]
         for track in Tracks.all {
             guard let chain = fxChains[track.id] else { continue }
             chain.player.volume = vols[track.id] ?? 1.0
-            applyFX(efxs[track.id] ?? .default, chain: chain, tempo: store.tempo)
+            applyFX(efxs[track.id] ?? .default, chain: chain, tempo: snapshot.tempo)
         }
     }
 
@@ -260,11 +288,12 @@ final class AudioEngine {
         // Switch to the correct bar's settings at each bar boundary
         if step == snap.sequenceStart || (snap.sequenceLength == 32 && step == snap.sequenceStart + 16) {
             let barIndex = step / 16
-            applyBarSettings(barIndex: barIndex)
+            applyBarSettings(barIndex: barIndex, snapshot: snap)
         }
 
         let barIndex = step / 16
-        let barEffects = store.effects(for: barIndex)
+        let safeBarIndex = min(max(barIndex, 0), snap.barEffects.count - 1)
+        let barEffects = snap.barEffects[safeBarIndex]
 
         for track in Tracks.all {
             guard snap.mutes[track.id] != true,
@@ -274,7 +303,7 @@ final class AudioEngine {
             else { continue }
 
             let isAccented = snap.accents[track.id]?.indices.contains(step) == true
-                          && snap.accents[track.id]![step]
+                          && (snap.accents[track.id]?[step] ?? false)
             let buf = isAccented ? (accentBuffers[track.id] ?? normalBuf) : normalBuf
             #if DEBUG
             if isAccented {
@@ -286,7 +315,7 @@ final class AudioEngine {
             var hitTime = hostSeconds
             let humanize = Double(barEffects[track.id]?.humanize ?? 0)
             if humanize > 0 {
-                hitTime += Double.random(in: -1...1) * humanize / 100.0 * stepDuration() * 0.3
+                hitTime += Double.random(in: -1...1) * humanize / 100.0 * stepDuration(tempo: snap.tempo) * 0.3
             }
 
             let host = AVAudioTime.hostTime(forSeconds: max(hitTime, 0))
@@ -301,121 +330,170 @@ final class AudioEngine {
     }
 
     private func advance() {
-        let base = stepDuration()
         let snap = store.audioSnapshot()
+        let base = stepDuration(tempo: snap.tempo)
         let seqStart = snap.sequenceStart
         let seqLen   = snap.sequenceLength
         let raw = (currentStep - seqStart + 1) % seqLen
         let nextStep = seqStart + (raw >= 0 ? raw : raw + seqLen)
         // Swing: delay offbeats by swing*base, compensate on the following downbeat.
         let nextIsOff = (nextStep % 2 == 1)
-        let factor = nextIsOff ? (1 + store.swing) : (1 - store.swing)
+        let factor = nextIsOff ? (1 + snap.swing) : (1 - snap.swing)
         nextNoteHostTime += base * factor
         currentStep = nextStep
     }
 
     // MARK: - Export
 
-    /// Renders `bars` bars offline into an AAC/M4A file and returns the URL.
+    /// Renders `reps` full pattern loops offline into a WAV or AAC/M4A file and returns the URL.
     /// Runs entirely on a background thread; calls back on main.
     func exportMix(reps: Int, format: ExportFormat, completion: @escaping (Result<URL, Error>) -> Void) {
-        guard !buffers.isEmpty else {
+        var captured: [String: AVAudioPCMBuffer] = [:]
+        var capturedAccentBuffers: [String: AVAudioPCMBuffer] = [:]
+        schedulerQueue.sync {
+            captured = buffers
+            capturedAccentBuffers = accentBuffers
+        }
+        guard !captured.isEmpty else {
             completion(.failure(ExportError.notPrepared)); return
         }
 
         let snap          = store.audioSnapshot()
-        let bar0Volumes   = store.volumes(for: 0)
-        let bar1Volumes   = store.volumes(for: 1)
-        let master        = store.masterGain
-        let tempo         = store.tempo
-        let swing         = store.swing
         let patternLength = snap.patternLength
-        let captured      = buffers
-        let capturedAccents = snap.accents
         let sr            = sampleRate
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                // 1 — compute per-step start times (seconds from t=0)
-                let stepDur   = 60.0 / tempo / 4.0
-                let total     = reps * patternLength
-                var times     = [Double](repeating: 0, count: total)
-                var t         = 0.0
-                for i in 0..<total {
-                    times[i] = t
-                    let next   = (i + 1) % Tracks.stepCount
-                    let isOff  = (next % 2 == 1)
-                    t += stepDur * (isOff ? 1.0 + swing : 1.0 - swing)
+                let stepDur = 60.0 / snap.tempo / 4.0
+                let totalSteps = reps * patternLength
+                var stepFrames = [AVAudioFramePosition](repeating: 0, count: totalSteps)
+                var time = 0.0
+                for i in 0..<totalSteps {
+                    stepFrames[i] = AVAudioFramePosition((time * sr).rounded())
+                    let nextStep = (i + 1) % Tracks.stepCount
+                    let nextIsOffbeat = nextStep % 2 == 1
+                    time += stepDur * (nextIsOffbeat ? 1.0 + snap.swing : 1.0 - snap.swing)
                 }
-                let tail          = Double(captured.values.map { Int($0.frameLength) }.max() ?? 0) / sr
-                let totalFrames   = Int(ceil((t + tail) * sr))
 
-                // 2 — mix tracks into a mono float array
-                var out = [Float](repeating: 0, count: totalFrames)
-                for step in 0..<total {
+                let loopEndFrame = AVAudioFramePosition((time * sr).rounded())
+                let longestHit = AVAudioFramePosition(captured.values.map { Int($0.frameLength) }.max() ?? 0)
+                let tailFrames = AVAudioFramePosition((3.0 * sr).rounded()) + longestHit
+                let totalFrames = loopEndFrame + tailFrames
+
+                let offlineEngine = AVAudioEngine()
+                offlineEngine.mainMixerNode.outputVolume = snap.masterGain
+                var exportChains: [String: TrackFXChain] = [:]
+                for track in Tracks.all {
+                    let chain = self.makeFXChain(in: offlineEngine, output: offlineEngine.mainMixerNode)
+                    exportChains[track.id] = chain
+                }
+
+                try offlineEngine.enableManualRenderingMode(.offline,
+                                                            format: self.format,
+                                                            maximumFrameCount: 4096)
+                try offlineEngine.start()
+
+                var boundaries: [(frame: AVAudioFramePosition, bar: Int)] = []
+                for rep in 0..<reps {
+                    let start = rep * patternLength
+                    if start < stepFrames.count {
+                        boundaries.append((stepFrames[start], 0))
+                    }
+                    if patternLength == 32, start + 16 < stepFrames.count {
+                        boundaries.append((stepFrames[start + 16], 1))
+                    }
+                }
+                boundaries.sort { $0.frame < $1.frame }
+
+                func applyExportBar(_ bar: Int) {
+                    let safeBar = min(max(bar, 0), snap.barVolumes.count - 1)
+                    let volumes = snap.barVolumes[safeBar]
+                    let effects = snap.barEffects[safeBar]
+                    for track in Tracks.all {
+                        guard let chain = exportChains[track.id] else { continue }
+                        chain.player.volume = volumes[track.id] ?? 1.0
+                        self.applyFX(effects[track.id] ?? .default, chain: chain, tempo: snap.tempo)
+                    }
+                }
+
+                applyExportBar(0)
+                for chain in exportChains.values { chain.player.play() }
+
+                for step in 0..<totalSteps {
                     let patStep = step % patternLength
-                    let offset  = Int(times[step] * sr)
+                    let barIndex = patStep / 16
+                    let safeBar = min(max(barIndex, 0), snap.barEffects.count - 1)
+                    let barEffects = snap.barEffects[safeBar]
                     for track in Tracks.all {
                         guard snap.mutes[track.id] != true,
                               let row = snap.rows[track.id],
                               row.indices.contains(patStep), row[patStep],
-                              let buf = captured[track.id],
-                              let data = buf.floatChannelData?.pointee else { continue }
-                        let barIdx   = patStep / 16
-                        let trackVol = Float((barIdx == 1 ? bar1Volumes : bar0Volumes)[track.id] ?? 1.0)
-                        let isAccented = capturedAccents[track.id]?.indices.contains(patStep) == true
-                                      && capturedAccents[track.id]![patStep]
-                        let accentMult = AudioEngine.accentGains[track.id] ?? 1.25
-                        let vol = trackVol * (isAccented ? accentMult : 1.0)
-                        let count = Int(buf.frameLength)
-                        for i in 0..<count {
-                            let idx = offset + i
-                            if idx < totalFrames { out[idx] += data[i] * vol }
-                        }
+                              let chain = exportChains[track.id],
+                              let normalBuf = captured[track.id]
+                        else { continue }
+
+                        let isAccented = snap.accents[track.id]?.indices.contains(patStep) == true
+                                      && (snap.accents[track.id]?[patStep] ?? false)
+                        let buf = isAccented ? (capturedAccentBuffers[track.id] ?? normalBuf) : normalBuf
+                        let humanize = Double(barEffects[track.id]?.humanize ?? 0)
+                        let jitter = humanize > 0
+                            ? Double.random(in: -1...1) * humanize / 100.0 * stepDur * 0.3
+                            : 0
+                        let sampleTime = max(stepFrames[step] + AVAudioFramePosition((jitter * sr).rounded()), 0)
+                        let when = AVAudioTime(sampleTime: sampleTime, atRate: sr)
+                        chain.player.scheduleBuffer(buf, at: when, options: [.interrupts], completionHandler: nil)
                     }
-                }
-
-                // 3 — master gain + tanh soft limiter
-                for i in 0..<totalFrames { out[i] = tanh(out[i] * master) }
-
-                // 4 — build PCM buffer
-                let fmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
-                let pcm = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(totalFrames))!
-                pcm.frameLength = AVAudioFrameCount(totalFrames)
-                out.withUnsafeBufferPointer { src in
-                    pcm.floatChannelData!.pointee.update(from: src.baseAddress!, count: totalFrames)
                 }
 
                 let ts        = Int(Date().timeIntervalSince1970)
                 let exportFmt = format
+                let wavURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).wav")
+                let pcmURL = FileManager.default.temporaryDirectory.appendingPathComponent("pulse_mix_\(ts).caf")
+                let renderURL = exportFmt == .wav ? wavURL : pcmURL
+                try? FileManager.default.removeItem(at: renderURL)
+                let renderFile = try AVAudioFile(forWriting: renderURL, settings: offlineEngine.manualRenderingFormat.settings)
+                let renderBuffer = AVAudioPCMBuffer(pcmFormat: offlineEngine.manualRenderingFormat,
+                                                    frameCapacity: offlineEngine.manualRenderingMaximumFrameCount)!
+
+                var renderedFrames: AVAudioFramePosition = 0
+                var boundaryIndex = 0
+                while renderedFrames < totalFrames {
+                    while boundaryIndex < boundaries.count && boundaries[boundaryIndex].frame <= renderedFrames {
+                        applyExportBar(boundaries[boundaryIndex].bar)
+                        boundaryIndex += 1
+                    }
+
+                    let nextBoundary = boundaryIndex < boundaries.count ? boundaries[boundaryIndex].frame : totalFrames
+                    let framesUntilBoundary = max(nextBoundary - renderedFrames, 1)
+                    let remainingFrames = totalFrames - renderedFrames
+                    let framesToRender = AVAudioFrameCount(min(AVAudioFramePosition(offlineEngine.manualRenderingMaximumFrameCount),
+                                                              min(remainingFrames, framesUntilBoundary)))
+
+                    switch try offlineEngine.renderOffline(framesToRender, to: renderBuffer) {
+                    case .success:
+                        try renderFile.write(from: renderBuffer)
+                        renderedFrames += AVAudioFramePosition(renderBuffer.frameLength)
+                    case .insufficientDataFromInputNode:
+                        try renderFile.write(from: renderBuffer)
+                        renderedFrames += AVAudioFramePosition(renderBuffer.frameLength)
+                    case .cannotDoInCurrentContext:
+                        continue
+                    case .error:
+                        throw ExportError.renderFailed
+                    @unknown default:
+                        throw ExportError.renderFailed
+                    }
+                }
+
+                offlineEngine.stop()
 
                 if exportFmt == .wav {
-                    // 5a — write PCM directly as WAV (16-bit, lossless)
-                    let wavSettings: [String: Any] = [
-                        AVFormatIDKey:             Int(kAudioFormatLinearPCM),
-                        AVSampleRateKey:           sr,
-                        AVNumberOfChannelsKey:     1,
-                        AVLinearPCMBitDepthKey:    16,
-                        AVLinearPCMIsFloatKey:     false,
-                        AVLinearPCMIsBigEndianKey: false,
-                        AVLinearPCMIsNonInterleaved: false,
-                    ]
-                    let wavURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).wav")
-                    try? FileManager.default.removeItem(at: wavURL)
-                    let wavFile = try AVAudioFile(forWriting: wavURL, settings: wavSettings)
-                    try wavFile.write(from: pcm)
                     DispatchQueue.main.async { completion(.success(wavURL)) }
                 } else {
-                    // 5b — write PCM to CAF, transcode to M4A (AAC 256 kbps)
-                    let cafURL = FileManager.default.temporaryDirectory.appendingPathComponent("pulse_mix.caf")
-                    try? FileManager.default.removeItem(at: cafURL)
-                    let cafFile = try AVAudioFile(forWriting: cafURL, settings: fmt.settings)
-                    try cafFile.write(from: pcm)
-
                     let m4aURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).m4a")
                     try? FileManager.default.removeItem(at: m4aURL)
 
-                    let asset = AVURLAsset(url: cafURL)
+                    let asset = AVURLAsset(url: pcmURL)
                     guard let session = AVAssetExportSession(asset: asset,
                                                              presetName: AVAssetExportPresetAppleM4A) else {
                         throw ExportError.sessionUnavailable
@@ -426,6 +504,7 @@ final class AudioEngine {
                     let sem = DispatchSemaphore(value: 0)
                     session.exportAsynchronously { sem.signal() }
                     sem.wait()
+                    try? FileManager.default.removeItem(at: pcmURL)
 
                     if session.status == .completed {
                         DispatchQueue.main.async { completion(.success(m4aURL)) }
@@ -442,12 +521,13 @@ final class AudioEngine {
 }
 
 enum ExportError: LocalizedError {
-    case notPrepared, sessionUnavailable, exportFailed
+    case notPrepared, sessionUnavailable, exportFailed, renderFailed
     var errorDescription: String? {
         switch self {
         case .notPrepared:        return "Audio engine not ready — play the mix first"
         case .sessionUnavailable: return "Export session unavailable"
         case .exportFailed:       return "Export failed"
+        case .renderFailed:       return "Offline render failed"
         }
     }
 }

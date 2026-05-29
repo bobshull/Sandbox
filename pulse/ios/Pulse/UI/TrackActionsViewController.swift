@@ -39,7 +39,7 @@ final class TrackActionsViewController: UIViewController {
         view.addSubview(panel)
 
         let swatchView = UIView()
-        swatchView.backgroundColor = track.color
+        swatchView.backgroundColor = ColorTheme.current.color(for: track.id)
         swatchView.layer.cornerRadius = 5
         swatchView.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(swatchView)

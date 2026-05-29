@@ -23,6 +23,14 @@ final class Store {
     var effects: [String: TrackEffects] { barEffects[0] }
     func volumes(for bar: Int) -> [String: Float] { bar == 1 ? barVolumes[1] : barVolumes[0] }
     func effects(for bar: Int) -> [String: TrackEffects] { bar == 1 ? barEffects[1] : barEffects[0] }
+    private func isValidBar(_ bar: Int) -> Bool { barVolumes.indices.contains(bar) && barEffects.indices.contains(bar) }
+    private func normalizedFlags(_ source: [Bool]?, length: Int) -> [Bool] {
+        var out = Array((source ?? []).prefix(length))
+        if out.count < length {
+            out += Array(repeating: false, count: length - out.count)
+        }
+        return out
+    }
 
     // Transport
     private(set) var activeStep: Int = -1
@@ -74,15 +82,23 @@ final class Store {
     let changes = PassthroughSubject<StateSection, Never>()
 
     struct AudioSnapshot {
+        let tempo: Double
+        let swing: Double
+        let masterGain: Float
         let rows: [String: [Bool]]
         let mutes: [String: Bool]
+        let barVolumes: [[String: Float]]
+        let barEffects: [[String: TrackEffects]]
         let patternLength: Int
         let sequenceStart: Int
         let sequenceLength: Int
         let accents: [String: [Bool]]
     }
     private let snapshotLock = NSLock()
-    private var snapshot = AudioSnapshot(rows: [:], mutes: [:], patternLength: 16, sequenceStart: 0, sequenceLength: 16, accents: [:])
+    private var snapshot = AudioSnapshot(tempo: AppSettings.defaultTempo, swing: 0.18, masterGain: 0.85,
+                                         rows: [:], mutes: [:], barVolumes: [[:], [:]],
+                                         barEffects: [[:], [:]], patternLength: 16,
+                                         sequenceStart: 0, sequenceLength: 16, accents: [:])
 
     func audioSnapshot() -> AudioSnapshot {
         snapshotLock.lock()
@@ -92,7 +108,10 @@ final class Store {
 
     private func refreshSnapshot() {
         snapshotLock.lock()
-        snapshot = AudioSnapshot(rows: rows, mutes: mutes, patternLength: patternLength,
+        snapshot = AudioSnapshot(tempo: tempo, swing: swing, masterGain: masterGain,
+                                 rows: rows, mutes: mutes,
+                                 barVolumes: barVolumes, barEffects: barEffects,
+                                 patternLength: patternLength,
                                  sequenceStart: sequenceStart, sequenceLength: sequenceLength,
                                  accents: accents)
         snapshotLock.unlock()
@@ -138,6 +157,7 @@ final class Store {
             mutes[t.id] = snap.mutes[t.id] ?? false
             barEffects[0][t.id] = snap.effects?[t.id] ?? .default
             barEffects[1][t.id] = snap.bar2Effects?[t.id] ?? .default
+            accents[t.id] = normalizedFlags(snap.accents?[t.id], length: patternLength)
         }
         currentKitId = snap.kitId ?? "studio"
         refreshSnapshot()
@@ -154,18 +174,21 @@ final class Store {
 
     func setTempo(_ value: Double) {
         tempo = min(max(value, 40), 220)
+        refreshSnapshot()
         isDirty = true
         changes.send(.tempo)
     }
 
     func setSwing(_ value: Double) {
         swing = min(max(value, 0), 0.6)
+        refreshSnapshot()
         isDirty = true
         changes.send(.swing)
     }
 
     func setMasterGain(_ value: Float) {
         masterGain = min(max(value, 0), 1)
+        refreshSnapshot()
         isDirty = true
         changes.send(.master)
     }
@@ -189,13 +212,17 @@ final class Store {
     }
 
     func setVolume(trackId: String, value: Float, bar: Int = 0) {
+        guard isValidBar(bar) else { return }
         barVolumes[bar][trackId] = min(max(value, 0), 1)
+        refreshSnapshot()
         isDirty = true
         changes.send(.volumes)
     }
 
     func setTrackEffects(trackId: String, _ fx: TrackEffects, bar: Int = 0) {
+        guard isValidBar(bar) else { return }
         barEffects[bar][trackId] = fx
+        refreshSnapshot()
         isDirty = true
         changes.send(.effects)
     }
@@ -266,7 +293,7 @@ final class Store {
     }
 
     func toggleBar(_ index: Int) {
-        guard patternLength == 32, index < 2 else { return }
+        guard patternLength == 32, enabledBars.indices.contains(index) else { return }
         // Don't allow disabling the only remaining active bar
         let wouldDisable = enabledBars[index]
         if wouldDisable && enabledBars.filter({ $0 }).count == 1 { return }
@@ -325,7 +352,7 @@ final class Store {
         }
         currentKitId = pattern.kitId ?? "studio"
         for t in Tracks.all {
-            accents[t.id] = pattern.accents?[t.id] ?? Array(repeating: false, count: patternLength)
+            accents[t.id] = normalizedFlags(pattern.accents?[t.id], length: patternLength)
         }
         refreshSnapshot()
         isDirty = false
@@ -393,7 +420,7 @@ final class Store {
         }
         currentKitId = session.kitId ?? "studio"
         for t in Tracks.all {
-            accents[t.id] = session.accents?[t.id] ?? Array(repeating: false, count: patternLength)
+            accents[t.id] = normalizedFlags(session.accents?[t.id], length: patternLength)
         }
         refreshSnapshot()
         isDirty = false

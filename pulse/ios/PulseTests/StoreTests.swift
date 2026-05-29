@@ -327,6 +327,13 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.volumes(for: 1)[trackId] ?? 0, Float(0.7), accuracy: Float(0.001))
     }
 
+    func test_setVolume_invalidBarIgnored() {
+        let trackId = Tracks.all[0].id
+        store.setVolume(trackId: trackId, value: 0.4, bar: 99)
+        XCTAssertEqual(store.volumes[trackId] ?? 0, Float(1.0), accuracy: Float(0.001))
+        XCTAssertFalse(store.isDirty)
+    }
+
     // MARK: - setTrackEffects
 
     func test_setTrackEffects_bar0() {
@@ -356,6 +363,17 @@ final class StoreTests: XCTestCase {
         store.changes.sink { received.append($0) }.store(in: &cancellables)
         store.setTrackEffects(trackId: Tracks.all[0].id, TrackEffects())
         XCTAssertTrue(received.contains(.effects))
+    }
+
+    func test_setTrackEffects_invalidBarIgnored() {
+        let trackId = Tracks.all[0].id
+        var fx = TrackEffects()
+        fx.reverbWet = 60
+
+        store.setTrackEffects(trackId: trackId, fx, bar: -1)
+
+        XCTAssertEqual(store.effects[trackId], TrackEffects.default)
+        XCTAssertFalse(store.isDirty)
     }
 
     // MARK: - setActiveStep
@@ -569,6 +587,17 @@ final class StoreTests: XCTestCase {
         store.setPatternLength(32)
         store.toggleBar(1)
         XCTAssertEqual(store.audioSnapshot().sequenceLength, 16)
+    }
+
+    func test_toggleBar_invalidIndexIgnored() {
+        store.setPatternLength(32)
+        store.markClean()
+
+        store.toggleBar(-1)
+        store.toggleBar(99)
+
+        XCTAssertEqual(store.enabledBars, [true, true])
+        XCTAssertFalse(store.isDirty)
     }
 
     // MARK: - expandToTwoBarsDuplicate
@@ -901,6 +930,20 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.tempo, 110)
     }
 
+    func test_loadPattern_expandsShortAccentRows() {
+        let trackId = Tracks.all[0].id
+        let pattern = Pattern(id: "two-bar-short-accent", name: "Two", tempo: 100, swing: 0,
+                              rows: [trackId: Array(repeating: false, count: 32)],
+                              patternLength: 32,
+                              accents: [trackId: Array(repeating: true, count: 16)])
+
+        store.loadPattern(pattern)
+
+        XCTAssertEqual(store.accents[trackId]?.count, 32)
+        XCTAssertEqual(store.accents[trackId]?[15], true)
+        XCTAssertEqual(store.accents[trackId]?[16], false)
+    }
+
     // MARK: - exportPattern
 
     func test_exportPattern_hasCurrentName() {
@@ -1046,6 +1089,33 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.enabledBars, [true, true])
     }
 
+    func test_loadSession_expandsShortAccentRows() {
+        let trackId = Tracks.all[0].id
+        let session = SessionState(
+            patternName: "Two",
+            tempo: 120,
+            swing: 0,
+            masterGain: 1,
+            rows: [trackId: Array(repeating: false, count: 32)],
+            volumes: [:],
+            mutes: [:],
+            kitId: "studio",
+            patternId: nil,
+            effects: nil,
+            patternLength: 32,
+            enabledBars: [true, true],
+            bar2Volumes: nil,
+            bar2Effects: nil,
+            accents: [trackId: Array(repeating: true, count: 16)]
+        )
+
+        store.loadSession(session)
+
+        XCTAssertEqual(store.accents[trackId]?.count, 32)
+        XCTAssertEqual(store.accents[trackId]?[15], true)
+        XCTAssertEqual(store.accents[trackId]?[16], false)
+    }
+
     func test_sessionState_16stepRowsCappedAt16() {
         store.setPatternLength(32)
         store.setPatternLength(16)
@@ -1087,6 +1157,30 @@ final class StoreTests: XCTestCase {
         let trackId = Tracks.all[0].id
         store.toggleMute(trackId: trackId)
         XCTAssertTrue(store.audioSnapshot().mutes[trackId] == true)
+    }
+
+    func test_audioSnapshot_tempoSwingAndMaster() {
+        store.setTempo(132)
+        store.setSwing(0.31)
+        store.setMasterGain(0.62)
+
+        let snap = store.audioSnapshot()
+        XCTAssertEqual(snap.tempo, 132)
+        XCTAssertEqual(snap.swing, 0.31, accuracy: 0.001)
+        XCTAssertEqual(snap.masterGain, Float(0.62), accuracy: Float(0.001))
+    }
+
+    func test_audioSnapshot_barVolumesAndEffects() {
+        let trackId = Tracks.all[0].id
+        var fx = TrackEffects()
+        fx.delayWet = 44
+
+        store.setVolume(trackId: trackId, value: 0.37, bar: 1)
+        store.setTrackEffects(trackId: trackId, fx, bar: 1)
+
+        let snap = store.audioSnapshot()
+        XCTAssertEqual(snap.barVolumes[1][trackId], Float(0.37), accuracy: Float(0.001))
+        XCTAssertEqual(snap.barEffects[1][trackId]?.delayWet, 44)
     }
 
     // MARK: - volumes(for:) / effects(for:)

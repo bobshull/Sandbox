@@ -15,16 +15,28 @@ struct SessionState: Codable {
     var enabledBars: [Bool]?
     var bar2Volumes: [String: Float]?      // nil → copy bar 0
     var bar2Effects: [String: TrackEffects]?  // nil → copy bar 0
-    var accents: [String: [Bool]]?
+    var accents: [String: [Bool]]? = nil
 }
 
 enum PatternStore {
     private static let cloud = NSUbiquitousKeyValueStore.default
-    private static let local = UserDefaults.standard
+    private static var local = UserDefaults.standard
 
     private static let patternsKey = "pulse.userPatterns.v1"
     private static let sessionKey = "pulse.session.v1"
     private static let syncKey = "pulse.iCloudSyncEnabled"
+
+    static func useLocalStore(_ store: UserDefaults) {
+        local = store
+    }
+
+    static func startCloudSync() {
+        _ = NotificationCenter.default.addObserver(forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+                                                   object: cloud, queue: .main) { _ in
+            NotificationCenter.default.post(name: .patternStoreDidChange, object: nil)
+        }
+        cloud.synchronize()
+    }
 
     static var iCloudSyncEnabled: Bool {
         get { local.object(forKey: syncKey) == nil ? true : local.bool(forKey: syncKey) }
@@ -67,7 +79,11 @@ enum PatternStore {
         do {
             let data = try JSONEncoder().encode(list)
             local.set(data, forKey: patternsKey)
-            if iCloudSyncEnabled { cloud.set(data, forKey: patternsKey) }
+            if iCloudSyncEnabled {
+                cloud.set(data, forKey: patternsKey)
+                cloud.synchronize()
+            }
+            NotificationCenter.default.post(name: .patternStoreDidChange, object: nil)
             return true
         } catch {
             print("[PatternStore] encode failed: \(error)")
@@ -81,7 +97,10 @@ enum PatternStore {
         do {
             let data = try JSONEncoder().encode(state)
             local.set(data, forKey: sessionKey)
-            if iCloudSyncEnabled { cloud.set(data, forKey: sessionKey) }
+            if iCloudSyncEnabled {
+                cloud.set(data, forKey: sessionKey)
+                cloud.synchronize()
+            }
         } catch {
             print("[PatternStore] session encode failed: \(error)")
         }
@@ -98,4 +117,8 @@ enum PatternStore {
             return nil
         }
     }
+}
+
+extension Notification.Name {
+    static let patternStoreDidChange = Notification.Name("pulse.patternStoreDidChange")
 }
