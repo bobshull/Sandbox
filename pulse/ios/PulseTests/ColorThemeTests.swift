@@ -27,6 +27,27 @@ final class ColorThemeTests: XCTestCase {
                        "Duplicate theme ids in ColorTheme.all: \(ids)")
     }
 
+    func test_all_isSortedByPrimaryColorSimilarity() {
+        XCTAssertEqual(ColorTheme.all.map(\.id), [
+            "cherryCircuit",
+            "pastel",
+            "neon",
+            "mustard",
+            "mangoRiot",
+            "olive",
+            "electricLime",
+            "jadeTemple",
+            "mint",
+            "deepOcean",
+            "aurora",
+            "cobaltPulse",
+            "ultraviolet",
+            "plumVoltage",
+            "candyNoir",
+            "gunmetalGlow",
+        ])
+    }
+
     func test_every_theme_definesAllEightTrackColors() {
         let required: Set<String> = ["kick", "snare", "hat", "clap", "bass", "pluck", "pad", "perc"]
         for theme in ColorTheme.all {
@@ -72,7 +93,6 @@ final class ColorThemeTests: XCTestCase {
 
     func test_alias_sand_resolvesToAValidTheme() {
         let theme = ColorTheme.sand
-        XCTAssertEqual(theme.id, "sand")
         XCTAssertFalse(theme.definedTrackIds.isEmpty)
     }
 }
