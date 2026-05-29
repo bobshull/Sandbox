@@ -439,7 +439,7 @@ final class Store {
 
     func loadPattern(_ pattern: Pattern) {
         undoStack.removeAll()
-        patternName = pattern.name
+        patternName = pattern.id == "empty" ? "Untitled" : pattern.name
         currentPatternId = pattern.id
         tempo = pattern.id == "empty" ? AppSettings.defaultTempo : pattern.tempo
         swing = pattern.swing
