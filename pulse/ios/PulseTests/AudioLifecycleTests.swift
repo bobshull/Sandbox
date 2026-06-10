@@ -62,6 +62,10 @@ final class AudioLifecycleTests: XCTestCase {
 
     // MARK: - Transport guards (no prepared engine needed)
 
+    func test_engineNotReadyBeforePrepare() {
+        XCTAssertFalse(AudioEngine(store: Store()).isReady)
+    }
+
     func test_start_withoutPrepare_reportsEngineFailedAndStaysStopped() {
         let engine = AudioEngine(store: Store())
         var cancellables = Set<AnyCancellable>()

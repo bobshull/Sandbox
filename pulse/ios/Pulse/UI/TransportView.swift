@@ -42,6 +42,12 @@ final class TransportView: UIView {
 
     // MARK: - Public
 
+    /// Greys out the play button when the audio engine is unavailable.
+    func setPlayEnabled(_ enabled: Bool) {
+        playButton.isEnabled = enabled
+        playButton.alpha = enabled ? 1.0 : 0.4
+    }
+
     func setIsPlaying(_ playing: Bool) {
         isPlayingState = playing
         let primary = ColorTheme.current.primaryColor

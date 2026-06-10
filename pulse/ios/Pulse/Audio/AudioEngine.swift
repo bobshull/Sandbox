@@ -53,8 +53,10 @@ final class AudioEngine {
         return _isPlaying
     }
 
-    /// True once prepare() succeeded and the graph is alive. Main thread only.
-    private var prepared = false
+    /// True once prepare() succeeded and the graph is alive; false when prepare
+    /// or a post-reset rebuild failed. The UI gates playback/export on this.
+    /// Written on the main thread only.
+    private(set) var isReady = false
     private var observers: [NSObjectProtocol] = []
 
     // Scheduling — all of this state lives on schedulerQueue only. The timer is
@@ -90,7 +92,7 @@ final class AudioEngine {
 
         try engine.start()
         schedulerQueue.async { [weak self] in self?.playAllPlayersIfEngineRunning() }
-        prepared = true
+        isReady = true
         installObservers()
     }
 
@@ -442,7 +444,7 @@ final class AudioEngine {
     /// Returns false when the engine is unavailable.
     @discardableResult
     private func ensureEngineRunning() -> Bool {
-        guard prepared else { return false }
+        guard isReady else { return false }
         if engine.isRunning { return true }
         do {
             try AVAudioSession.sharedInstance().setActive(true)
@@ -523,14 +525,14 @@ final class AudioEngine {
     /// Rebuild from scratch; pre-rendered voice buffers are plain memory and
     /// remain valid.
     private func rebuildAfterReset() {
-        prepared = false
+        isReady = false
         engine = AVAudioEngine()
         do {
             try configureSession()
             buildGraph()
             try engine.start()
             schedulerQueue.async { [weak self] in self?.playAllPlayersIfEngineRunning() }
-            prepared = true
+            isReady = true
         } catch {
             events.send(.engineFailed)
         }
@@ -716,7 +718,7 @@ enum ExportError: LocalizedError {
     case notPrepared, sessionUnavailable, exportFailed, renderFailed, renderStalled, cancelled
     var errorDescription: String? {
         switch self {
-        case .notPrepared:        return "Audio engine not ready — play the mix first"
+        case .notPrepared:        return "Audio engine isn't ready — try restarting the app"
         case .sessionUnavailable: return "Export session unavailable"
         case .exportFailed:       return "Export failed"
         case .renderFailed:       return "Offline render failed"
