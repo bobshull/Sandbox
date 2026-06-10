@@ -273,20 +273,8 @@ final class AudioEngine {
                                      seed: UInt64,
                                      amount: Double,
                                      stepDuration: Double) -> Double {
-        guard amount > 0 else { return 0 }
-        var value = seed
-        value ^= UInt64(step &* 0x9E37)
-        for byte in trackId.utf8 {
-            value ^= UInt64(byte)
-            value &*= 0x100000001B3
-        }
-        value &+= 0x9E3779B97F4A7C15
-        value = (value ^ (value >> 30)) &* 0xBF58476D1CE4E5B9
-        value = (value ^ (value >> 27)) &* 0x94D049BB133111EB
-        value ^= value >> 31
-
-        let unit = Double(value) / Double(UInt64.max)
-        return ((unit * 2.0) - 1.0) * amount / 100.0 * stepDuration * 0.3
+        GrooveTiming.deterministicJitter(trackId: trackId, step: step, seed: seed,
+                                         amount: amount, stepDuration: stepDuration)
     }
 
     // MARK: - Scheduler
@@ -444,21 +432,9 @@ final class AudioEngine {
         DispatchQueue.global(qos: .userInitiated).async {
             var partialURL: URL?
             do {
-                let stepDur = 60.0 / snap.tempo / 4.0
-                let sequenceStart = snap.sequenceStart
-                let sequenceLength = snap.sequenceLength
-                let totalSteps = reps * sequenceLength
-                var stepFrames = [AVAudioFramePosition](repeating: 0, count: totalSteps)
-                var time = 0.0
-                for i in 0..<totalSteps {
-                    stepFrames[i] = AVAudioFramePosition((time * sr).rounded())
-                    let nextStep = sequenceStart + ((i + 1) % sequenceLength)
-                    let nextIsOffbeat = nextStep % 2 == 1
-                    time += stepDur * (nextIsOffbeat ? 1.0 + snap.swing : 1.0 - snap.swing)
-                }
-
-                let loopEndFrame = AVAudioFramePosition((time * sr).rounded())
-                let totalFrames = loopEndFrame
+                let plan = ExportPlanBuilder.build(snapshot: snap, reps: reps, sampleRate: sr)
+                let totalFrames = plan.totalFrames
+                let boundaries = plan.barBoundaries
 
                 let offlineEngine = AVAudioEngine()
                 offlineEngine.mainMixerNode.outputVolume = snap.masterGain
@@ -475,15 +451,6 @@ final class AudioEngine {
                 // Tear the offline engine down on every exit path, including throws.
                 defer { offlineEngine.stop() }
 
-                var boundaries: [(frame: AVAudioFramePosition, bar: Int)] = []
-                for step in 0..<totalSteps {
-                    let patStep = sequenceStart + (step % sequenceLength)
-                    if patStep % 16 == 0 {
-                        boundaries.append((stepFrames[step], patStep / 16))
-                    }
-                }
-                boundaries.sort { $0.frame < $1.frame }
-
                 func applyExportBar(_ bar: Int) {
                     let safeBar = min(max(bar, 0), snap.barVolumes.count - 1)
                     let volumes = snap.barVolumes[safeBar]
@@ -495,36 +462,26 @@ final class AudioEngine {
                     }
                 }
 
-                applyExportBar(sequenceStart / 16)
+                applyExportBar(snap.sequenceStart / 16)
                 for chain in exportChains.values { chain.player.play() }
 
-                for step in 0..<totalSteps {
-                    let patStep = sequenceStart + (step % sequenceLength)
-                    let barIndex = patStep / 16
-                    let safeBar = min(max(barIndex, 0), snap.barEffects.count - 1)
-                    let barEffects = snap.barEffects[safeBar]
-                    for track in Tracks.all {
-                        guard snap.mutes[track.id] != true,
-                              let row = snap.rows[track.id],
-                              row.indices.contains(patStep), row[patStep],
-                              let chain = exportChains[track.id],
-                              let normalBuf = captured[track.id]
-                        else { continue }
-
-                        let isAccented = snap.accents[track.id]?.indices.contains(patStep) == true
-                                      && (snap.accents[track.id]?[patStep] ?? false)
-                        let buf = isAccented ? (capturedAccentBuffers[track.id] ?? normalBuf) : normalBuf
-                        let humanize = Double(barEffects[track.id]?.humanize ?? 0)
-                        let jitter = self.deterministicJitter(trackId: track.id,
-                                                              step: patStep,
-                                                              seed: snap.grooveSeed,
-                                                              amount: humanize,
-                                                              stepDuration: stepDur)
-                        let jitteredFrame = stepFrames[step] + AVAudioFramePosition((jitter * sr).rounded())
-                        let sampleTime = min(max(jitteredFrame, 0), max(totalFrames - 1, 0))
-                        let when = AVAudioTime(sampleTime: sampleTime, atRate: sr)
-                        chain.player.scheduleBuffer(buf, at: when, options: [], completionHandler: nil)
-                    }
+                // Pre-mix each track into one buffer so hit timing is exact and a
+                // later hit cuts the previous hit's tail, exactly like the live
+                // scheduler's .interrupts behavior. One scheduled buffer per track
+                // removes any dependence on AVAudioPlayerNode queue semantics.
+                for track in Tracks.all {
+                    if handle.isCancelled { throw ExportError.cancelled }
+                    guard let chain = exportChains[track.id],
+                          let events = plan.events[track.id],
+                          let normalBuf = captured[track.id],
+                          let render = OfflineTrackRenderer.render(events: events,
+                                                                   normalBuffer: normalBuf,
+                                                                   accentBuffer: capturedAccentBuffers[track.id],
+                                                                   totalFrames: totalFrames,
+                                                                   format: self.format)
+                    else { continue }
+                    let when = AVAudioTime(sampleTime: render.startFrame, atRate: sr)
+                    chain.player.scheduleBuffer(render.buffer, at: when, options: [], completionHandler: nil)
                 }
 
                 let renderURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
