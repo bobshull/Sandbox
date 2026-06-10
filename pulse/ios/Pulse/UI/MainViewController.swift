@@ -24,11 +24,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         guard let self else { return }
         PatternStore.saveSession(self.store.sessionState())
     }
-
-    // Export coordination
-    private var currentExport: AudioEngine.ExportHandle?
-    private var exportBGTask: UIBackgroundTaskIdentifier = .invalid
-    private var exportInterrupted = false
+    private lazy var exportCoordinator = ExportCoordinator(engine: engine, store: store, toast: toast)
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
@@ -42,6 +38,8 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         bindStore()
         prepareAudio()
         loadInitialPreset()
+        exportCoordinator.presenter = self
+        exportCoordinator.popoverSourceView = moreButton
         NotificationCenter.default.addObserver(self, selector: #selector(appDidEnterBackground),
                                                name: UIApplication.didEnterBackgroundNotification,
                                                object: nil)
@@ -249,7 +247,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                     self?.store.setActiveStep(s)
                     if s >= 0, let strip = self?.levelMeterStrip, let self {
                         for track in Tracks.all where
-                            self.isStepActive(trackId: track.id, step: s) &&
+                            self.store.isStepActive(trackId: track.id, step: s) &&
                             self.store.mutes[track.id] != true {
                             strip.trigger(trackId: track.id)
                         }
@@ -294,14 +292,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 }
             }
             .store(in: &cancellables)
-    }
-
-    // Queued .step events can reference an index from a previous, longer pattern
-    // (e.g. a 32-step pattern swapped for a 16-step one mid-flight). Stale or
-    // out-of-range indexes must read as inactive, never trap.
-    private func isStepActive(trackId: String, step: Int) -> Bool {
-        guard let row = store.rows[trackId], row.indices.contains(step) else { return false }
-        return row[step]
     }
 
     private func updateUndoState() {
@@ -551,8 +541,8 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             self?.store.clearBar(barIndex)
             self?.toast.show("Bar \(barIndex + 1) cleared", tone: .ok)
         }
-        panel.onExportWAV = { [weak self] in self?.showLoopPicker(format: .wav) }
-        panel.onExportM4A = { [weak self] in self?.showLoopPicker(format: .m4a) }
+        panel.onExportWAV = { [weak self] in self?.exportCoordinator.requestExport(format: .wav) }
+        panel.onExportM4A = { [weak self] in self?.exportCoordinator.requestExport(format: .m4a) }
         // copyBar1ToBar2 owns its own feedback (including the overwrite-cancel path).
         panel.onCopyBar1ToBar2 = { [weak self] in self?.copyBar1ToBar2() }
         presentWhenReady(panel)
@@ -606,115 +596,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         applyTrackVolumesToEngine()
         applyTrackEffectsToEngine()
         engine.reloadKit(store.currentKitId)
-    }
-
-    private func showLoopPicker(format: ExportFormat) {
-        guard engine.isReady else {
-            toast.show("Audio engine unavailable — exporting is disabled. Try restarting the app.",
-                       tone: .warn)
-            return
-        }
-        guard store.sequenceHasAudibleSteps else {
-            let alert = UIAlertController(
-                title: "Empty Mix",
-                message: "This mix appears to be empty. Export anyway?",
-                preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Export Anyway", style: .default) { [weak self] _ in
-                self?.presentLoopPicker(format: format)
-            })
-            present(alert, animated: true)
-            return
-        }
-        presentLoopPicker(format: format)
-    }
-
-    private func presentLoopPicker(format: ExportFormat) {
-        let title = format == .wav ? "Export WAV" : "Export M4A"
-        let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
-        let stepDur = 60.0 / store.tempo / 4.0
-        for reps in [1, 2, 4, 8] {
-            let secs = Int(Double(reps * store.sequenceLength) * stepDur)
-            let label = reps == 1 ? "1 Loop" : "\(reps) Loops"
-            sheet.addAction(UIAlertAction(title: "\(label)  —  ~\(secs)s", style: .default) { [weak self] _ in
-                self?.runExport(reps: reps, format: format)
-            })
-        }
-        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        sheet.popoverPresentationController?.sourceView = moreButton
-        present(sheet, animated: true)
-    }
-
-    private func runExport(reps: Int, format: ExportFormat) {
-        guard currentExport == nil else { return }
-        exportInterrupted = false
-
-        exportBGTask = UIApplication.shared.beginBackgroundTask(withName: "pulse.export") { [weak self] in
-            // iOS is about to suspend us — stop cleanly; the completion handler reports it.
-            self?.exportInterrupted = true
-            self?.currentExport?.cancel()
-            self?.endExportBackgroundTask()
-        }
-
-        let progress = UIAlertController(title: "Exporting…", message: nil, preferredStyle: .alert)
-        progress.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
-            self?.currentExport?.cancel()
-        })
-        present(progress, animated: true)
-
-        currentExport = engine.exportMix(reps: reps, format: format) { [weak self] result in
-            guard let self else { return }
-            let wasCancelled = self.currentExport?.isCancelled == true
-            self.currentExport = nil
-            self.endExportBackgroundTask()
-
-            switch result {
-            case .success(let url):
-                // Cancel can land after the renderer's final check; honor it here.
-                guard !wasCancelled else {
-                    try? FileManager.default.removeItem(at: url)
-                    self.showExportOutcome(progress) {
-                        self.toast.show(self.exportInterrupted ? "Export interrupted" : "Export cancelled",
-                                        tone: .warn)
-                    }
-                    return
-                }
-                self.showExportOutcome(progress) {
-                    let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-                    share.popoverPresentationController?.sourceView = self.moreButton
-                    share.completionWithItemsHandler = { _, _, _, _ in
-                        try? FileManager.default.removeItem(at: url)
-                    }
-                    self.present(share, animated: true)
-                }
-            case .failure(let err):
-                self.showExportOutcome(progress) {
-                    if (err as? ExportError) == .cancelled {
-                        self.toast.show(self.exportInterrupted ? "Export interrupted" : "Export cancelled",
-                                        tone: .warn)
-                    } else {
-                        self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)
-                    }
-                }
-            }
-        }
-    }
-
-    /// Dismisses the progress alert if it is still up, then runs `outcome`. The Cancel
-    /// action dismisses the alert itself, in which case `dismiss` would be a no-op that
-    /// may never call its completion — so check before relying on it.
-    private func showExportOutcome(_ progress: UIAlertController, _ outcome: @escaping () -> Void) {
-        if progress.presentingViewController != nil {
-            progress.dismiss(animated: true, completion: outcome)
-        } else {
-            outcome()
-        }
-    }
-
-    private func endExportBackgroundTask() {
-        guard exportBGTask != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(exportBGTask)
-        exportBGTask = .invalid
     }
 
     private func promptSave(completion: ((Bool) -> Void)?) {

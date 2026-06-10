@@ -22,6 +22,7 @@
 		280E50DB29B43A69B012B82F /* ExportPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D749E47C006DBF8D719533DE /* ExportPlanTests.swift */; };
 		2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B482574CA195A1DAE016C145 /* PresetsTests.swift */; };
 		2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C227703998F168A936512CCB /* TrackHeaderView.swift */; };
+		3A0946EEC10D3DB7C652FCE2 /* ExportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8274D92F26607D24F01E5885 /* ExportCoordinator.swift */; };
 		425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C973180DE38EF31F813D0783 /* SceneDelegate.swift */; };
 		43F99D40FD19E349093FB596 /* AudioLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6888432C711B9D4EC7FAAE /* AudioLifecycleTests.swift */; };
 		47ABBF89B33B0D9C0EB5145B /* SessionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */; };
@@ -86,6 +87,7 @@
 		6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStateTests.swift; sourceTree = "<group>"; };
 		702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
 		8050A11B221549612EC5112E /* TrackEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffectsTests.swift; sourceTree = "<group>"; };
+		8274D92F26607D24F01E5885 /* ExportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportCoordinator.swift; sourceTree = "<group>"; };
 		82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportView.swift; sourceTree = "<group>"; };
 		8AD56778432E62F6FB02FAC8 /* ActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsViewController.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				647DE86F341E5789862A04D3 /* BarActionsViewController.swift */,
 				2AE1C4767AB7667B0376366A /* CellButton.swift */,
 				FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */,
+				8274D92F26607D24F01E5885 /* ExportCoordinator.swift */,
 				48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */,
 				0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */,
 				479A58EEA48C73B1C82F82DC /* KnobControl.swift */,
@@ -364,6 +367,7 @@
 				F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */,
 				C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */,
 				2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */,
+				3A0946EEC10D3DB7C652FCE2 /* ExportCoordinator.swift in Sources */,
 				919D2986FD36B93041167CDD /* ExportPlan.swift in Sources */,
 				829BF53E5B5B3892A3D5EBB5 /* FaderControl.swift in Sources */,
 				108DA7F180F50C9BD4C7F4A8 /* KitPickerViewController.swift in Sources */,
