@@ -22,6 +22,11 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     private var cancellables = Set<AnyCancellable>()
     private var saveWork: DispatchWorkItem?
 
+    // Export coordination
+    private var currentExport: AudioEngine.ExportHandle?
+    private var exportBGTask: UIBackgroundTaskIdentifier = .invalid
+    private var exportInterrupted = false
+
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
     override var shouldAutorotate: Bool { true }
@@ -599,26 +604,75 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func runExport(reps: Int, format: ExportFormat) {
+        guard currentExport == nil else { return }
+        exportInterrupted = false
+
+        exportBGTask = UIApplication.shared.beginBackgroundTask(withName: "pulse.export") { [weak self] in
+            // iOS is about to suspend us — stop cleanly; the completion handler reports it.
+            self?.exportInterrupted = true
+            self?.currentExport?.cancel()
+            self?.endExportBackgroundTask()
+        }
+
         let progress = UIAlertController(title: "Exporting…", message: nil, preferredStyle: .alert)
+        progress.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            self?.currentExport?.cancel()
+        })
         present(progress, animated: true)
-        engine.exportMix(reps: reps, format: format) { [weak self] result in
+
+        currentExport = engine.exportMix(reps: reps, format: format) { [weak self] result in
             guard let self else { return }
+            let wasCancelled = self.currentExport?.isCancelled == true
+            self.currentExport = nil
+            self.endExportBackgroundTask()
+
             switch result {
             case .success(let url):
-                progress.title = "Preparing Share…"
-                let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-                share.popoverPresentationController?.sourceView = self.moreButton
-                share.completionWithItemsHandler = { _, _, _, _ in
+                // Cancel can land after the renderer's final check; honor it here.
+                guard !wasCancelled else {
                     try? FileManager.default.removeItem(at: url)
-                    progress.dismiss(animated: true)
+                    self.showExportOutcome(progress) {
+                        self.toast.show(self.exportInterrupted ? "Export interrupted" : "Export cancelled",
+                                        tone: .warn)
+                    }
+                    return
                 }
-                progress.present(share, animated: true)
+                self.showExportOutcome(progress) {
+                    let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                    share.popoverPresentationController?.sourceView = self.moreButton
+                    share.completionWithItemsHandler = { _, _, _, _ in
+                        try? FileManager.default.removeItem(at: url)
+                    }
+                    self.present(share, animated: true)
+                }
             case .failure(let err):
-                progress.dismiss(animated: true) {
-                    self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)
+                self.showExportOutcome(progress) {
+                    if (err as? ExportError) == .cancelled {
+                        self.toast.show(self.exportInterrupted ? "Export interrupted" : "Export cancelled",
+                                        tone: .warn)
+                    } else {
+                        self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)
+                    }
                 }
             }
         }
+    }
+
+    /// Dismisses the progress alert if it is still up, then runs `outcome`. The Cancel
+    /// action dismisses the alert itself, in which case `dismiss` would be a no-op that
+    /// may never call its completion — so check before relying on it.
+    private func showExportOutcome(_ progress: UIAlertController, _ outcome: @escaping () -> Void) {
+        if progress.presentingViewController != nil {
+            progress.dismiss(animated: true, completion: outcome)
+        } else {
+            outcome()
+        }
+    }
+
+    private func endExportBackgroundTask() {
+        guard exportBGTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(exportBGTask)
+        exportBGTask = .invalid
     }
 
     private func promptSave(completion: ((Bool) -> Void)?) {

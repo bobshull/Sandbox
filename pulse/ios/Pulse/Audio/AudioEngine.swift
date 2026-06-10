@@ -392,9 +392,39 @@ final class AudioEngine {
 
     // MARK: - Export
 
+    /// Cancellation token for an in-flight export. Safe to cancel from any thread.
+    final class ExportHandle {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool {
+            lock.lock(); defer { lock.unlock() }
+            return cancelled
+        }
+        func cancel() {
+            lock.lock(); cancelled = true; lock.unlock()
+        }
+    }
+
+    /// Filesystem-safe, collision-resistant export file name derived from the mix name.
+    static func exportFileName(patternName: String, format: ExportFormat) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: " _-"))
+        var base = String(patternName.unicodeScalars.filter { allowed.contains($0) })
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: " ", with: "_")
+        if base.isEmpty { base = "Pulse_Mix" }
+        return "\(base)_\(UUID().uuidString.prefix(8)).\(format.rawValue)"
+    }
+
+    /// Consecutive .cannotDoInCurrentContext render statuses tolerated before failing.
+    private static let renderStallLimit = 1_000
+
     /// Renders `reps` full pattern loops offline into a WAV or AAC/M4A file and returns the URL.
-    /// Runs entirely on a background thread; calls back on main.
-    func exportMix(reps: Int, format: ExportFormat, completion: @escaping (Result<URL, Error>) -> Void) {
+    /// Runs entirely on a background thread; calls back on main exactly once. Cancel via the
+    /// returned handle; a cancelled export completes with `ExportError.cancelled` and removes
+    /// any partial file.
+    @discardableResult
+    func exportMix(reps: Int, format: ExportFormat, completion: @escaping (Result<URL, Error>) -> Void) -> ExportHandle {
+        let handle = ExportHandle()
         var captured: [String: AVAudioPCMBuffer] = [:]
         var capturedAccentBuffers: [String: AVAudioPCMBuffer] = [:]
         schedulerQueue.sync {
@@ -402,13 +432,17 @@ final class AudioEngine {
             capturedAccentBuffers = accentBuffers
         }
         guard !captured.isEmpty else {
-            completion(.failure(ExportError.notPrepared)); return
+            // Async so the caller has the handle before the completion runs.
+            DispatchQueue.main.async { completion(.failure(ExportError.notPrepared)) }
+            return handle
         }
 
         let snap          = store.audioSnapshot()
         let sr            = sampleRate
+        let fileName      = AudioEngine.exportFileName(patternName: store.patternName, format: format)
 
         DispatchQueue.global(qos: .userInitiated).async {
+            var partialURL: URL?
             do {
                 let stepDur = 60.0 / snap.tempo / 4.0
                 let sequenceStart = snap.sequenceStart
@@ -438,6 +472,8 @@ final class AudioEngine {
                                                             format: self.format,
                                                             maximumFrameCount: 4096)
                 try offlineEngine.start()
+                // Tear the offline engine down on every exit path, including throws.
+                defer { offlineEngine.stop() }
 
                 var boundaries: [(frame: AVAudioFramePosition, bar: Int)] = []
                 for step in 0..<totalSteps {
@@ -491,13 +527,10 @@ final class AudioEngine {
                     }
                 }
 
-                let ts        = Int(Date().timeIntervalSince1970)
-                let exportFmt = format
-                let wavURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).wav")
-                let m4aURL = FileManager.default.temporaryDirectory.appendingPathComponent("Pulse_Mix_\(ts).m4a")
-                let renderURL = exportFmt == .wav ? wavURL : m4aURL
+                let renderURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
                 try? FileManager.default.removeItem(at: renderURL)
-                let renderSettings: [String: Any] = exportFmt == .wav
+                partialURL = renderURL
+                let renderSettings: [String: Any] = format == .wav
                     ? offlineEngine.manualRenderingFormat.settings
                     : [
                         AVFormatIDKey: kAudioFormatMPEG4AAC,
@@ -511,8 +544,10 @@ final class AudioEngine {
 
                 var renderedFrames: AVAudioFramePosition = 0
                 var boundaryIndex = 0
+                var stallCount = 0
                 let fadeFrames = AVAudioFramePosition((0.02 * sr).rounded())
                 while renderedFrames < totalFrames {
+                    if handle.isCancelled { throw ExportError.cancelled }
                     while boundaryIndex < boundaries.count && boundaries[boundaryIndex].frame <= renderedFrames {
                         applyExportBar(boundaries[boundaryIndex].bar)
                         boundaryIndex += 1
@@ -525,14 +560,8 @@ final class AudioEngine {
                                                               min(remainingFrames, framesUntilBoundary)))
 
                     switch try offlineEngine.renderOffline(framesToRender, to: renderBuffer) {
-                    case .success:
-                        self.applyEndFade(to: renderBuffer,
-                                          renderedStartFrame: renderedFrames,
-                                          totalFrames: totalFrames,
-                                          fadeFrames: fadeFrames)
-                        try renderFile.write(from: renderBuffer)
-                        renderedFrames += AVAudioFramePosition(renderBuffer.frameLength)
-                    case .insufficientDataFromInputNode:
+                    case .success, .insufficientDataFromInputNode:
+                        stallCount = 0
                         self.applyEndFade(to: renderBuffer,
                                           renderedStartFrame: renderedFrames,
                                           totalFrames: totalFrames,
@@ -540,6 +569,10 @@ final class AudioEngine {
                         try renderFile.write(from: renderBuffer)
                         renderedFrames += AVAudioFramePosition(renderBuffer.frameLength)
                     case .cannotDoInCurrentContext:
+                        stallCount += 1
+                        guard stallCount < AudioEngine.renderStallLimit else {
+                            throw ExportError.renderStalled
+                        }
                         continue
                     case .error:
                         throw ExportError.renderFailed
@@ -548,29 +581,28 @@ final class AudioEngine {
                     }
                 }
 
-                offlineEngine.stop()
-
-                if exportFmt == .wav {
-                    DispatchQueue.main.async { completion(.success(wavURL)) }
-                } else {
-                    DispatchQueue.main.async { completion(.success(m4aURL)) }
-                }
+                if handle.isCancelled { throw ExportError.cancelled }
+                DispatchQueue.main.async { completion(.success(renderURL)) }
 
             } catch {
+                if let url = partialURL { try? FileManager.default.removeItem(at: url) }
                 DispatchQueue.main.async { completion(.failure(error)) }
             }
         }
+        return handle
     }
 }
 
 enum ExportError: LocalizedError {
-    case notPrepared, sessionUnavailable, exportFailed, renderFailed
+    case notPrepared, sessionUnavailable, exportFailed, renderFailed, renderStalled, cancelled
     var errorDescription: String? {
         switch self {
         case .notPrepared:        return "Audio engine not ready — play the mix first"
         case .sessionUnavailable: return "Export session unavailable"
         case .exportFailed:       return "Export failed"
         case .renderFailed:       return "Offline render failed"
+        case .renderStalled:      return "Export stalled — please try again"
+        case .cancelled:          return "Export cancelled"
         }
     }
 }
