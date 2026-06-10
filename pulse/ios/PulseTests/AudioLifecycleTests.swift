@@ -111,4 +111,33 @@ final class AudioLifecycleTests: XCTestCase {
 
         XCTAssertEqual(eventCount, 0)
     }
+
+    // MARK: - Kit reload skipping
+
+    func test_reloadKit_skipsWhenSameKitRequestedAgain() {
+        let engine = AudioEngine(store: Store())
+        engine.reloadKit("808")
+        engine.reloadKit("808")
+        engine.reloadKit("808")
+        engine.waitForPendingKitRenders()
+        XCTAssertEqual(engine.kitRenderCount, 1)
+        XCTAssertEqual(engine.loadedKitId, "808")
+    }
+
+    func test_reloadKit_rendersWhenKitActuallyChanges() {
+        let engine = AudioEngine(store: Store())
+        engine.reloadKit("808")
+        engine.reloadKit("jazz")
+        engine.waitForPendingKitRenders()
+        XCTAssertEqual(engine.kitRenderCount, 2)
+        XCTAssertEqual(engine.loadedKitId, "jazz")
+    }
+
+    func test_reloadKit_lastRequestedKitWins() {
+        let engine = AudioEngine(store: Store())
+        for kit in ["808", "jazz", "arcade", "space"] { engine.reloadKit(kit) }
+        engine.waitForPendingKitRenders()
+        XCTAssertEqual(engine.kitRenderCount, 4)
+        XCTAssertEqual(engine.loadedKitId, "space")
+    }
 }

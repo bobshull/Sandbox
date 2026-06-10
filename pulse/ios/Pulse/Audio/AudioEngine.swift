@@ -59,6 +59,19 @@ final class AudioEngine {
     private(set) var isReady = false
     private var observers: [NSObjectProtocol] = []
 
+    /// Kit whose voices are currently rendered (or being rendered). Main thread
+    /// only. Lets undo/load skip a full synth re-render when the kit is unchanged.
+    private(set) var loadedKitId: String?
+
+    /// Serial, so rapid kit switches render in request order and the last one wins.
+    private let renderQueue = DispatchQueue(label: "pulse.audio.kitrender", qos: .userInitiated)
+
+    #if DEBUG
+    /// Test hooks for the reload-skip behavior.
+    private(set) var kitRenderCount = 0
+    func waitForPendingKitRenders() { renderQueue.sync { } }
+    #endif
+
     // Scheduling — all of this state lives on schedulerQueue only. The timer is
     // created and cancelled there, so a cancelled timer can never have an
     // in-flight tick mutating state behind a restart.
@@ -84,6 +97,7 @@ final class AudioEngine {
         buildGraph()
 
         // Pre-render each voice once and reuse for every hit.
+        loadedKitId = store.currentKitId
         let rendered = renderVoiceBuffers(kit: store.currentKitId)
         schedulerQueue.sync {
             buffers = rendered.normal
@@ -214,11 +228,22 @@ final class AudioEngine {
         }
     }
 
+    /// Re-renders all voices for `kitId` off the main thread and swaps the buffer
+    /// set on the scheduler queue. No-op when that kit is already loaded, so
+    /// undo/pattern-load paths don't pay for a redundant full synth render.
     func reloadKit(_ kitId: String) {
-        let rendered = renderVoiceBuffers(kit: kitId)
-        schedulerQueue.async { [weak self] in
-            self?.buffers = rendered.normal
-            self?.accentBuffers = rendered.accent
+        guard kitId != loadedKitId else { return }
+        loadedKitId = kitId
+        renderQueue.async { [weak self] in
+            guard let self else { return }
+            #if DEBUG
+            self.kitRenderCount += 1
+            #endif
+            let rendered = self.renderVoiceBuffers(kit: kitId)
+            self.schedulerQueue.async {
+                self.buffers = rendered.normal
+                self.accentBuffers = rendered.accent
+            }
         }
     }
 
@@ -255,18 +280,6 @@ final class AudioEngine {
         schedulerQueue.async { [weak self] in
             guard let self, let chain = self.fxChains[id] else { return }
             self.applyFX(fx, chain: chain, tempo: tempo)
-        }
-    }
-
-    func updateDelayTimes(tempo: Double) {
-        let snap = store.audioSnapshot()
-        schedulerQueue.async { [weak self] in
-            guard let self else { return }
-            for track in Tracks.all {
-                guard let chain = self.fxChains[track.id],
-                      let fx = snap.barEffects[0][track.id] else { continue }
-                chain.delay.delayTime = min(fx.delaySyncDivision.quarterNoteMultiplier * (60.0 / tempo), 2.0)
-            }
         }
     }
 
@@ -579,9 +592,13 @@ final class AudioEngine {
         let handle = ExportHandle()
         var captured: [String: AVAudioPCMBuffer] = [:]
         var capturedAccentBuffers: [String: AVAudioPCMBuffer] = [:]
-        schedulerQueue.sync {
-            captured = buffers
-            capturedAccentBuffers = accentBuffers
+        // Serialize behind any in-flight kit render (renderQueue is FIFO) so an
+        // export right after a kit switch captures the new kit's buffers.
+        renderQueue.sync {
+            schedulerQueue.sync {
+                captured = buffers
+                capturedAccentBuffers = accentBuffers
+            }
         }
         guard !captured.isEmpty else {
             // Async so the caller has the handle before the completion runs.
@@ -715,15 +732,13 @@ final class AudioEngine {
 }
 
 enum ExportError: LocalizedError {
-    case notPrepared, sessionUnavailable, exportFailed, renderFailed, renderStalled, cancelled
+    case notPrepared, renderFailed, renderStalled, cancelled
     var errorDescription: String? {
         switch self {
-        case .notPrepared:        return "Audio engine isn't ready — try restarting the app"
-        case .sessionUnavailable: return "Export session unavailable"
-        case .exportFailed:       return "Export failed"
-        case .renderFailed:       return "Offline render failed"
-        case .renderStalled:      return "Export stalled — please try again"
-        case .cancelled:          return "Export cancelled"
+        case .notPrepared:   return "Audio engine isn't ready — try restarting the app"
+        case .renderFailed:  return "Offline render failed"
+        case .renderStalled: return "Export stalled — please try again"
+        case .cancelled:     return "Export cancelled"
         }
     }
 }
