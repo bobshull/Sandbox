@@ -101,6 +101,18 @@ final class Store {
         }
     }
 
+    // True when at least one unmuted track has an active step inside the current
+    // playback loop — i.e. playing or exporting it would produce sound.
+    var sequenceHasAudibleSteps: Bool {
+        let start = sequenceStart
+        let end = start + sequenceLength
+        for track in Tracks.all where mutes[track.id] != true {
+            guard let row = rows[track.id] else { continue }
+            for step in start..<min(end, row.count) where row[step] { return true }
+        }
+        return false
+    }
+
     // True when 32-step rows are in memory (Bar 2 preserved from a previous 2-bar session).
     var hasPreservedBar2: Bool {
         rows.values.contains { $0.count == 32 }

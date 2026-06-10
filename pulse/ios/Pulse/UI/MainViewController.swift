@@ -588,6 +588,22 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func showLoopPicker(format: ExportFormat) {
+        guard store.sequenceHasAudibleSteps else {
+            let alert = UIAlertController(
+                title: "Empty Mix",
+                message: "This mix appears to be empty. Export anyway?",
+                preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            alert.addAction(UIAlertAction(title: "Export Anyway", style: .default) { [weak self] _ in
+                self?.presentLoopPicker(format: format)
+            })
+            present(alert, animated: true)
+            return
+        }
+        presentLoopPicker(format: format)
+    }
+
+    private func presentLoopPicker(format: ExportFormat) {
         let title = format == .wav ? "Export WAV" : "Export M4A"
         let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
         let stepDur = 60.0 / store.tempo / 4.0
