@@ -18,6 +18,7 @@
 		2013364E56B47CDC09B19E61 /* TracksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982B0E039F5177C7BE9F9F13 /* TracksTests.swift */; };
 		2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A96046916DC293790338A29F /* CrashLogger.swift */; };
 		2758E91BE80F83E6B8A2EBD5 /* BarActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647DE86F341E5789862A04D3 /* BarActionsViewController.swift */; };
+		280E50DB29B43A69B012B82F /* ExportPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D749E47C006DBF8D719533DE /* ExportPlanTests.swift */; };
 		2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B482574CA195A1DAE016C145 /* PresetsTests.swift */; };
 		2B21B11B975A4EB829745FEB /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C227703998F168A936512CCB /* TrackHeaderView.swift */; };
 		425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C973180DE38EF31F813D0783 /* SceneDelegate.swift */; };
@@ -29,6 +30,7 @@
 		7D03AE0E0B1816039E741BA5 /* TrackDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */; };
 		829BF53E5B5B3892A3D5EBB5 /* FaderControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48B3F48DC7F79BDBCE5AD3CC /* FaderControl.swift */; };
 		841AADEA1BF7E0367AA736A2 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */; };
+		919D2986FD36B93041167CDD /* ExportPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DD4EE9122F2159AB88FE9C4 /* ExportPlan.swift */; };
 		92528EF8C82B3D65914B5069 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD6248F10D8F97FB821D51E /* MainViewController.swift */; };
 		957541AD298144CE3AEFA793 /* KnobControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479A58EEA48C73B1C82F82DC /* KnobControl.swift */; };
 		97710BDD3FA9DE1F343CF4D2 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0B6A0582997898623109FC /* SettingsViewController.swift */; };
@@ -82,6 +84,7 @@
 		82CA4B8BDC045C16F231C4E3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		896B81CF96A42F0D7A4CA1E7 /* TransportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportView.swift; sourceTree = "<group>"; };
 		8AD56778432E62F6FB02FAC8 /* ActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsViewController.swift; sourceTree = "<group>"; };
+		8DD4EE9122F2159AB88FE9C4 /* ExportPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportPlan.swift; sourceTree = "<group>"; };
 		8FA857BE40CCB4925205352A /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStoreTests.swift; sourceTree = "<group>"; };
 		982B0E039F5177C7BE9F9F13 /* TracksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksTests.swift; sourceTree = "<group>"; };
@@ -99,6 +102,7 @@
 		CBC8AE5BF7C0419018C1192A /* Pulse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulse.entitlements; sourceTree = "<group>"; };
 		CD1DEEFB6F3DD723D3B04164 /* PatternStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStore.swift; sourceTree = "<group>"; };
 		CF7709EC17543072039B4671 /* SampleKitsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKitsTests.swift; sourceTree = "<group>"; };
+		D749E47C006DBF8D719533DE /* ExportPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportPlanTests.swift; sourceTree = "<group>"; };
 		DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
 		E6DA0C4A10EE8077361EC0D6 /* TrackActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionsViewController.swift; sourceTree = "<group>"; };
 		EB05F18EB784C467E9F52091 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
@@ -169,6 +173,7 @@
 			isa = PBXGroup;
 			children = (
 				58107A90060A6D3A39ED5760 /* AudioEngine.swift */,
+				8DD4EE9122F2159AB88FE9C4 /* ExportPlan.swift */,
 				2F72C6BC8D90CE86D0586B3A /* Synths.swift */,
 			);
 			path = Audio;
@@ -216,6 +221,7 @@
 			children = (
 				8FA857BE40CCB4925205352A /* AppSettingsTests.swift */,
 				AC905516CE27C92C65B2F237 /* ColorThemeTests.swift */,
+				D749E47C006DBF8D719533DE /* ExportPlanTests.swift */,
 				918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */,
 				B482574CA195A1DAE016C145 /* PresetsTests.swift */,
 				CF7709EC17543072039B4671 /* SampleKitsTests.swift */,
@@ -323,6 +329,7 @@
 			files = (
 				D137BDC802515EFD1669CAA2 /* AppSettingsTests.swift in Sources */,
 				B225AC568F49DA00FC0EBC6C /* ColorThemeTests.swift in Sources */,
+				280E50DB29B43A69B012B82F /* ExportPlanTests.swift in Sources */,
 				BEF2EFE9CA34C7D767F58C56 /* PatternStoreTests.swift in Sources */,
 				2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */,
 				176B96B916D99A4B8D2A056F /* SampleKitsTests.swift in Sources */,
@@ -345,6 +352,7 @@
 				F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */,
 				C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */,
 				2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */,
+				919D2986FD36B93041167CDD /* ExportPlan.swift in Sources */,
 				829BF53E5B5B3892A3D5EBB5 /* FaderControl.swift in Sources */,
 				108DA7F180F50C9BD4C7F4A8 /* KitPickerViewController.swift in Sources */,
 				957541AD298144CE3AEFA793 /* KnobControl.swift in Sources */,
