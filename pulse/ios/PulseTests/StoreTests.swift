@@ -1338,6 +1338,25 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.effects(for: 0)[trackId]?.reverbWet, store.effects[trackId]?.reverbWet)
     }
 
+    // MARK: - Undo restores pattern identity
+
+    func test_undo_restoresCurrentPatternId() {
+        store.setCurrentPatternId("original-id")
+        store.toggleStep(trackId: "kick", step: 0)   // pushes undo with the original id
+        store.setCurrentPatternId("changed-id")
+        store.undo()
+        XCTAssertEqual(store.currentPatternId, "original-id")
+    }
+
+    func test_undo_restoresEmptyPatternId() {
+        store.setCurrentPatternId("")
+        store.toggleStep(trackId: "kick", step: 0)
+        store.setCurrentPatternId("saved-later")
+        store.undo()
+        XCTAssertEqual(store.currentPatternId, "")
+        XCTAssertFalse(store.isCurrentPatternUserSaved)
+    }
+
     // MARK: - sequenceHasAudibleSteps
 
     func test_sequenceHasAudibleSteps_falseWhenEmpty() {

@@ -197,6 +197,7 @@ final class Store {
     func undo() {
         guard let snap = undoStack.popLast() else { return }
         patternName = snap.patternName
+        currentPatternId = snap.patternId ?? ""
         tempo = snap.tempo
         swing = snap.swing
         masterGain = snap.masterGain
