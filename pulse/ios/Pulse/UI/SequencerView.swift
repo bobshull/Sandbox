@@ -636,13 +636,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     @objc private func cellLongPressed(_ gr: UILongPressGestureRecognizer) {
         guard gr.state == .began, let cell = gr.view as? CellButton else { return }
         // cell.isOn is reliable here: long press suppresses touchUpInside, step state unchanged
-        guard cell.isOn else { return }
-        guard let row = rows.first(where: { $0.cells.contains(cell) }) else { return }
-        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
-        store.toggleAccent(trackId: row.track.id, step: cell.tag)
-        let newAccented = store.accents[row.track.id]?[cell.tag] ?? false
-        cell.pulseAccent(on: newAccented)
-        delegate?.sequencerDidToggleAccent(isAccented: newAccented)
+        toggleAccent(on: cell)
     }
 
     @objc private func cellDoubleTapped(_ gr: UITapGestureRecognizer) {
@@ -650,8 +644,12 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         // cell.isOn is reliable here: the two touchUpInside events toggled the store twice
         // (net: unchanged), but syncPattern hasn't run yet, so cell.isOn still reflects
         // the original state — check it to ignore double-taps on empty cells
-        guard cell.isOn else { return }
-        guard let row = rows.first(where: { $0.cells.contains(cell) }) else { return }
+        toggleAccent(on: cell)
+    }
+
+    private func toggleAccent(on cell: CellButton) {
+        guard cell.isOn,
+              let row = rows.first(where: { $0.cells.contains(cell) }) else { return }
         if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
         store.toggleAccent(trackId: row.track.id, step: cell.tag)
         let newAccented = store.accents[row.track.id]?[cell.tag] ?? false

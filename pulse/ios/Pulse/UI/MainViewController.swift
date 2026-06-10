@@ -496,10 +496,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func copyBar1ToBar2() {
-        let bar2HasContent = store.rows.values.contains { arr in
-            arr.count == 32 && arr[16...].contains(true)
-        }
-        guard bar2HasContent else {
+        guard store.hasBar2Content else {
             store.duplicateBar1()
             toast.show("Bar 1 copied to Bar 2", tone: .ok)
             return
@@ -517,10 +514,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func generateBar2Variation() {
-        let bar2HasContent = store.rows.values.contains { arr in
-            arr.count == 32 && arr[16...].contains(true)
-        }
-        guard bar2HasContent else {
+        guard store.hasBar2Content else {
             expandVariation()
             return
         }
