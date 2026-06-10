@@ -73,10 +73,43 @@ final class PatternStoreTests: XCTestCase {
         XCTAssertEqual(list.first?.name, "Updated")
     }
 
-    func test_save_updatesExistingByName() {
+    func test_save_sameNameDifferentId_bothSurvive() {
         PatternStore.save(makePattern(id: "id1", name: "Same Name"))
         PatternStore.save(makePattern(id: "id2", name: "Same Name"))
-        XCTAssertEqual(PatternStore.userPatterns().count, 1)
+        let list = PatternStore.userPatterns()
+        XCTAssertEqual(list.count, 2)
+        XCTAssertEqual(Set(list.map(\.id)), ["id1", "id2"])
+    }
+
+    func test_save_duplicateNameNeverOverwritesUnrelatedPattern() {
+        var original = makePattern(id: "original", name: "Keeper")
+        original.tempo = 99
+        PatternStore.save(original)
+        PatternStore.save(makePattern(id: "new", name: "Keeper"))
+        let keeper = PatternStore.userPatterns().first { $0.id == "original" }
+        XCTAssertEqual(keeper?.tempo, 99)
+    }
+
+    // MARK: - uniqueName
+
+    func test_uniqueName_passthroughWhenUnused() {
+        XCTAssertEqual(PatternStore.uniqueName("Fresh"), "Fresh")
+    }
+
+    func test_uniqueName_suffixesOnCollision() {
+        PatternStore.save(makePattern(name: "Groove"))
+        XCTAssertEqual(PatternStore.uniqueName("Groove"), "Groove 2")
+    }
+
+    func test_uniqueName_skipsTakenSuffixes() {
+        PatternStore.save(makePattern(name: "Groove"))
+        PatternStore.save(makePattern(name: "Groove 2"))
+        XCTAssertEqual(PatternStore.uniqueName("Groove"), "Groove 3")
+    }
+
+    func test_uniqueName_isCaseInsensitive() {
+        PatternStore.save(makePattern(name: "groove"))
+        XCTAssertEqual(PatternStore.uniqueName("Groove"), "Groove 2")
     }
 
     func test_save_limitsTo50Patterns() {
@@ -194,6 +227,52 @@ final class PatternStoreTests: XCTestCase {
         PatternStore.saveSession(s2.sessionState())
 
         XCTAssertEqual(PatternStore.loadSession()?.patternName, "Second")
+    }
+
+    // MARK: - SessionSaver
+
+    func test_sessionSaver_flushRunsPendingSaveImmediately() {
+        var saves = 0
+        let saver = SessionSaver(delay: 60) { saves += 1 }   // long delay: only flush can fire
+        saver.schedule()
+        saver.flush()
+        XCTAssertEqual(saves, 1)
+    }
+
+    func test_sessionSaver_flushWithoutPendingIsNoop() {
+        var saves = 0
+        let saver = SessionSaver(delay: 60) { saves += 1 }
+        saver.flush()
+        XCTAssertEqual(saves, 0)
+    }
+
+    func test_sessionSaver_flushAfterFlushDoesNotDoubleSave() {
+        var saves = 0
+        let saver = SessionSaver(delay: 60) { saves += 1 }
+        saver.schedule()
+        saver.flush()
+        saver.flush()
+        XCTAssertEqual(saves, 1)
+    }
+
+    func test_sessionSaver_rapidSchedulesCoalesceToOneSave() {
+        var saves = 0
+        let saver = SessionSaver(delay: 0.05) { saves += 1 }
+        for _ in 0..<10 { saver.schedule() }
+        let exp = expectation(description: "debounce fired")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { exp.fulfill() }
+        wait(for: [exp], timeout: 2)
+        XCTAssertEqual(saves, 1)
+    }
+
+    func test_sessionSaver_flushPersistsLatestEditBeforeBackground() {
+        // The H4 scenario: edit inside the debounce window, then resign active.
+        let store = Store()
+        let saver = SessionSaver(delay: 60) { PatternStore.saveSession(store.sessionState()) }
+        store.setTempo(173)
+        saver.schedule()
+        saver.flush()   // what appWillResignActive does
+        XCTAssertEqual(PatternStore.loadSession()?.tempo, 173)
     }
 
     // MARK: - Error handling (corrupt data)

@@ -1337,4 +1337,128 @@ final class StoreTests: XCTestCase {
         store.setTrackEffects(trackId: trackId, fx)
         XCTAssertEqual(store.effects(for: 0)[trackId]?.reverbWet, store.effects[trackId]?.reverbWet)
     }
+
+    // MARK: - isStepActive (H3 stale step-index regression)
+
+    func test_isStepActive_trueForActiveStepInBounds() {
+        store.toggleStep(trackId: "kick", step: 5)
+        XCTAssertTrue(store.isStepActive(trackId: "kick", step: 5))
+    }
+
+    func test_isStepActive_falseForInactiveStepInBounds() {
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 5))
+    }
+
+    func test_isStepActive_falseForIndexAboveRowBounds() {
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 31))
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 9_999))
+    }
+
+    func test_isStepActive_falseForNegativeIndex() {
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: -1))
+    }
+
+    func test_isStepActive_falseForUnknownTrack() {
+        XCTAssertFalse(store.isStepActive(trackId: "nope", step: 0))
+    }
+
+    func test_isStepActive_staleStepFrom32StepPatternAfter16StepLoad() {
+        // The original H3 crash: a queued .step(20+) event from a playing 32-step
+        // pattern arrives after a 16-step pattern has replaced store.rows.
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "kick", step: 20)
+        XCTAssertTrue(store.isStepActive(trackId: "kick", step: 20))
+
+        let sixteenStep = Pattern(id: "p16", name: "Sixteen", tempo: 120, swing: 0,
+                                  rows: ["kick": Array(repeating: true, count: 16)],
+                                  patternLength: 16)
+        store.loadPattern(sixteenStep)
+        XCTAssertEqual(store.rows["kick"]?.count, 16)
+
+        // Indexes 16...31 are stale now — they must read inactive, never trap.
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 20))
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 31))
+        XCTAssertTrue(store.isStepActive(trackId: "kick", step: 15))
+    }
+
+    // MARK: - Undo restores pattern identity
+
+    func test_undo_restoresCurrentPatternId() {
+        store.setCurrentPatternId("original-id")
+        store.toggleStep(trackId: "kick", step: 0)   // pushes undo with the original id
+        store.setCurrentPatternId("changed-id")
+        store.undo()
+        XCTAssertEqual(store.currentPatternId, "original-id")
+    }
+
+    func test_undo_restoresEmptyPatternId() {
+        store.setCurrentPatternId("")
+        store.toggleStep(trackId: "kick", step: 0)
+        store.setCurrentPatternId("saved-later")
+        store.undo()
+        XCTAssertEqual(store.currentPatternId, "")
+        XCTAssertFalse(store.isCurrentPatternUserSaved)
+    }
+
+    // MARK: - sequenceHasAudibleSteps
+
+    func test_sequenceHasAudibleSteps_falseWhenEmpty() {
+        XCTAssertFalse(store.sequenceHasAudibleSteps)
+    }
+
+    func test_sequenceHasAudibleSteps_trueWithActiveStep() {
+        store.toggleStep(trackId: "kick", step: 0)
+        XCTAssertTrue(store.sequenceHasAudibleSteps)
+    }
+
+    func test_sequenceHasAudibleSteps_falseWhenOnlyActiveTrackMuted() {
+        store.toggleStep(trackId: "kick", step: 0)
+        store.toggleMute(trackId: "kick")
+        XCTAssertFalse(store.sequenceHasAudibleSteps)
+    }
+
+    func test_sequenceHasAudibleSteps_respectsDisabledBar() {
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "kick", step: 4)   // bar 1 only
+        store.toggleBar(0)                            // loop = bar 2 only
+        XCTAssertFalse(store.sequenceHasAudibleSteps)
+        store.toggleBar(0)                            // both bars back in the loop
+        XCTAssertTrue(store.sequenceHasAudibleSteps)
+    }
+
+    func test_sequenceHasAudibleSteps_seesBar2OnlyLoop() {
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "snare", step: 20)  // bar 2 only
+        store.toggleBar(0)                            // loop = bar 2 only
+        XCTAssertTrue(store.sequenceHasAudibleSteps)
+    }
+
+    // MARK: - Export file naming
+
+    func test_exportFileName_usesPatternNameAndExtension() {
+        let name = AudioEngine.exportFileName(patternName: "Boom Bap", format: .wav)
+        XCTAssertTrue(name.hasPrefix("Boom_Bap_"))
+        XCTAssertTrue(name.hasSuffix(".wav"))
+    }
+
+    func test_exportFileName_sanitizesHostileCharacters() {
+        let name = AudioEngine.exportFileName(patternName: "We/ird: Mix?*\\", format: .m4a)
+        XCTAssertFalse(name.contains("/"))
+        XCTAssertFalse(name.contains(":"))
+        XCTAssertFalse(name.contains("?"))
+        XCTAssertFalse(name.contains("*"))
+        XCTAssertFalse(name.contains("\\"))
+        XCTAssertTrue(name.hasSuffix(".m4a"))
+    }
+
+    func test_exportFileName_fallsBackWhenNameIsAllHostile() {
+        let name = AudioEngine.exportFileName(patternName: "///:::", format: .wav)
+        XCTAssertTrue(name.hasPrefix("Pulse_Mix_"))
+    }
+
+    func test_exportFileName_uniqueAcrossCalls() {
+        let a = AudioEngine.exportFileName(patternName: "Same Name", format: .wav)
+        let b = AudioEngine.exportFileName(patternName: "Same Name", format: .wav)
+        XCTAssertNotEqual(a, b)
+    }
 }

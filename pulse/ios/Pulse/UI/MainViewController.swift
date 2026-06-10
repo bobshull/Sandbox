@@ -20,7 +20,11 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     private var levelMeterStrip: LevelMeterStripView?
     private var cancellables = Set<AnyCancellable>()
-    private var saveWork: DispatchWorkItem?
+    private lazy var sessionSaver = SessionSaver { [weak self] in
+        guard let self else { return }
+        PatternStore.saveSession(self.store.sessionState())
+    }
+    private lazy var exportCoordinator = ExportCoordinator(engine: engine, store: store, toast: toast)
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .landscapeRight }
@@ -34,11 +38,32 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         bindStore()
         prepareAudio()
         loadInitialPreset()
+        exportCoordinator.presenter = self
+        exportCoordinator.popoverSourceView = moreButton
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidEnterBackground),
+                                               name: UIApplication.didEnterBackgroundNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive),
+                                               name: UIApplication.willResignActiveNotification,
+                                               object: nil)
+    }
+
+    @objc private func appDidEnterBackground() {
+        engine.handleAppBackgrounded()
+    }
+
+    // Edits made inside the save debounce window must not be lost to suspension.
+    @objc private func appWillResignActive() {
+        sessionSaver.flush()
     }
 
     private func prepareAudio() {
         do { try engine.prepare() }
-        catch { toast.show("Audio engine failed to start", tone: .warn) }
+        catch {
+            toast.show("Audio engine failed to start — playback and export are disabled. Try restarting the app.",
+                       tone: .warn)
+        }
+        transportView.setPlayEnabled(engine.isReady)
     }
 
     private func loadInitialPreset() {
@@ -222,11 +247,20 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                     self?.store.setActiveStep(s)
                     if s >= 0, let strip = self?.levelMeterStrip, let self {
                         for track in Tracks.all where
-                            self.store.rows[track.id]?[s] == true &&
+                            self.store.isStepActive(trackId: track.id, step: s) &&
                             self.store.mutes[track.id] != true {
                             strip.trigger(trackId: track.id)
                         }
                     }
+                case .engineFailed:
+                    guard let self else { return }
+                    self.transportView.setIsPlaying(false)
+                    self.store.setActiveStep(-1)
+                    // Transient failures (e.g. session busy during a call) keep
+                    // isReady true and stay retryable; only a dead graph disables.
+                    self.transportView.setPlayEnabled(self.engine.isReady)
+                    self.toast.show("Audio engine unavailable — try closing and reopening the app",
+                                    tone: .warn)
                 }
             }
             .store(in: &cancellables)
@@ -266,18 +300,16 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func scheduleSessionSave() {
-        saveWork?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            PatternStore.saveSession(self.store.sessionState())
-        }
-        saveWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+        sessionSaver.schedule()
     }
 
     // MARK: - TransportViewDelegate
 
     func transportTogglePlay() {
+        guard engine.isReady else {
+            toast.show("Audio engine unavailable — try restarting the app", tone: .warn)
+            return
+        }
         if engine.isPlaying { engine.stop() } else { engine.start() }
     }
 
@@ -454,10 +486,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func copyBar1ToBar2() {
-        let bar2HasContent = store.rows.values.contains { arr in
-            arr.count == 32 && arr[16...].contains(true)
-        }
-        guard bar2HasContent else {
+        guard store.hasBar2Content else {
             store.duplicateBar1()
             toast.show("Bar 1 copied to Bar 2", tone: .ok)
             return
@@ -475,10 +504,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     }
 
     private func generateBar2Variation() {
-        let bar2HasContent = store.rows.values.contains { arr in
-            arr.count == 32 && arr[16...].contains(true)
-        }
-        guard bar2HasContent else {
+        guard store.hasBar2Content else {
             expandVariation()
             return
         }
@@ -515,12 +541,10 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             self?.store.clearBar(barIndex)
             self?.toast.show("Bar \(barIndex + 1) cleared", tone: .ok)
         }
-        panel.onExportWAV = { [weak self] in self?.showLoopPicker(format: .wav) }
-        panel.onExportM4A = { [weak self] in self?.showLoopPicker(format: .m4a) }
-        panel.onCopyBar1ToBar2 = { [weak self] in
-            self?.copyBar1ToBar2()
-            self?.toast.show("Bar 1 copied to Bar 2", tone: .ok)
-        }
+        panel.onExportWAV = { [weak self] in self?.exportCoordinator.requestExport(format: .wav) }
+        panel.onExportM4A = { [weak self] in self?.exportCoordinator.requestExport(format: .m4a) }
+        // copyBar1ToBar2 owns its own feedback (including the overwrite-cancel path).
+        panel.onCopyBar1ToBar2 = { [weak self] in self?.copyBar1ToBar2() }
         presentWhenReady(panel)
     }
 
@@ -574,45 +598,6 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         engine.reloadKit(store.currentKitId)
     }
 
-    private func showLoopPicker(format: ExportFormat) {
-        let title = format == .wav ? "Export WAV" : "Export M4A"
-        let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
-        let stepDur = 60.0 / store.tempo / 4.0
-        for reps in [1, 2, 4, 8] {
-            let secs = Int(Double(reps * store.sequenceLength) * stepDur)
-            let label = reps == 1 ? "1 Loop" : "\(reps) Loops"
-            sheet.addAction(UIAlertAction(title: "\(label)  —  ~\(secs)s", style: .default) { [weak self] _ in
-                self?.runExport(reps: reps, format: format)
-            })
-        }
-        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        sheet.popoverPresentationController?.sourceView = moreButton
-        present(sheet, animated: true)
-    }
-
-    private func runExport(reps: Int, format: ExportFormat) {
-        let progress = UIAlertController(title: "Exporting…", message: nil, preferredStyle: .alert)
-        present(progress, animated: true)
-        engine.exportMix(reps: reps, format: format) { [weak self] result in
-            guard let self else { return }
-            switch result {
-            case .success(let url):
-                progress.title = "Preparing Share…"
-                let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-                share.popoverPresentationController?.sourceView = self.moreButton
-                share.completionWithItemsHandler = { _, _, _, _ in
-                    try? FileManager.default.removeItem(at: url)
-                    progress.dismiss(animated: true)
-                }
-                progress.present(share, animated: true)
-            case .failure(let err):
-                progress.dismiss(animated: true) {
-                    self.toast.show("Export failed: \(err.localizedDescription)", tone: .warn)
-                }
-            }
-        }
-    }
-
     private func promptSave(completion: ((Bool) -> Void)?) {
         if store.isCurrentPatternUserSaved {
             let name = store.patternName
@@ -656,13 +641,15 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
             guard let self else { return }
             let raw = (alert.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespaces)
             guard !raw.isEmpty else { completion?(false); return }
+            // Auto-suffix so a new mix can never shadow an existing one.
+            let name = PatternStore.uniqueName(raw)
             var pattern = self.store.exportPattern()
-            pattern.name = raw
+            pattern.name = name
             if PatternStore.save(pattern) {
-                self.store.setPatternName(raw)
+                self.store.setPatternName(name)
                 self.store.setCurrentPatternId(pattern.id)
                 self.store.markClean()
-                self.toast.show("Saved \"\(raw)\"", tone: .ok)
+                self.toast.show("Saved \"\(name)\"", tone: .ok)
                 completion?(true)
             } else {
                 self.toast.show("Could not save pattern", tone: .warn)

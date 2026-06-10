@@ -2,12 +2,15 @@ import UIKit
 
 final class CellButton: UIControl {
 
-    var trackColor: UIColor = Theme.accent { didSet { updateAppearance() } }
-    var accentColor: UIColor = Theme.accent { didSet { updateAppearance() } }
-    var isOn: Bool = false { didSet { updateAppearance() } }
-    var isPlayhead: Bool = false { didSet { updateAppearance() } }
-    var isBeat: Bool = false { didSet { updateAppearance() } }
-    var isAccented: Bool = false { didSet { updateAppearance() } }
+    // oldValue guards matter here: sync passes (notably syncPlayhead, which runs
+    // for every cell on every step event) reassign these constantly, and the
+    // full layer rebuild in updateAppearance is wasted work for no-op writes.
+    var trackColor: UIColor = Theme.accent { didSet { guard oldValue != trackColor else { return }; updateAppearance() } }
+    var accentColor: UIColor = Theme.accent { didSet { guard oldValue != accentColor else { return }; updateAppearance() } }
+    var isOn: Bool = false { didSet { guard oldValue != isOn else { return }; updateAppearance() } }
+    var isPlayhead: Bool = false { didSet { guard oldValue != isPlayhead else { return }; updateAppearance() } }
+    var isBeat: Bool = false { didSet { guard oldValue != isBeat else { return }; updateAppearance() } }
+    var isAccented: Bool = false { didSet { guard oldValue != isAccented else { return }; updateAppearance() } }
 
     private let backgroundLayer = CALayer()
     private let shadowLayer = CAGradientLayer()   // bottom darkening, always visible
