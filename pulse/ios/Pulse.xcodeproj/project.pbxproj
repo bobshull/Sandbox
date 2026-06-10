@@ -17,6 +17,7 @@
 		191AE9FFB312C7AB639EE9A0 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */; };
 		2013364E56B47CDC09B19E61 /* TracksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982B0E039F5177C7BE9F9F13 /* TracksTests.swift */; };
 		2219230500670C3F9AB24267 /* CrashLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A96046916DC293790338A29F /* CrashLogger.swift */; };
+		25DFE48A9B7929C9A2EFDE95 /* ExportIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D294CFEFDC5CDA30144F5F /* ExportIntegrationTests.swift */; };
 		2758E91BE80F83E6B8A2EBD5 /* BarActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647DE86F341E5789862A04D3 /* BarActionsViewController.swift */; };
 		280E50DB29B43A69B012B82F /* ExportPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D749E47C006DBF8D719533DE /* ExportPlanTests.swift */; };
 		2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B482574CA195A1DAE016C145 /* PresetsTests.swift */; };
@@ -81,6 +82,7 @@
 		58107A90060A6D3A39ED5760 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
 		58355B633C2F1A2DAD18A896 /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
 		647DE86F341E5789862A04D3 /* BarActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarActionsViewController.swift; sourceTree = "<group>"; };
+		67D294CFEFDC5CDA30144F5F /* ExportIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportIntegrationTests.swift; sourceTree = "<group>"; };
 		6F2C534E58486485E85F3CC2 /* SessionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStateTests.swift; sourceTree = "<group>"; };
 		702D069A589CC32DC18D1B3E /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
 		8050A11B221549612EC5112E /* TrackEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffectsTests.swift; sourceTree = "<group>"; };
@@ -227,6 +229,7 @@
 				8FA857BE40CCB4925205352A /* AppSettingsTests.swift */,
 				2C6888432C711B9D4EC7FAAE /* AudioLifecycleTests.swift */,
 				AC905516CE27C92C65B2F237 /* ColorThemeTests.swift */,
+				67D294CFEFDC5CDA30144F5F /* ExportIntegrationTests.swift */,
 				D749E47C006DBF8D719533DE /* ExportPlanTests.swift */,
 				918FCF7AD462B87A68E77128 /* PatternStoreTests.swift */,
 				B482574CA195A1DAE016C145 /* PresetsTests.swift */,
@@ -336,6 +339,7 @@
 				D137BDC802515EFD1669CAA2 /* AppSettingsTests.swift in Sources */,
 				43F99D40FD19E349093FB596 /* AudioLifecycleTests.swift in Sources */,
 				B225AC568F49DA00FC0EBC6C /* ColorThemeTests.swift in Sources */,
+				25DFE48A9B7929C9A2EFDE95 /* ExportIntegrationTests.swift in Sources */,
 				280E50DB29B43A69B012B82F /* ExportPlanTests.swift in Sources */,
 				BEF2EFE9CA34C7D767F58C56 /* PatternStoreTests.swift in Sources */,
 				2910C6F1EC6B17E6735F749D /* PresetsTests.swift in Sources */,
