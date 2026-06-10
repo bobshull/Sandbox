@@ -222,7 +222,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                     self?.store.setActiveStep(s)
                     if s >= 0, let strip = self?.levelMeterStrip, let self {
                         for track in Tracks.all where
-                            self.store.rows[track.id]?[s] == true &&
+                            self.isStepActive(trackId: track.id, step: s) &&
                             self.store.mutes[track.id] != true {
                             strip.trigger(trackId: track.id)
                         }
@@ -258,6 +258,14 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                 }
             }
             .store(in: &cancellables)
+    }
+
+    // Queued .step events can reference an index from a previous, longer pattern
+    // (e.g. a 32-step pattern swapped for a 16-step one mid-flight). Stale or
+    // out-of-range indexes must read as inactive, never trap.
+    private func isStepActive(trackId: String, step: Int) -> Bool {
+        guard let row = store.rows[trackId], row.indices.contains(step) else { return false }
+        return row[step]
     }
 
     private func updateUndoState() {
