@@ -39,6 +39,13 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         bindStore()
         prepareAudio()
         loadInitialPreset()
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidEnterBackground),
+                                               name: UIApplication.didEnterBackgroundNotification,
+                                               object: nil)
+    }
+
+    @objc private func appDidEnterBackground() {
+        engine.handleAppBackgrounded()
     }
 
     private func prepareAudio() {
@@ -232,6 +239,11 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
                             strip.trigger(trackId: track.id)
                         }
                     }
+                case .engineFailed:
+                    self?.transportView.setIsPlaying(false)
+                    self?.store.setActiveStep(-1)
+                    self?.toast.show("Audio engine unavailable — try closing and reopening the app",
+                                     tone: .warn)
                 }
             }
             .store(in: &cancellables)

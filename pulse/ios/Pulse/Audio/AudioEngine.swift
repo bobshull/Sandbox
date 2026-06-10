@@ -11,16 +11,19 @@ final class AudioEngine {
         case started
         case stopped
         case step(Int)
+        case engineFailed
     }
 
     let events = PassthroughSubject<Event, Never>()
 
-    private let engine = AVAudioEngine()
+    // Rebuilt after a media services reset. Reassigned on the main thread only.
+    private var engine = AVAudioEngine()
     private let format: AVAudioFormat
     private let sampleRate: Double
 
     private let store: Store
 
+    // schedulerQueue only.
     private var buffers: [String: AVAudioPCMBuffer] = [:]
     private var accentBuffers: [String: AVAudioPCMBuffer] = [:]
     private static let accentGains: [String: Float] = [
@@ -28,7 +31,8 @@ final class AudioEngine {
         "clap": 2.00, "bass": 1.80, "pluck": 1.80,
         "pad":  1.60, "perc": 2.00,
     ]
-    private let masterMixer = AVAudioMixerNode()
+    // Recreated alongside the engine after a media services reset. Main thread only.
+    private var masterMixer = AVAudioMixerNode()
 
     private struct TrackFXChain {
         let player: AVAudioPlayerNode
@@ -38,11 +42,24 @@ final class AudioEngine {
         let delay: AVAudioUnitDelay
         let reverb: AVAudioUnitReverb
     }
+    // schedulerQueue only (swapped wholesale during graph builds).
     private var fxChains: [String: TrackFXChain] = [:]
 
-    private(set) var isPlaying = false
+    private let stateLock = NSLock()
+    private var _isPlaying = false
+    /// Thread-safe transport flag, readable from any thread.
+    var isPlaying: Bool {
+        stateLock.lock(); defer { stateLock.unlock() }
+        return _isPlaying
+    }
 
-    // Scheduling
+    /// True once prepare() succeeded and the graph is alive. Main thread only.
+    private var prepared = false
+    private var observers: [NSObjectProtocol] = []
+
+    // Scheduling — all of this state lives on schedulerQueue only. The timer is
+    // created and cancelled there, so a cancelled timer can never have an
+    // in-flight tick mutating state behind a restart.
     private var schedulerTimer: DispatchSourceTimer?
     private let schedulerQueue = DispatchQueue(label: "pulse.audio.scheduler", qos: .userInteractive)
     private let lookahead: Double = 0.12   // schedule notes within this window (seconds)
@@ -61,46 +78,54 @@ final class AudioEngine {
     // MARK: - Setup
 
     func prepare() throws {
+        try configureSession()
+        buildGraph()
+
+        // Pre-render each voice once and reuse for every hit.
+        let rendered = renderVoiceBuffers(kit: store.currentKitId)
+        schedulerQueue.sync {
+            buffers = rendered.normal
+            accentBuffers = rendered.accent
+        }
+
+        try engine.start()
+        schedulerQueue.async { [weak self] in self?.playAllPlayersIfEngineRunning() }
+        prepared = true
+        installObservers()
+    }
+
+    private func configureSession() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
         try session.setActive(true)
+    }
 
+    /// Attaches a fresh master mixer and per-track FX chains to the current
+    /// engine and publishes them to the scheduler queue. Called from prepare()
+    /// and again with a brand-new engine after a media services reset.
+    private func buildGraph() {
+        let snap = store.audioSnapshot()
+        masterMixer = AVAudioMixerNode()
         engine.attach(masterMixer)
         engine.connect(masterMixer, to: engine.mainMixerNode, format: format)
-        let snap = store.audioSnapshot()
         engine.mainMixerNode.outputVolume = snap.masterGain
 
+        var newChains: [String: TrackFXChain] = [:]
         for track in Tracks.all {
-            let player = AVAudioPlayerNode()
-            let eq     = AVAudioUnitEQ(numberOfBands: 1)
-            let ptch   = AVAudioUnitTimePitch()
-            let dist   = AVAudioUnitDistortion()
-            let delay  = AVAudioUnitDelay()
-            let reverb = AVAudioUnitReverb()
-
-            eq.bands[0].filterType = .lowPass
-            eq.bands[0].bypass     = true
-            dist.loadFactoryPreset(.multiDistortedFunk)
-            reverb.loadFactoryPreset(.mediumRoom)
-
-            for node: AVAudioNode in [player, eq, ptch, dist, delay, reverb] { engine.attach(node) }
-            engine.connect(player, to: eq,          format: format)
-            engine.connect(eq,     to: ptch,        format: format)
-            engine.connect(ptch,   to: dist,        format: format)
-            engine.connect(dist,   to: delay,       format: format)
-            engine.connect(delay,  to: reverb,      format: format)
-            engine.connect(reverb, to: masterMixer, format: format)
-
-            player.volume = snap.barVolumes[0][track.id] ?? 1.0
-
-            let chain = TrackFXChain(player: player, eq: eq, pitchNode: ptch,
-                                     distortion: dist, delay: delay, reverb: reverb)
+            let chain = makeFXChain(in: engine, output: masterMixer)
+            chain.player.volume = snap.barVolumes[0][track.id] ?? 1.0
             applyFX(snap.barEffects[0][track.id] ?? .default, chain: chain, tempo: snap.tempo)
+            newChains[track.id] = chain
+        }
+        schedulerQueue.sync { fxChains = newChains }
+    }
 
-            fxChains[track.id] = chain
-
-            // Pre-render the voice once and reuse for every hit.
-            let samples = Synths.render(track.voice, kit: store.currentKitId, sampleRate: sampleRate)
+    private func renderVoiceBuffers(kit: String) -> (normal: [String: AVAudioPCMBuffer],
+                                                     accent: [String: AVAudioPCMBuffer]) {
+        var normal: [String: AVAudioPCMBuffer] = [:]
+        var accent: [String: AVAudioPCMBuffer] = [:]
+        for track in Tracks.all {
+            let samples = Synths.render(track.voice, kit: kit, sampleRate: sampleRate)
             let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
             buf.frameLength = AVAudioFrameCount(samples.count)
             samples.withUnsafeBufferPointer { src in
@@ -108,36 +133,73 @@ final class AudioEngine {
                 channels[0].update(from: src.baseAddress!, count: samples.count)
                 channels[1].update(from: src.baseAddress!, count: samples.count)
             }
-            buffers[track.id] = buf
+            normal[track.id] = buf
             let gain = AudioEngine.accentGains[track.id] ?? 1.25
-            accentBuffers[track.id] = makeAccentBuffer(from: buf, gain: gain)
+            accent[track.id] = makeAccentBuffer(from: buf, gain: gain)
         }
-
-        try engine.start()
-        for (_, chain) in fxChains { chain.player.play() }
+        return (normal, accent)
     }
 
     // MARK: - Transport
 
     func start() {
-        guard !isPlaying else { return }
-        isPlaying = true
+        stateLock.lock()
+        guard !_isPlaying else { stateLock.unlock(); return }
+        _isPlaying = true
+        stateLock.unlock()
+
+        guard ensureEngineRunning() else {
+            stateLock.lock(); _isPlaying = false; stateLock.unlock()
+            events.send(.engineFailed)
+            return
+        }
+
+        events.send(.started)
+        schedulerQueue.async { [weak self] in self?.beginTransport() }
+    }
+
+    func stop() {
+        stateLock.lock()
+        guard _isPlaying else { stateLock.unlock(); return }
+        _isPlaying = false
+        stateLock.unlock()
+
+        schedulerQueue.async { [weak self] in self?.endTransport() }
+        events.send(.stopped)
+        events.send(.step(-1))
+    }
+
+    /// schedulerQueue only.
+    private func beginTransport() {
+        schedulerTimer?.cancel()
+        schedulerTimer = nil
         currentStep = 0
         // Begin 50ms in the future to give the audio thread headroom.
         startHostOffset = AVAudioTime.seconds(forHostTime: mach_absolute_time())
         nextNoteHostTime = startHostOffset + 0.05
-        events.send(.started)
-        runScheduler()
+        playAllPlayersIfEngineRunning()
+
+        let timer = DispatchSource.makeTimerSource(queue: schedulerQueue)
+        timer.schedule(deadline: .now(), repeating: tickInterval)
+        timer.setEventHandler { [weak self] in self?.tick() }
+        timer.resume()
+        schedulerTimer = timer
     }
 
-    func stop() {
-        guard isPlaying else { return }
-        isPlaying = false
+    /// schedulerQueue only.
+    private func endTransport() {
         schedulerTimer?.cancel()
         schedulerTimer = nil
-        for (_, chain) in fxChains { chain.player.stop(); chain.player.play() }
-        events.send(.stopped)
-        events.send(.step(-1))
+        // Flush scheduled-but-unplayed hits. Players restart (engine permitting)
+        // on the next transport start or preview.
+        for (_, chain) in fxChains { chain.player.stop() }
+    }
+
+    /// schedulerQueue only. AVAudioPlayerNode.play() raises if the engine is not
+    /// running (e.g. mid-interruption), so always guard.
+    private func playAllPlayersIfEngineRunning() {
+        guard engine.isRunning else { return }
+        for (_, chain) in fxChains { chain.player.play() }
     }
 
     func setMasterGain(_ value: Float) {
@@ -145,30 +207,16 @@ final class AudioEngine {
     }
 
     func setTrackGain(_ id: String, _ value: Float) {
-        fxChains[id]?.player.volume = value
+        schedulerQueue.async { [weak self] in
+            self?.fxChains[id]?.player.volume = value
+        }
     }
 
     func reloadKit(_ kitId: String) {
-        var newBuffers: [String: AVAudioPCMBuffer] = [:]
-        for track in Tracks.all {
-            let samples = Synths.render(track.voice, kit: kitId, sampleRate: sampleRate)
-            let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
-            buf.frameLength = AVAudioFrameCount(samples.count)
-            samples.withUnsafeBufferPointer { src in
-                let channels = buf.floatChannelData!
-                channels[0].update(from: src.baseAddress!, count: samples.count)
-                channels[1].update(from: src.baseAddress!, count: samples.count)
-            }
-            newBuffers[track.id] = buf
-        }
-        var newAccentBuffers: [String: AVAudioPCMBuffer] = [:]
-        for (id, buf) in newBuffers {
-            let gain = AudioEngine.accentGains[id] ?? 1.25
-            newAccentBuffers[id] = makeAccentBuffer(from: buf, gain: gain)
-        }
+        let rendered = renderVoiceBuffers(kit: kitId)
         schedulerQueue.async { [weak self] in
-            self?.buffers = newBuffers
-            self?.accentBuffers = newAccentBuffers
+            self?.buffers = rendered.normal
+            self?.accentBuffers = rendered.accent
         }
     }
 
@@ -184,24 +232,39 @@ final class AudioEngine {
     }
 
     /// Triggers a single voice immediately. Used for track-header preview taps.
+    /// Hops to the scheduler queue so it can never race a kit-reload buffer swap,
+    /// and restarts the engine first if it idled in the background.
     func preview(trackId: String) {
-        guard let chain = fxChains[trackId], let buf = buffers[trackId] else { return }
-        chain.player.scheduleBuffer(buf, at: nil, options: [.interrupts], completionHandler: nil)
+        guard ensureEngineRunning() else { return }
+        schedulerQueue.async { [weak self] in
+            guard let self,
+                  let chain = self.fxChains[trackId],
+                  let buf = self.buffers[trackId],
+                  self.engine.isRunning else { return }
+            chain.player.play()
+            chain.player.scheduleBuffer(buf, at: nil, options: [.interrupts], completionHandler: nil)
+        }
     }
 
     // MARK: - FX
 
     func setTrackEffects(_ id: String, _ fx: TrackEffects) {
-        guard let chain = fxChains[id] else { return }
-        applyFX(fx, chain: chain, tempo: store.audioSnapshot().tempo)
+        let tempo = store.audioSnapshot().tempo
+        schedulerQueue.async { [weak self] in
+            guard let self, let chain = self.fxChains[id] else { return }
+            self.applyFX(fx, chain: chain, tempo: tempo)
+        }
     }
 
     func updateDelayTimes(tempo: Double) {
         let snap = store.audioSnapshot()
-        for track in Tracks.all {
-            guard let chain = fxChains[track.id],
-                  let fx = snap.barEffects[0][track.id] else { continue }
-            chain.delay.delayTime = min(fx.delaySyncDivision.quarterNoteMultiplier * (60.0 / tempo), 2.0)
+        schedulerQueue.async { [weak self] in
+            guard let self else { return }
+            for track in Tracks.all {
+                guard let chain = self.fxChains[track.id],
+                      let fx = snap.barEffects[0][track.id] else { continue }
+                chain.delay.delayTime = min(fx.delaySyncDivision.quarterNoteMultiplier * (60.0 / tempo), 2.0)
+            }
         }
     }
 
@@ -284,14 +347,6 @@ final class AudioEngine {
         return 60.0 / tempo / 4.0
     }
 
-    private func runScheduler() {
-        let timer = DispatchSource.makeTimerSource(queue: schedulerQueue)
-        timer.schedule(deadline: .now(), repeating: tickInterval)
-        timer.setEventHandler { [weak self] in self?.tick() }
-        timer.resume()
-        schedulerTimer = timer
-    }
-
     private func tick() {
         guard isPlaying else { return }
         let now = AVAudioTime.seconds(forHostTime: mach_absolute_time())
@@ -358,9 +413,11 @@ final class AudioEngine {
             chain.player.scheduleBuffer(buf, at: when, options: [.interrupts], completionHandler: nil)
         }
 
-        // Notify the UI on main.
+        // Notify the UI on main; drop the event if the transport stopped in the
+        // meantime so a stale playhead never repaints after stop.
         DispatchQueue.main.async { [weak self] in
-            self?.events.send(.step(step))
+            guard let self, self.isPlaying else { return }
+            self.events.send(.step(step))
         }
     }
 
@@ -376,6 +433,111 @@ final class AudioEngine {
         let factor = nextIsOff ? (1 + snap.swing) : (1 - snap.swing)
         nextNoteHostTime += base * factor
         currentStep = nextStep
+    }
+
+    // MARK: - Lifecycle
+
+    /// Starts the session and engine if they are not running (after background
+    /// idling, an interruption, or a config change). Main thread only.
+    /// Returns false when the engine is unavailable.
+    @discardableResult
+    private func ensureEngineRunning() -> Bool {
+        guard prepared else { return false }
+        if engine.isRunning { return true }
+        do {
+            try AVAudioSession.sharedInstance().setActive(true)
+            try engine.start()
+            schedulerQueue.async { [weak self] in self?.playAllPlayersIfEngineRunning() }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Called by the UI layer when the app enters the background. Playing
+    /// transport is legitimate background audio and is left alone; otherwise the
+    /// engine pauses so the app stops rendering silence and can suspend.
+    func handleAppBackgrounded() {
+        perform(actions: AudioLifecyclePolicy.actions(for: .appBackgrounded, isPlaying: isPlaying))
+    }
+
+    private func installObservers() {
+        guard observers.isEmpty else { return }
+        let nc = NotificationCenter.default
+        let session = AVAudioSession.sharedInstance()
+
+        observers.append(nc.addObserver(forName: AVAudioSession.interruptionNotification,
+                                        object: session, queue: .main) { [weak self] note in
+            self?.handleInterruption(note)
+        })
+        observers.append(nc.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification,
+                                        object: session, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.perform(actions: AudioLifecyclePolicy.actions(for: .mediaServicesReset,
+                                                               isPlaying: self.isPlaying))
+        })
+        // object is nil because the engine instance can be replaced after a
+        // reset; filter by identity so offline export engines are ignored.
+        observers.append(nc.addObserver(forName: .AVAudioEngineConfigurationChange,
+                                        object: nil, queue: .main) { [weak self] note in
+            guard let self, (note.object as? AVAudioEngine) === self.engine else { return }
+            self.perform(actions: AudioLifecyclePolicy.actions(for: .configurationChange,
+                                                               isPlaying: self.isPlaying))
+        })
+    }
+
+    private func handleInterruption(_ note: Notification) {
+        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        let event: AudioLifecycleEvent
+        switch type {
+        case .began:
+            event = .interruptionBegan
+        case .ended:
+            let optionsRaw = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+            let shouldResume = AVAudioSession.InterruptionOptions(rawValue: optionsRaw).contains(.shouldResume)
+            event = .interruptionEnded(shouldResume: shouldResume)
+        @unknown default:
+            return
+        }
+        perform(actions: AudioLifecyclePolicy.actions(for: event, isPlaying: isPlaying))
+    }
+
+    private func perform(actions: [AudioLifecycleAction]) {
+        for action in actions {
+            switch action {
+            case .stopTransport:
+                stop()
+            case .reactivateEngine:
+                // Non-fatal on failure: the next play/preview retries lazily.
+                ensureEngineRunning()
+            case .rebuildGraph:
+                rebuildAfterReset()
+            case .pauseEngineIfIdle:
+                if !isPlaying { engine.pause() }
+            }
+        }
+    }
+
+    /// Media services reset: the engine and every attached node are dead.
+    /// Rebuild from scratch; pre-rendered voice buffers are plain memory and
+    /// remain valid.
+    private func rebuildAfterReset() {
+        prepared = false
+        engine = AVAudioEngine()
+        do {
+            try configureSession()
+            buildGraph()
+            try engine.start()
+            schedulerQueue.async { [weak self] in self?.playAllPlayersIfEngineRunning() }
+            prepared = true
+        } catch {
+            events.send(.engineFailed)
+        }
+    }
+
+    deinit {
+        observers.forEach(NotificationCenter.default.removeObserver)
     }
 
     // MARK: - Export
