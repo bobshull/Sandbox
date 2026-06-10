@@ -101,6 +101,14 @@ final class Store {
         }
     }
 
+    // Bounds-safe step lookup. Queued .step events can reference an index from a
+    // previous, longer pattern (e.g. a 32-step pattern swapped for a 16-step one
+    // mid-flight); stale or out-of-range indexes must read as inactive, never trap.
+    func isStepActive(trackId: String, step: Int) -> Bool {
+        guard let row = rows[trackId], row.indices.contains(step) else { return false }
+        return row[step]
+    }
+
     // True when at least one unmuted track has an active step inside the current
     // playback loop — i.e. playing or exporting it would produce sound.
     var sequenceHasAudibleSteps: Bool {

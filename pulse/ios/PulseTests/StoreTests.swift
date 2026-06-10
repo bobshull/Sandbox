@@ -1338,6 +1338,49 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.effects(for: 0)[trackId]?.reverbWet, store.effects[trackId]?.reverbWet)
     }
 
+    // MARK: - isStepActive (H3 stale step-index regression)
+
+    func test_isStepActive_trueForActiveStepInBounds() {
+        store.toggleStep(trackId: "kick", step: 5)
+        XCTAssertTrue(store.isStepActive(trackId: "kick", step: 5))
+    }
+
+    func test_isStepActive_falseForInactiveStepInBounds() {
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 5))
+    }
+
+    func test_isStepActive_falseForIndexAboveRowBounds() {
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 31))
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 9_999))
+    }
+
+    func test_isStepActive_falseForNegativeIndex() {
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: -1))
+    }
+
+    func test_isStepActive_falseForUnknownTrack() {
+        XCTAssertFalse(store.isStepActive(trackId: "nope", step: 0))
+    }
+
+    func test_isStepActive_staleStepFrom32StepPatternAfter16StepLoad() {
+        // The original H3 crash: a queued .step(20+) event from a playing 32-step
+        // pattern arrives after a 16-step pattern has replaced store.rows.
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "kick", step: 20)
+        XCTAssertTrue(store.isStepActive(trackId: "kick", step: 20))
+
+        let sixteenStep = Pattern(id: "p16", name: "Sixteen", tempo: 120, swing: 0,
+                                  rows: ["kick": Array(repeating: true, count: 16)],
+                                  patternLength: 16)
+        store.loadPattern(sixteenStep)
+        XCTAssertEqual(store.rows["kick"]?.count, 16)
+
+        // Indexes 16...31 are stale now — they must read inactive, never trap.
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 20))
+        XCTAssertFalse(store.isStepActive(trackId: "kick", step: 31))
+        XCTAssertTrue(store.isStepActive(trackId: "kick", step: 15))
+    }
+
     // MARK: - Undo restores pattern identity
 
     func test_undo_restoresCurrentPatternId() {
