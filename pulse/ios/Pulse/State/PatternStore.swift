@@ -17,6 +17,7 @@ struct SessionState: Codable {
     var bar2Effects: [String: TrackEffects]?  // nil → copy bar 0
     var accents: [String: [Bool]]? = nil
     var grooveSeed: UInt64? = nil
+    var pitches: [String: [Int]]? = nil   // nil → all defaults (0)
 }
 
 enum PatternStore {

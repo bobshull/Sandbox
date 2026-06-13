@@ -23,13 +23,14 @@ final class ExportPlanTests: XCTestCase {
                               sequenceStart: Int = 0,
                               sequenceLength: Int = 16,
                               accents: [String: [Bool]] = [:],
+                              pitches: [String: [Int]] = [:],
                               grooveSeed: UInt64 = 42) -> Store.AudioSnapshot {
         Store.AudioSnapshot(tempo: tempo, swing: swing, masterGain: 1,
                             rows: rows, mutes: mutes,
                             barVolumes: [[:], [:]], barEffects: barEffects,
                             patternLength: patternLength,
                             sequenceStart: sequenceStart, sequenceLength: sequenceLength,
-                            accents: accents, grooveSeed: grooveSeed)
+                            accents: accents, pitches: pitches, grooveSeed: grooveSeed)
     }
 
     private func makeBuffer(_ values: [Float]) -> AVAudioPCMBuffer {
@@ -45,6 +46,19 @@ final class ExportPlanTests: XCTestCase {
     private func ramp(_ n: Int) -> AVAudioPCMBuffer { makeBuffer((0..<n).map(Float.init)) }
     private func constant(_ v: Float, _ n: Int) -> AVAudioPCMBuffer { makeBuffer(Array(repeating: v, count: n)) }
     private var stereoFormat: AVAudioFormat { AVAudioFormat(standardFormatWithSampleRate: sr, channels: 2)! }
+
+    /// Single-buffer convenience over the pitch-keyed renderer API.
+    private func renderTrack(events: [ExportStepEvent],
+                             normal: AVAudioPCMBuffer,
+                             accent: AVAudioPCMBuffer? = nil,
+                             pitched: [Int: AVAudioPCMBuffer] = [:],
+                             totalFrames: AVAudioFramePosition) -> OfflineTrackRenderer.TrackRender? {
+        var normals = pitched
+        normals[0] = normal
+        return OfflineTrackRenderer.render(events: events, normalBuffers: normals,
+                                           accentBuffers: accent.map { [0: $0] },
+                                           totalFrames: totalFrames, format: stereoFormat)
+    }
 
     // MARK: - Plan duration
 
@@ -104,6 +118,25 @@ final class ExportPlanTests: XCTestCase {
         XCTAssertEqual(events.map(\.isAccented), [false, true])
     }
 
+    func test_plan_flagsPitchedSteps() {
+        var rows = emptyRows()
+        rows["bass"]![0] = true
+        rows["bass"]![8] = true
+        var pitches = [String: [Int]]()
+        pitches["bass"] = (0..<16).map { $0 == 8 ? 12 : 0 }
+        let plan = ExportPlanBuilder.build(snapshot: makeSnapshot(rows: rows, pitches: pitches),
+                                           reps: 1, sampleRate: sr)
+        XCTAssertEqual(plan.events["bass"]!.map(\.pitch), [0, 12])
+    }
+
+    func test_plan_missingPitchRowDefaultsToZero() {
+        var rows = emptyRows()
+        rows["pluck"]![4] = true
+        let plan = ExportPlanBuilder.build(snapshot: makeSnapshot(rows: rows),
+                                           reps: 1, sampleRate: sr)
+        XCTAssertEqual(plan.events["pluck"]!.map(\.pitch), [0])
+    }
+
     func test_plan_humanizeIsDeterministicAndNonzero() {
         var rows = emptyRows()
         rows["hat"] = (0..<16).map { _ in true }
@@ -160,9 +193,7 @@ final class ExportPlanTests: XCTestCase {
         let src = ramp(1000)
         let events = [ExportStepEvent(frame: 0, isAccented: false),
                       ExportStepEvent(frame: 400, isAccented: false)]
-        let render = OfflineTrackRenderer.render(events: events, normalBuffer: src,
-                                                 accentBuffer: nil, totalFrames: 10_000,
-                                                 format: stereoFormat)!
+        let render = renderTrack(events: events, normal: src, totalFrames: 10_000)!
         XCTAssertEqual(render.startFrame, 0)
         XCTAssertEqual(Int(render.buffer.frameLength), 1400)
         let ch = render.buffer.floatChannelData![0]
@@ -176,9 +207,7 @@ final class ExportPlanTests: XCTestCase {
         // "Fast hats": every hit truncated to the gap, starts exactly on its frame.
         let src = ramp(1000)
         let events = (0..<8).map { ExportStepEvent(frame: AVAudioFramePosition($0 * 300), isAccented: false) }
-        let render = OfflineTrackRenderer.render(events: events, normalBuffer: src,
-                                                 accentBuffer: nil, totalFrames: 10_000,
-                                                 format: stereoFormat)!
+        let render = renderTrack(events: events, normal: src, totalFrames: 10_000)!
         let ch = render.buffer.floatChannelData![0]
         for hit in 0..<8 {
             XCTAssertEqual(ch[hit * 300], 0, "hit \(hit) must restart the source at its own frame")
@@ -192,9 +221,7 @@ final class ExportPlanTests: XCTestCase {
         let src = ramp(1000)
         let events = [ExportStepEvent(frame: 0, isAccented: false),
                       ExportStepEvent(frame: 2000, isAccented: false)]
-        let render = OfflineTrackRenderer.render(events: events, normalBuffer: src,
-                                                 accentBuffer: nil, totalFrames: 10_000,
-                                                 format: stereoFormat)!
+        let render = renderTrack(events: events, normal: src, totalFrames: 10_000)!
         let ch = render.buffer.floatChannelData![0]
         XCTAssertEqual(ch[999], 999)
         XCTAssertEqual(ch[1000], 0)    // gap is silent
@@ -209,9 +236,7 @@ final class ExportPlanTests: XCTestCase {
         let accent = constant(2, 500)
         let events = [ExportStepEvent(frame: 0, isAccented: false),
                       ExportStepEvent(frame: 600, isAccented: true)]
-        let render = OfflineTrackRenderer.render(events: events, normalBuffer: normal,
-                                                 accentBuffer: accent, totalFrames: 10_000,
-                                                 format: stereoFormat)!
+        let render = renderTrack(events: events, normal: normal, accent: accent, totalFrames: 10_000)!
         let ch = render.buffer.floatChannelData![0]
         XCTAssertEqual(ch[0], 1)
         XCTAssertEqual(ch[600], 2)
@@ -221,9 +246,7 @@ final class ExportPlanTests: XCTestCase {
     func test_render_hitClippedAtExportEnd() {
         let src = ramp(1000)
         let events = [ExportStepEvent(frame: 9_500, isAccented: false)]
-        let render = OfflineTrackRenderer.render(events: events, normalBuffer: src,
-                                                 accentBuffer: nil, totalFrames: 10_000,
-                                                 format: stereoFormat)!
+        let render = renderTrack(events: events, normal: src, totalFrames: 10_000)!
         XCTAssertEqual(render.startFrame, 9_500)
         XCTAssertEqual(Int(render.buffer.frameLength), 500)
     }
@@ -231,9 +254,7 @@ final class ExportPlanTests: XCTestCase {
     func test_render_bufferStartsAtFirstHit() {
         let src = ramp(1000)
         let events = [ExportStepEvent(frame: 5_000, isAccented: false)]
-        let render = OfflineTrackRenderer.render(events: events, normalBuffer: src,
-                                                 accentBuffer: nil, totalFrames: 100_000,
-                                                 format: stereoFormat)!
+        let render = renderTrack(events: events, normal: src, totalFrames: 100_000)!
         XCTAssertEqual(render.startFrame, 5_000)
         XCTAssertEqual(Int(render.buffer.frameLength), 1000)
         XCTAssertEqual(render.buffer.floatChannelData![0][999], 999)
@@ -244,16 +265,63 @@ final class ExportPlanTests: XCTestCase {
         let accent = constant(2, 500)
         let events = [ExportStepEvent(frame: 100, isAccented: false),
                       ExportStepEvent(frame: 100, isAccented: true)]
-        let render = OfflineTrackRenderer.render(events: events, normalBuffer: normal,
-                                                 accentBuffer: accent, totalFrames: 10_000,
-                                                 format: stereoFormat)!
+        let render = renderTrack(events: events, normal: normal, accent: accent, totalFrames: 10_000)!
         XCTAssertEqual(render.buffer.floatChannelData![0][0], 2)
     }
 
     func test_render_emptyEventsReturnsNil() {
-        XCTAssertNil(OfflineTrackRenderer.render(events: [], normalBuffer: ramp(10),
-                                                 accentBuffer: nil, totalFrames: 100,
-                                                 format: stereoFormat))
+        XCTAssertNil(renderTrack(events: [], normal: ramp(10), totalFrames: 100))
+    }
+
+    func test_render_pitchedHitUsesPitchedBuffer() {
+        let base    = constant(1, 500)
+        let pitched = constant(3, 500)
+        let events = [ExportStepEvent(frame: 0, isAccented: false),
+                      ExportStepEvent(frame: 600, isAccented: false, pitch: 7)]
+        let render = renderTrack(events: events, normal: base,
+                                 pitched: [7: pitched], totalFrames: 10_000)!
+        let ch = render.buffer.floatChannelData![0]
+        XCTAssertEqual(ch[0], 1)
+        XCTAssertEqual(ch[600], 3)
+        XCTAssertEqual(ch[1099], 3)
+    }
+
+    func test_render_unrenderedPitchFallsBackToBase() {
+        let base = constant(1, 500)
+        let events = [ExportStepEvent(frame: 0, isAccented: false, pitch: 5)]
+        let render = renderTrack(events: events, normal: base, totalFrames: 10_000)!
+        XCTAssertEqual(render.buffer.floatChannelData![0][0], 1)
+    }
+
+    func test_render_pitchedAccentedHitUsesPitchedAccentBuffer() {
+        let base = constant(1, 500)
+        let pitchedNormal = constant(3, 500)
+        let pitchedAccent = constant(6, 500)
+        let events = [ExportStepEvent(frame: 0, isAccented: true, pitch: 7)]
+        let render = OfflineTrackRenderer.render(events: events,
+                                                 normalBuffers: [0: base, 7: pitchedNormal],
+                                                 accentBuffers: [0: constant(2, 500), 7: pitchedAccent],
+                                                 totalFrames: 10_000, format: stereoFormat)!
+        XCTAssertEqual(render.buffer.floatChannelData![0][0], 6)
+    }
+
+    // MARK: - Synth pitch rendering
+
+    func test_synths_semitoneOffsetTransposesMelodicVoices() {
+        for voice in [VoiceKind.bass, .pluck, .pad] {
+            let base = Synths.render(voice, kit: "studio", sampleRate: sr)
+            let up = Synths.render(voice, kit: "studio", sampleRate: sr, semitoneOffset: 7)
+            XCTAssertEqual(base.count, up.count, "\(voice): transposition must not change duration")
+            XCTAssertNotEqual(base, up, "\(voice): transposition must change the waveform")
+        }
+    }
+
+    func test_synths_semitoneOffsetIgnoredForKick() {
+        // Drum voices ignore the offset entirely (kick/clap/perc are fully
+        // deterministic; snare/hat use random noise so they can't be compared).
+        let base = Synths.render(.kick, kit: "studio", sampleRate: sr)
+        let up = Synths.render(.kick, kit: "studio", sampleRate: sr, semitoneOffset: 12)
+        XCTAssertEqual(base, up)
     }
 
     // MARK: - End-to-end determinism (plan + render)
@@ -267,10 +335,8 @@ final class ExportPlanTests: XCTestCase {
 
         func renderOnce() -> [Float] {
             let plan = ExportPlanBuilder.build(snapshot: snap, reps: 2, sampleRate: sr)
-            let render = OfflineTrackRenderer.render(events: plan.events["pad"]!,
-                                                     normalBuffer: src, accentBuffer: nil,
-                                                     totalFrames: plan.totalFrames,
-                                                     format: stereoFormat)!
+            let render = renderTrack(events: plan.events["pad"]!, normal: src,
+                                     totalFrames: plan.totalFrames)!
             let ch = render.buffer.floatChannelData![0]
             return (0..<Int(render.buffer.frameLength)).map { ch[$0] }
         }

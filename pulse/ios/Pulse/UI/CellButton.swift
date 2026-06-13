@@ -11,11 +11,15 @@ final class CellButton: UIControl {
     var isPlayhead: Bool = false { didSet { guard oldValue != isPlayhead else { return }; updateAppearance() } }
     var isBeat: Bool = false { didSet { guard oldValue != isBeat else { return }; updateAppearance() } }
     var isAccented: Bool = false { didSet { guard oldValue != isAccented else { return }; updateAppearance() } }
+    /// Per-step semitone offset for pitch-capable tracks; nil for drum tracks.
+    /// Raised shows an up triangle, lowered a down triangle, default a square.
+    var pitchOffset: Int? = nil { didSet { guard oldValue != pitchOffset else { return }; updateAppearance() } }
 
     private let backgroundLayer = CALayer()
     private let shadowLayer = CAGradientLayer()   // bottom darkening, always visible
     private let shineLayer = CAGradientLayer()    // top gloss highlight, always visible
     private let accentDot = CALayer()             // small corner marker for accented steps
+    private let pitchMarker = CAShapeLayer()      // small corner triangle for pitch-varied steps
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -43,11 +47,18 @@ final class CellButton: UIControl {
         shineLayer.masksToBounds = true
         backgroundLayer.addSublayer(shineLayer)
 
-        // Accent dot: small bright marker in top-right corner
-        accentDot.backgroundColor = UIColor.white.withAlphaComponent(0.9).cgColor
-        accentDot.cornerRadius = 3
+        // Accent dot: small marker in the bottom-left corner, matching the
+        // pitch marker's weight so all step indicators share one visual family.
+        accentDot.backgroundColor = UIColor.white.withAlphaComponent(0.75).cgColor
+        accentDot.cornerRadius = 2.5
         accentDot.isHidden = true
         backgroundLayer.addSublayer(accentDot)
+
+        // Pitch marker: small triangle in bottom-right corner, points up for a
+        // raised step and down for a lowered one. Hidden at the default pitch.
+        pitchMarker.fillColor = UIColor.white.withAlphaComponent(0.75).cgColor
+        pitchMarker.isHidden = true
+        backgroundLayer.addSublayer(pitchMarker)
 
         isAccessibilityElement = true
         accessibilityTraits.insert(.button)
@@ -61,8 +72,58 @@ final class CellButton: UIControl {
         backgroundLayer.frame = bounds
         shadowLayer.frame = bounds
         shineLayer.frame = bounds
+        layoutStepIndicators()
+        updatePitchMarkerPath()
+    }
+
+    /// Step indicators sit side by side in the bottom-right corner, right-aligned:
+    /// visible markers pack against the right edge with the pitch triangle outermost.
+    /// Inset enough to clear the cell's rounded corner.
+    private func layoutStepIndicators() {
+        let margin: CGFloat = 4
+        let gap: CGFloat = 3
+        let markerSize: CGFloat = 7
         let dotSize: CGFloat = 5
-        accentDot.frame = CGRect(x: bounds.width - dotSize - 2, y: 2, width: dotSize, height: dotSize)
+        var x = bounds.width - margin
+        if !pitchMarker.isHidden {
+            x -= markerSize
+            pitchMarker.frame = CGRect(x: x,
+                                       y: bounds.height - markerSize - margin,
+                                       width: markerSize, height: markerSize)
+            x -= gap
+        }
+        if !accentDot.isHidden {
+            x -= dotSize
+            // Vertically centered against the triangle for an even baseline.
+            accentDot.frame = CGRect(x: x,
+                                     y: bounds.height - margin - markerSize / 2 - dotSize / 2,
+                                     width: dotSize, height: dotSize)
+        }
+    }
+
+    private func updatePitchMarkerPath() {
+        let size = pitchMarker.bounds.size
+        guard size.width > 0 else { return }
+        let offset = pitchOffset ?? 0
+        if offset == 0 {
+            // Mid/default: small square, inset so its weight matches the triangles
+            pitchMarker.path = UIBezierPath(rect: CGRect(x: 1, y: 1,
+                                                         width: size.width - 2,
+                                                         height: size.height - 2)).cgPath
+            return
+        }
+        let path = UIBezierPath()
+        if offset > 0 {
+            path.move(to: CGPoint(x: size.width / 2, y: 0))
+            path.addLine(to: CGPoint(x: size.width, y: size.height))
+            path.addLine(to: CGPoint(x: 0, y: size.height))
+        } else {
+            path.move(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: size.width, y: 0))
+            path.addLine(to: CGPoint(x: size.width / 2, y: size.height))
+        }
+        path.close()
+        pitchMarker.path = path.cgPath
     }
 
     override var isHighlighted: Bool {
@@ -79,17 +140,15 @@ final class CellButton: UIControl {
         backgroundLayer.removeAnimation(forKey: "bloom")
 
         if isOn {
+            // Accent reads as a brighter fill + corner dot; no border or glow
+            // emphasis, so accented cells sit flush with the rest of the grid.
             let fillColor = isAccented ? trackColor.brightened(by: 0.22) : trackColor
             backgroundLayer.backgroundColor = fillColor.cgColor
             backgroundLayer.borderColor = accentColor.cgColor
-            backgroundLayer.borderWidth = isAccented ? 2.5 : 1.0
-            shineLayer.colors = isAccented
-                ? [UIColor.white.withAlphaComponent(0.65).cgColor,
-                   UIColor.white.withAlphaComponent(0.28).cgColor,
-                   UIColor.clear.cgColor]
-                : [UIColor.white.withAlphaComponent(0.30).cgColor,
-                   UIColor.white.withAlphaComponent(0.10).cgColor,
-                   UIColor.clear.cgColor]
+            backgroundLayer.borderWidth = 1.0
+            shineLayer.colors = [UIColor.white.withAlphaComponent(0.30).cgColor,
+                                 UIColor.white.withAlphaComponent(0.10).cgColor,
+                                 UIColor.clear.cgColor]
             shineLayer.locations = [0, 0.35, 0.65]
             shadowLayer.colors = [UIColor.clear.cgColor,
                                    UIColor.black.withAlphaComponent(0.28).cgColor]
@@ -109,7 +168,7 @@ final class CellButton: UIControl {
 
         // Commit shadow state instantly — no implicit animation — so the glow
         // never gets stuck between transitions (e.g. accent removal mid-playhead).
-        let glowRadius: CGFloat = isAccented ? 18 : 12
+        let glowRadius: CGFloat = 12
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if isPlayhead && isOn {
@@ -121,11 +180,6 @@ final class CellButton: UIControl {
             backgroundLayer.shadowColor = Theme.accent2.cgColor
             backgroundLayer.shadowOpacity = 0.9
             backgroundLayer.shadowRadius = 8
-            backgroundLayer.shadowOffset = .zero
-        } else if isOn && isAccented {
-            backgroundLayer.shadowColor = accentColor.cgColor
-            backgroundLayer.shadowOpacity = 0.90
-            backgroundLayer.shadowRadius = 14
             backgroundLayer.shadowOffset = .zero
         } else {
             backgroundLayer.shadowOpacity = 0
@@ -166,7 +220,14 @@ final class CellButton: UIControl {
         }
 
         accentDot.isHidden = !isOn || !isAccented
-        accessibilityValue = isOn ? (isAccented ? "on accented" : "on") : "off"
+        pitchMarker.isHidden = !isOn || pitchOffset == nil
+        layoutStepIndicators()
+        updatePitchMarkerPath()
+        var value = isOn ? (isAccented ? "on accented" : "on") : "off"
+        if isOn, let offset = pitchOffset, offset != 0 {
+            value += offset > 0 ? " pitch raised" : " pitch lowered"
+        }
+        accessibilityValue = value
     }
 
     // Accent toggle feedback animation — call after store.toggleAccent.

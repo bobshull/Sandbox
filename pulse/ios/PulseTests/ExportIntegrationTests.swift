@@ -151,6 +151,136 @@ final class ExportIntegrationTests: XCTestCase {
         XCTAssertNotEqual(try Data(contentsOf: studioURL), try Data(contentsOf: kit808URL))
     }
 
+    func test_export_stepPitchVariation_producesDifferentAudio() throws {
+        let store = Store()
+        store.setTempo(120)
+        store.setSwing(0)
+        for step in [0, 4, 8, 12] { store.toggleStep(trackId: "bass", step: step) }
+        let engine = try makePreparedEngine(store: store)
+        guard case .success(let rootURL)? = runExport(engine) else {
+            return XCTFail("export failed")
+        }
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        store.setStepPitch(trackId: "bass", step: 4, semitones: 12)
+        guard case .success(let pitchedURL)? = runExport(engine) else {
+            return XCTFail("export failed")
+        }
+        defer { try? FileManager.default.removeItem(at: pitchedURL) }
+
+        XCTAssertNotEqual(try Data(contentsOf: rootURL), try Data(contentsOf: pitchedURL))
+    }
+
+    /// RMS energy of a rendered audio file — perceived loudness, which is what
+    /// "louder" means and which (unlike peak) still rises for the soft-limited
+    /// drum voices once they have headroom to grow into.
+    private func rmsEnergy(of url: URL) throws -> Float {
+        let file = try AVAudioFile(forReading: url)
+        let buf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                   frameCapacity: AVAudioFrameCount(file.length))!
+        try file.read(into: buf)
+        var sumSquares: Double = 0
+        var n = 0
+        for ch in 0..<Int(buf.format.channelCount) {
+            let data = buf.floatChannelData![ch]
+            for i in 0..<Int(buf.frameLength) { sumSquares += Double(data[i] * data[i]); n += 1 }
+        }
+        return n > 0 ? Float((sumSquares / Double(n)).squareRoot()) : 0
+    }
+
+    /// Accenting a step must raise that voice's energy — the regression guard for
+    /// "accent sounds the same". Covers a clean-boost voice (bass), the pad the
+    /// user flagged, and kick, the full-scale drum that used to clip away its boost.
+    private func assertAccentLouder(trackId: String, minRatio: Float,
+                                    file: StaticString = #file, line: UInt = #line) throws {
+        let store = Store()
+        store.setTempo(120)
+        store.setSwing(0)
+        store.toggleStep(trackId: trackId, step: 0)
+        let engine = try makePreparedEngine(store: store)
+        guard case .success(let normalURL)? = runExport(engine) else {
+            return XCTFail("export failed", file: file, line: line)
+        }
+        defer { try? FileManager.default.removeItem(at: normalURL) }
+        let normal = try rmsEnergy(of: normalURL)
+
+        store.setStepAccent(trackId: trackId, step: 0, accented: true)
+        guard case .success(let accentURL)? = runExport(engine) else {
+            return XCTFail("export failed", file: file, line: line)
+        }
+        defer { try? FileManager.default.removeItem(at: accentURL) }
+        let accent = try rmsEnergy(of: accentURL)
+
+        XCTAssertGreaterThan(normal, 0, file: file, line: line)
+        XCTAssertGreaterThan(accent, normal * minRatio,
+                             "\(trackId): accent should be louder (normal \(normal), accent \(accent))",
+                             file: file, line: line)
+    }
+
+    func test_export_accentedBass_isLouder() throws {
+        try assertAccentLouder(trackId: "bass", minRatio: 1.3)
+    }
+
+    func test_export_accentedPad_isLouder() throws {
+        try assertAccentLouder(trackId: "pad", minRatio: 1.3)
+    }
+
+    func test_export_accentedKick_isLouder() throws {
+        // Kick renders near full scale; without voice headroom its accent clipped
+        // back to roughly the normal level. This is the direct regression guard.
+        try assertAccentLouder(trackId: "kick", minRatio: 1.15)
+    }
+
+    /// Spectral brightness: mean absolute first-difference normalized by RMS.
+    /// Rises with high-frequency content independent of overall level, so it
+    /// isolates "sharper attack" from "louder".
+    private func brightness(of url: URL) throws -> Float {
+        let file = try AVAudioFile(forReading: url)
+        let buf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                   frameCapacity: AVAudioFrameCount(file.length))!
+        try file.read(into: buf)
+        var totalVariation: Double = 0, sumSquares: Double = 0
+        var n = 0
+        for ch in 0..<Int(buf.format.channelCount) {
+            let data = buf.floatChannelData![ch]
+            var prev: Float = 0
+            for i in 0..<Int(buf.frameLength) {
+                totalVariation += Double(abs(data[i] - prev))
+                sumSquares += Double(data[i] * data[i])
+                prev = data[i]
+                n += 1
+            }
+        }
+        let rms = n > 0 ? (sumSquares / Double(n)).squareRoot() : 0
+        return rms > 0 ? Float((totalVariation / Double(n)) / rms) : 0
+    }
+
+    func test_export_accentedPad_isBrighterNotJustLouder() throws {
+        // The user's complaint: a few dB of gain on a soft pad reads as "no
+        // change". Accents now add high-frequency emphasis so they're sharper too.
+        let store = Store()
+        store.setTempo(120)
+        store.setSwing(0)
+        store.toggleStep(trackId: "pad", step: 0)
+        let engine = try makePreparedEngine(store: store)
+        guard case .success(let normalURL)? = runExport(engine) else {
+            return XCTFail("export failed")
+        }
+        defer { try? FileManager.default.removeItem(at: normalURL) }
+        let normalBright = try brightness(of: normalURL)
+
+        store.setStepAccent(trackId: "pad", step: 0, accented: true)
+        guard case .success(let accentURL)? = runExport(engine) else {
+            return XCTFail("export failed")
+        }
+        defer { try? FileManager.default.removeItem(at: accentURL) }
+        let accentBright = try brightness(of: accentURL)
+
+        XCTAssertGreaterThan(normalBright, 0)
+        XCTAssertGreaterThan(accentBright, normalBright * 1.1,
+                             "accented pad should be brighter (normal \(normalBright), accent \(accentBright))")
+    }
+
     func test_export_cancelledImmediately_failsCancelledAndLeavesNoFile() throws {
         let engine = try makePreparedEngine(store: makeStore())
         let tmp = FileManager.default.temporaryDirectory

@@ -1,5 +1,37 @@
 import UIKit
 
+// MARK: - Kit presentation metadata
+
+private struct KitMeta {
+    let icon: String
+    let accent: UIColor
+
+    static let lookup: [String: KitMeta] = [
+        "studio":      .init(icon: "waveform",           accent: .init(r: 122, g: 143, b: 166)),
+        "dusty-tape":  .init(icon: "rectangle.stack",    accent: .init(r: 176, g: 137, b: 104)),
+        "boom-bap":    .init(icon: "speaker.wave.2",     accent: .init(r: 245, g: 158, b: 11)),
+        "808":         .init(icon: "waveform.path.ecg",  accent: .init(r: 168, g: 85,  b: 247)),
+        "jazz":        .init(icon: "music.mic",          accent: .init(r: 212, g: 167, b: 44)),
+        "rainy-night": .init(icon: "cloud.rain",         accent: .init(r: 59,  g: 130, b: 246)),
+        "music-box":   .init(icon: "sparkle",            accent: .init(r: 249, g: 168, b: 212)),
+        "wind-chimes": .init(icon: "wind",               accent: .init(r: 103, g: 232, b: 249)),
+        "marimba":     .init(icon: "music.note",         accent: .init(r: 217, g: 119, b: 6)),
+        "arcade":      .init(icon: "gamecontroller",     accent: .init(r: 34,  g: 197, b: 94)),
+        "glass":       .init(icon: "diamond",            accent: .init(r: 165, g: 243, b: 252)),
+        "toy-piano":   .init(icon: "pianokeys",          accent: .init(r: 196, g: 181, b: 253)),
+        "jungle":      .init(icon: "leaf",               accent: .init(r: 22,  g: 163, b: 74)),
+        "space":       .init(icon: "sparkles",           accent: .init(r: 99,  g: 102, b: 241)),
+    ]
+}
+
+private extension UIColor {
+    convenience init(r: Int, g: Int, b: Int) {
+        self.init(red: CGFloat(r)/255, green: CGFloat(g)/255, blue: CGFloat(b)/255, alpha: 1)
+    }
+}
+
+// MARK: - View controller
+
 final class KitPickerViewController: UIViewController {
 
     var onSelect: ((SampleKit) -> Void)?
@@ -96,21 +128,39 @@ final class KitPickerViewController: UIViewController {
 
     private func makeKitButton(kit: SampleKit, index: Int) -> UIButton {
         let selected = kit.id == currentKitId
+        let meta = KitMeta.lookup[kit.id] ?? KitMeta(icon: "music.note", accent: UIColor(white: 0.5, alpha: 1))
+        let accent = meta.accent
+
         var cfg = UIButton.Configuration.plain()
         cfg.title = kit.name
-        cfg.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        cfg.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 12, bottom: 9, trailing: 12)
         cfg.background.cornerRadius = 8
+        cfg.imagePlacement = .leading
+        cfg.imagePadding = 7
+        cfg.titleLineBreakMode = .byTruncatingTail
+
+        let symCfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        cfg.image = UIImage(systemName: meta.icon, withConfiguration: symCfg)
+
         cfg.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var out = incoming
-            out.font = .systemFont(ofSize: 14, weight: selected ? .semibold : .regular)
+            out.font = .systemFont(ofSize: 13.5, weight: selected ? .semibold : .regular)
             return out
         }
-        cfg.baseForegroundColor = selected ? UIColor(white: 0.1, alpha: 1) : Theme.text
-        cfg.background.backgroundColor = selected ? ColorTheme.current.primaryColor : Theme.backgroundElevated
-        if !selected {
-            cfg.background.strokeColor = Theme.border
-            cfg.background.strokeWidth = 1
+
+        cfg.background.strokeColor = Theme.border
+        cfg.background.strokeWidth = 1.5
+
+        if selected {
+            cfg.background.backgroundColor = ColorTheme.current.primaryColor
+            cfg.baseForegroundColor = UIColor(white: 0.1, alpha: 1)
+            cfg.imageColorTransformer = UIConfigurationColorTransformer { _ in UIColor(white: 0.1, alpha: 1) }
+        } else {
+            cfg.background.backgroundColor = Theme.backgroundElevated
+            cfg.baseForegroundColor = Theme.textDim
+            cfg.imageColorTransformer = UIConfigurationColorTransformer { _ in accent.withAlphaComponent(0.70) }
         }
+
         let btn = UIButton(configuration: cfg)
         btn.tag = index
         btn.addTarget(self, action: #selector(kitTapped(_:)), for: .touchUpInside)

@@ -364,6 +364,33 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         toast.show(isAccented ? "Accent added · louder hit" : "Accent removed", tone: .ok)
     }
 
+    func sequencerDidRequestStepOptions(_ track: Track, step: Int) {
+        let accentRow = store.accents[track.id]
+        let pitchRow = store.pitches[track.id]
+        let panel = StepOptionsViewController(
+            track: track, step: step,
+            isAccented: accentRow?.indices.contains(step) == true && accentRow![step],
+            pitch: pitchRow?.indices.contains(step) == true ? pitchRow![step] : 0)
+        // With the transport stopped, audition each change so edits are audible.
+        func previewStepIfIdle() {
+            guard !engine.isPlaying else { return }
+            let pitchRow = store.pitches[track.id]
+            let accentRow = store.accents[track.id]
+            engine.preview(trackId: track.id,
+                           semitones: pitchRow?.indices.contains(step) == true ? pitchRow![step] : 0,
+                           accented: accentRow?.indices.contains(step) == true && accentRow![step])
+        }
+        panel.onSetAccent = { [weak self] accented in
+            self?.store.setStepAccent(trackId: track.id, step: step, accented: accented)
+            previewStepIfIdle()
+        }
+        panel.onSetPitch = { [weak self] semitones in
+            self?.store.setStepPitch(trackId: track.id, step: step, semitones: semitones)
+            previewStepIfIdle()
+        }
+        presentWhenReady(panel)
+    }
+
     func sequencerDidRequestBarActions(barIndex: Int) {
         let panel = BarActionsViewController(barIndex: barIndex)
         panel.onClearBar = { [weak self] in

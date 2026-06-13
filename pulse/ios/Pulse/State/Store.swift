@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 enum StateSection {
-    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects, patternLength, accent
+    case tempo, swing, master, pattern, mutes, volumes, step, name, load, kit, undo, effects, patternLength, accent, pitch
 }
 
 enum RandomizeIntensity: CaseIterable {
@@ -56,6 +56,9 @@ final class Store {
     private(set) var barVolumes: [[String: Float]] = [[:], [:]]
     private(set) var barEffects: [[String: TrackEffects]] = [[:], [:]]
     private(set) var accents: [String: [Bool]] = [:]
+    // Per-step semitone offsets relative to track pitch; 0 = default, only
+    // meaningful for melodic voices (bass/pluck/pad).
+    private(set) var pitches: [String: [Int]] = [:]
     private(set) var grooveSeed: UInt64 = UInt64.random(in: 1...UInt64.max)
 
     var volumes: [String: Float] { barVolumes[0] }
@@ -67,6 +70,13 @@ final class Store {
         var out = Array((source ?? []).prefix(length))
         if out.count < length {
             out += Array(repeating: false, count: length - out.count)
+        }
+        return out
+    }
+    private func normalizedPitches(_ source: [Int]?, length: Int) -> [Int] {
+        var out = Array((source ?? []).prefix(length))
+        if out.count < length {
+            out += Array(repeating: 0, count: length - out.count)
         }
         return out
     }
@@ -152,6 +162,7 @@ final class Store {
         let sequenceStart: Int
         let sequenceLength: Int
         let accents: [String: [Bool]]
+        let pitches: [String: [Int]]
         let grooveSeed: UInt64
     }
     private let snapshotLock = NSLock()
@@ -159,7 +170,7 @@ final class Store {
                                          rows: [:], mutes: [:], barVolumes: [[:], [:]],
                                          barEffects: [[:], [:]], patternLength: 16,
                                          sequenceStart: 0, sequenceLength: 16, accents: [:],
-                                         grooveSeed: 1)
+                                         pitches: [:], grooveSeed: 1)
 
     func audioSnapshot() -> AudioSnapshot {
         snapshotLock.lock()
@@ -174,7 +185,7 @@ final class Store {
                                  barVolumes: barVolumes, barEffects: barEffects,
                                  patternLength: patternLength,
                                  sequenceStart: sequenceStart, sequenceLength: sequenceLength,
-                                 accents: accents, grooveSeed: grooveSeed)
+                                 accents: accents, pitches: pitches, grooveSeed: grooveSeed)
         snapshotLock.unlock()
     }
 
@@ -186,6 +197,7 @@ final class Store {
             barEffects[0][t.id] = .default
             barEffects[1][t.id] = .default
             accents[t.id] = Array(repeating: false, count: 16)
+            pitches[t.id] = Array(repeating: 0, count: 16)
         }
         refreshSnapshot()
     }
@@ -225,6 +237,7 @@ final class Store {
             barEffects[0][t.id] = snap.effects?[t.id] ?? .default
             barEffects[1][t.id] = snap.bar2Effects?[t.id] ?? .default
             accents[t.id] = normalizedFlags(snap.accents?[t.id], length: patternLength)
+            pitches[t.id] = normalizedPitches(snap.pitches?[t.id], length: patternLength)
         }
         currentKitId = snap.kitId ?? "studio"
         refreshSnapshot()
@@ -266,6 +279,11 @@ final class Store {
         refreshGrooveSeed()
         arr[step].toggle()
         rows[trackId] = arr
+        // A re-added step starts from defaults, not leftover pitch state.
+        if !arr[step], var pitchArr = pitches[trackId], pitchArr.indices.contains(step) {
+            pitchArr[step] = 0
+            pitches[trackId] = pitchArr
+        }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
@@ -344,6 +362,10 @@ final class Store {
                 if curAccents.count < 32 {
                     accents[t.id] = Array(curAccents.prefix(16)) + Array(repeating: false, count: 16)
                 }
+                let curPitches = pitches[t.id] ?? Array(repeating: 0, count: 16)
+                if curPitches.count < 32 {
+                    pitches[t.id] = Array(curPitches.prefix(16)) + Array(repeating: 0, count: 16)
+                }
             }
         } else {
             enabledBars = [true]
@@ -363,6 +385,8 @@ final class Store {
         for t in Tracks.all {
             let bar1 = Array((rows[t.id] ?? Array(repeating: false, count: 16)).prefix(16))
             rows[t.id] = bar1 + bar1
+            let bar1Pitches = Array(normalizedPitches(pitches[t.id], length: 16).prefix(16))
+            pitches[t.id] = bar1Pitches + bar1Pitches
             barVolumes[1][t.id] = barVolumes[0][t.id]
             barEffects[1][t.id] = barEffects[0][t.id]
         }
@@ -395,12 +419,16 @@ final class Store {
             let bar1 = Array(arr.prefix(16))
             arr.replaceSubrange(16..., with: bar1)
             rows[t.id] = arr
+            var pitchArr = normalizedPitches(pitches[t.id], length: 32)
+            pitchArr.replaceSubrange(16..., with: Array(pitchArr.prefix(16)))
+            pitches[t.id] = pitchArr
             barVolumes[1][t.id] = barVolumes[0][t.id]
             barEffects[1][t.id] = barEffects[0][t.id]
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
+        changes.send(.pitch)
         changes.send(.volumes)
         changes.send(.effects)
     }
@@ -415,6 +443,8 @@ final class Store {
                 rows[t.id] = bar1 + bar1
                 let bar1Accents = Array(normalizedFlags(accents[t.id], length: 16).prefix(16))
                 accents[t.id] = bar1Accents + bar1Accents
+                let bar1Pitches = Array(normalizedPitches(pitches[t.id], length: 16).prefix(16))
+                pitches[t.id] = bar1Pitches + bar1Pitches
                 barVolumes[1][t.id] = barVolumes[0][t.id]
                 barEffects[1][t.id] = barEffects[0][t.id]
             }
@@ -431,6 +461,10 @@ final class Store {
                 accArr.replaceSubrange(16..., with: bar1Accents)
                 accents[t.id] = accArr
 
+                var pitchArr = normalizedPitches(pitches[t.id], length: 32)
+                pitchArr.replaceSubrange(16..., with: Array(pitchArr.prefix(16)))
+                pitches[t.id] = pitchArr
+
                 barVolumes[1][t.id] = barVolumes[0][t.id]
                 barEffects[1][t.id] = barEffects[0][t.id]
             }
@@ -440,11 +474,14 @@ final class Store {
         for track in Tracks.all {
             guard var arr = rows[track.id], arr.count == 32 else { continue }
             var accArr = normalizedFlags(accents[track.id], length: 32)
+            var pitchArr = normalizedPitches(pitches[track.id], length: 32)
             for step in 16..<32 {
-                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr, accents: &accArr)
+                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr,
+                           accents: &accArr, pitches: &pitchArr)
             }
             rows[track.id] = arr
             accents[track.id] = accArr
+            pitches[track.id] = pitchArr
         }
 
         refreshSnapshot()
@@ -452,6 +489,7 @@ final class Store {
         changes.send(.patternLength)
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
         changes.send(.volumes)
         changes.send(.effects)
     }
@@ -460,7 +498,10 @@ final class Store {
         pushUndo()
         refreshGrooveSeed()
         rows = Presets.emptyRows(length: patternLength)
-        for t in Tracks.all { accents[t.id] = Array(repeating: false, count: patternLength) }
+        for t in Tracks.all {
+            accents[t.id] = Array(repeating: false, count: patternLength)
+            pitches[t.id] = Array(repeating: 0, count: patternLength)
+        }
         currentPatternId = ""
         patternName = "Untitled"
         refreshSnapshot()
@@ -490,6 +531,7 @@ final class Store {
         currentKitId = pattern.kitId ?? "studio"
         for t in Tracks.all {
             accents[t.id] = normalizedFlags(pattern.accents?[t.id], length: patternLength)
+            pitches[t.id] = normalizedPitches(pattern.pitches?[t.id], length: patternLength)
         }
         refreshSnapshot()
         isDirty = false
@@ -506,11 +548,14 @@ final class Store {
         let exportAccents = patternLength == 16
             ? accents.mapValues { Array($0.prefix(16)) }
             : accents
+        let exportPitches = patternLength == 16
+            ? pitches.mapValues { Array($0.prefix(16)) }
+            : pitches
         return Pattern(id: UUID().uuidString, name: patternName, tempo: tempo, swing: swing,
                 rows: exportRows, volumes: barVolumes[0], mutes: mutes, effects: barEffects[0],
                 kitId: currentKitId, patternLength: patternLength,
                 bar2Volumes: barVolumes[1], bar2Effects: barEffects[1],
-                accents: exportAccents, grooveSeed: grooveSeed)
+                accents: exportAccents, grooveSeed: grooveSeed, pitches: exportPitches)
     }
 
     func sessionState() -> SessionState {
@@ -520,6 +565,9 @@ final class Store {
         let snapAccents = patternLength == 16
             ? accents.mapValues { Array($0.prefix(16)) }
             : accents
+        let snapPitches = patternLength == 16
+            ? pitches.mapValues { Array($0.prefix(16)) }
+            : pitches
         return SessionState(
             patternName: patternName,
             tempo: tempo,
@@ -536,7 +584,8 @@ final class Store {
             bar2Volumes: barVolumes[1],
             bar2Effects: barEffects[1],
             accents: snapAccents,
-            grooveSeed: grooveSeed
+            grooveSeed: grooveSeed,
+            pitches: snapPitches
         )
     }
 
@@ -560,6 +609,7 @@ final class Store {
         currentKitId = session.kitId ?? "studio"
         for t in Tracks.all {
             accents[t.id] = normalizedFlags(session.accents?[t.id], length: patternLength)
+            pitches[t.id] = normalizedPitches(session.pitches?[t.id], length: patternLength)
         }
         refreshSnapshot()
         isDirty = false
@@ -578,6 +628,34 @@ final class Store {
         isDirty = true
         refreshSnapshot()
         changes.send(.accent)
+    }
+
+    /// Explicit accent set used by the step options sheet; no-op when unchanged.
+    func setStepAccent(trackId: String, step: Int, accented: Bool) {
+        guard var arr = accents[trackId], arr.indices.contains(step), arr[step] != accented else { return }
+        pushUndo()
+        refreshGrooveSeed()
+        arr[step] = accented
+        accents[trackId] = arr
+        isDirty = true
+        refreshSnapshot()
+        changes.send(.accent)
+    }
+
+    // MARK: - Step pitch
+
+    /// Sets the per-step semitone offset for a melodic track; no-op when unchanged.
+    func setStepPitch(trackId: String, step: Int, semitones: Int) {
+        guard let track = Tracks.find(trackId), StepPitch.supportsPitch(track.voice) else { return }
+        var arr = normalizedPitches(pitches[trackId], length: patternLength)
+        guard arr.indices.contains(step), arr[step] != semitones else { return }
+        pushUndo()
+        refreshGrooveSeed()
+        arr[step] = semitones
+        pitches[trackId] = arr
+        isDirty = true
+        refreshSnapshot()
+        changes.send(.pitch)
     }
 
     func accentTrack(trackId: String, pattern: AccentPattern) {
@@ -609,10 +687,12 @@ final class Store {
         refreshGrooveSeed()
         rows[trackId] = Array(repeating: false, count: patternLength)
         accents[trackId] = Array(repeating: false, count: patternLength)
+        pitches[trackId] = Array(repeating: 0, count: patternLength)
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
     }
 
     /// Positive delta = shift right, negative = shift left. Wraps within patternLength.
@@ -628,6 +708,9 @@ final class Store {
             accArr = Array(accArr[d...]) + Array(accArr[..<d])
             accents[trackId] = accArr
         }
+        var pitchArr = normalizedPitches(pitches[trackId], length: len)
+        pitchArr = Array(pitchArr[d...]) + Array(pitchArr[..<d])
+        pitches[trackId] = pitchArr
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
@@ -639,10 +722,12 @@ final class Store {
         refreshGrooveSeed()
         rows[trackId] = generateTrackSteps(voice: track.voice, length: patternLength, intensity: intensity)
         accents[trackId] = Array(repeating: false, count: patternLength)
+        pitches[trackId] = Array(repeating: 0, count: patternLength)
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
     }
 
     // MARK: - Bar Actions
@@ -660,11 +745,16 @@ final class Store {
                 for i in start..<min(start + 16, accArr.count) { accArr[i] = false }
                 accents[trackId] = accArr
             }
+            if var pitchArr = pitches[trackId], pitchArr.count > start {
+                for i in start..<min(start + 16, pitchArr.count) { pitchArr[i] = 0 }
+                pitches[trackId] = pitchArr
+            }
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
     }
 
     func accentBar(_ barIndex: Int, pattern: AccentPattern) {
@@ -706,19 +796,23 @@ final class Store {
         for track in Tracks.all {
             guard var arr = rows[track.id], arr.count > start else { continue }
             var accArr = normalizedFlags(accents[track.id], length: arr.count)
+            var pitchArr = normalizedPitches(pitches[track.id], length: arr.count)
             let barSteps = randomBarSteps(voice: track.voice, intensity: intensity)
             let end = min(start + 16, arr.count)
             for i in start..<end {
                 arr[i] = barSteps[i - start]
                 accArr[i] = false
+                pitchArr[i] = 0
             }
             rows[track.id] = arr
             accents[track.id] = accArr
+            pitches[track.id] = pitchArr
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
     }
 
     func humanizeBar(_ barIndex: Int) {
@@ -728,17 +822,21 @@ final class Store {
         for track in Tracks.all {
             guard var arr = rows[track.id], arr.count > start else { continue }
             var accArr = normalizedFlags(accents[track.id], length: arr.count)
+            var pitchArr = normalizedPitches(pitches[track.id], length: arr.count)
             let end = min(start + 16, arr.count)
             for step in start..<end {
-                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr, accents: &accArr)
+                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr,
+                           accents: &accArr, pitches: &pitchArr)
             }
             rows[track.id] = arr
             accents[track.id] = accArr
+            pitches[track.id] = pitchArr
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
     }
 
     // MARK: - Groove Actions
@@ -749,16 +847,20 @@ final class Store {
         for track in Tracks.all {
             guard var arr = rows[track.id] else { continue }
             var accArr = normalizedFlags(accents[track.id], length: arr.count)
+            var pitchArr = normalizedPitches(pitches[track.id], length: arr.count)
             for step in arr.indices {
-                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr, accents: &accArr)
+                mutateStep(voice: track.voice, absoluteStep: step, steps: &arr,
+                           accents: &accArr, pitches: &pitchArr)
             }
             rows[track.id] = arr
             accents[track.id] = accArr
+            pitches[track.id] = pitchArr
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
     }
 
     func randomizeGroove(intensity: RandomizeIntensity = .medium) {
@@ -767,11 +869,13 @@ final class Store {
         for track in Tracks.all {
             rows[track.id] = generateTrackSteps(voice: track.voice, length: patternLength, intensity: intensity)
             accents[track.id] = Array(repeating: false, count: patternLength)
+            pitches[track.id] = Array(repeating: 0, count: patternLength)
         }
         refreshSnapshot()
         isDirty = true
         changes.send(.pattern)
         changes.send(.accent)
+        changes.send(.pitch)
     }
 
     func accentGroove(pattern: AccentPattern) {
@@ -848,7 +952,8 @@ final class Store {
     private func mutateStep(voice: VoiceKind,
                             absoluteStep: Int,
                             steps: inout [Bool],
-                            accents: inout [Bool]) {
+                            accents: inout [Bool],
+                            pitches: inout [Int]) {
         let localStep = absoluteStep % 16
         let isAnchor: Bool
         let accentChance: Double
@@ -888,15 +993,35 @@ final class Store {
             addChance = localStep % 4 == 0 ? 0.025 : 0.004
         }
 
+        // Occasional pitch movement for melodic voices: bass leans on Root,
+        // pluck/pad drift a little more. Existing variation is mostly preserved.
+        let pitchChance: Double
+        switch voice {
+        case .bass:        pitchChance = 0.10
+        case .pluck, .pad: pitchChance = 0.15
+        default:           pitchChance = 0
+        }
+
         if steps[absoluteStep] {
             if Double.random(in: 0...1) < accentChance { accents[absoluteStep].toggle() }
+            if pitchChance > 0, pitches.indices.contains(absoluteStep),
+               Double.random(in: 0...1) < pitchChance,
+               let options = StepPitch.options(for: voice) {
+                let current = pitches[absoluteStep]
+                let candidates = options.map(\.semitones).filter { $0 != current }
+                if let next = candidates.randomElement() {
+                    pitches[absoluteStep] = next
+                }
+            }
             if Double.random(in: 0...1) < removeChance {
                 steps[absoluteStep] = false
                 accents[absoluteStep] = false
+                if pitches.indices.contains(absoluteStep) { pitches[absoluteStep] = 0 }
             }
         } else if Double.random(in: 0...1) < addChance {
             steps[absoluteStep] = true
             accents[absoluteStep] = Double.random(in: 0...1) < accentChance
+            if pitches.indices.contains(absoluteStep) { pitches[absoluteStep] = 0 }
         }
     }
 

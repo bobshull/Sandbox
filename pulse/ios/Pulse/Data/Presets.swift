@@ -17,6 +17,8 @@ struct Pattern: Codable {
     var barLength: Int?
     var accents: [String: [Bool]]?
     var grooveSeed: UInt64? = nil
+    // Per-step semitone offsets for melodic tracks; nil/missing → all defaults (0)
+    var pitches: [String: [Int]]? = nil
 }
 
 enum Presets {
@@ -29,6 +31,13 @@ enum Presets {
     private static func row2(_ positions: Int...) -> [Bool] {
         var r = Array(repeating: false, count: 32)
         for p in positions where (0..<32).contains(p) { r[p] = true }
+        return r
+    }
+
+    /// Per-step semitone offsets at the given step positions; everything else 0.
+    private static func pitchRow(_ assignments: [Int: Int], length: Int = Tracks.stepCount) -> [Int] {
+        var r = Array(repeating: 0, count: length)
+        for (step, semitones) in assignments where r.indices.contains(step) { r[step] = semitones }
         return r
     }
 
@@ -61,7 +70,16 @@ enum Presets {
                 "pluck": fx(rvb: 31, dly: 70, div: .sixteenth, dst: 69),
                 "perc":  fx(rvb: 75, dly: 57, div: .sixteenth, dst: 83),
             ],
-            kitId: "jungle"
+            kitId: "jungle",
+            accents: [
+                "kick":  row(0),
+                "snare": row(12),
+                "bass":  row(0),
+            ],
+            pitches: [
+                "bass":  pitchRow([3: 12, 11: 7]),
+                "pluck": pitchRow([10: 7]),
+            ]
         ),
 
         // ── 808 Groove — slow soul, sub bass room to breathe ────────────────
@@ -84,7 +102,16 @@ enum Presets {
                 "bass":  fx(rvb: 32, dst: 30),
                 "pluck": fx(rvb: 48, dly: 20, div: .eighth),
             ],
-            kitId: "808"
+            kitId: "808",
+            accents: [
+                "kick":  row(0),
+                "snare": row(4),
+                "bass":  row(0),
+            ],
+            pitches: [
+                "bass":  pitchRow([10: 7]),
+                "pluck": pitchRow([3: -7]),
+            ]
         ),
 
         // ── Rainy Lo-Fi — head-nod groove, late-night lazy ──────────────────
@@ -107,7 +134,16 @@ enum Presets {
                 "pluck": fx(rvb: 70, dly: 28, div: .eighth),
                 "perc":  fx(rvb: 55),
             ],
-            kitId: "rainy-night"
+            kitId: "rainy-night",
+            accents: [
+                "kick":  row(0),
+                "snare": row(4),
+                "pluck": row(3),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7]),
+                "pluck": pitchRow([3: -7, 14: 7]),
+            ]
         ),
 
         // ── Music Box Fantasy — melody-first, not a drum pattern ────────────
@@ -130,7 +166,15 @@ enum Presets {
                 "pluck": fx(rvb: 82, dly: 50, div: .eighth),
                 "perc":  fx(rvb: 72),
             ],
-            kitId: "music-box"
+            kitId: "music-box",
+            accents: [
+                "bass":  row(0),
+                "pluck": row(1, 8),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7, 12: 12]),
+                "pluck": pitchRow([5: 7, 11: -7, 14: 7]),
+            ]
         ),
 
         // ── Space Drift — dark techno, room to breathe ──────────────────────
@@ -151,7 +195,14 @@ enum Presets {
                 "bass":  fx(rvb: 35),
                 "perc":  fx(rvb: 72, dst: 18),
             ],
-            kitId: "space"
+            kitId: "space",
+            accents: [
+                "kick": row(0, 8),
+                "perc": row(7),
+            ],
+            pitches: [
+                "bass": pitchRow([6: 12]),
+            ]
         ),
 
         // ── Arcade Rush — 8-bit boss battle ──────────────────────────────────
@@ -176,7 +227,16 @@ enum Presets {
                 "pluck": fx(dly: 18, div: .sixteenth, dst: 35),
                 "perc":  fx(dst: 18),
             ],
-            kitId: "arcade"
+            kitId: "arcade",
+            accents: [
+                "kick":  row(0, 8),
+                "snare": row(4, 12),
+                "pluck": row(0),
+            ],
+            pitches: [
+                "bass":  pitchRow([3: 12, 11: 12]),
+                "pluck": pitchRow([3: 7, 10: -7, 13: 7]),
+            ]
         ),
 
         // ── Dusty Breaks — vintage amen-break energy ─────────────────────────
@@ -197,7 +257,15 @@ enum Presets {
                 "bass":  fx(rvb: 22),
                 "pluck": fx(rvb: 35, dly: 20, div: .eighth),
             ],
-            kitId: "dusty-tape"
+            kitId: "dusty-tape",
+            accents: [
+                "kick":  row(0),
+                "snare": row(4, 12),
+            ],
+            pitches: [
+                "bass":  pitchRow([8: 7]),
+                "pluck": pitchRow([12: -7]),
+            ]
         ),
 
         // ── Marimba Groove — afrobeat cross-rhythms ──────────────────────────
@@ -218,7 +286,15 @@ enum Presets {
                 "pluck": fx(rvb: 32, dly: 18, div: .eighth),
                 "perc":  fx(rvb: 35, dly: 22, div: .eighth),
             ],
-            kitId: "marimba"
+            kitId: "marimba",
+            accents: [
+                "kick": row(0),
+                "perc": row(3, 11),
+            ],
+            pitches: [
+                "bass":  pitchRow([5: 7, 13: 7]),
+                "pluck": pitchRow([4: 7, 13: -7]),
+            ]
         ),
 
         // ── Boom Bap Classic — SP-1200 knock ─────────────────────────────────
@@ -239,7 +315,15 @@ enum Presets {
                 "snare": fx(rvb: 32),
                 "pluck": fx(rvb: 28, dly: 20, div: .eighth),
             ],
-            kitId: "boom-bap"
+            kitId: "boom-bap",
+            accents: [
+                "kick":  row(0),
+                "snare": row(4, 12),
+            ],
+            pitches: [
+                "bass":  pitchRow([10: 7]),
+                "pluck": pitchRow([11: -7]),
+            ]
         ),
 
         // ── Jazz Brush — real jazz shuffle ───────────────────────────────────
@@ -261,7 +345,15 @@ enum Presets {
                 "bass":  fx(rvb: 22),
                 "pluck": fx(rvb: 40, dly: 18, div: .eighth),
             ],
-            kitId: "jazz"
+            kitId: "jazz",
+            accents: [
+                "snare": row(4),
+                "bass":  row(0),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7, 12: 12]),
+                "pluck": pitchRow([10: 7]),
+            ]
         ),
 
         // ── Jungle Chop 2-bar — bar 2 strips grit for space ─────────────────
@@ -292,7 +384,16 @@ enum Presets {
                 "pluck": fx(rvb: 85, dly: 45, div: .eighth,    dst: 10),
                 "perc":  fx(rvb: 90, dly: 25, div: .eighth,    dst: 18),
             ],
-            basePresetId: "jungle-chop", barLength: 2
+            basePresetId: "jungle-chop", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "snare": row2(12, 28),
+                "bass":  row2(0, 16),
+            ],
+            pitches: [
+                "bass":  pitchRow([3: 12, 11: 7, 19: 7, 27: 12], length: 32),
+                "pluck": pitchRow([10: 7, 26: -7], length: 32),
+            ]
         ),
 
         // ── Boom Bap 2-bar — bar 2 turnaround fill ───────────────────────────
@@ -315,7 +416,15 @@ enum Presets {
             ],
             kitId: "boom-bap",
             patternLength: 32,
-            basePresetId: "boom-bap-classic", barLength: 2
+            basePresetId: "boom-bap-classic", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "snare": row2(4, 12, 20, 28),
+            ],
+            pitches: [
+                "bass":  pitchRow([10: 7, 26: 7, 30: 12], length: 32),
+                "pluck": pitchRow([11: -7, 27: -7], length: 32),
+            ]
         ),
 
         // ── 808 Groove 2-bar — bar 2 synco push ──────────────────────────────
@@ -340,7 +449,16 @@ enum Presets {
             ],
             kitId: "808",
             patternLength: 32,
-            basePresetId: "808-memphis", barLength: 2
+            basePresetId: "808-memphis", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "snare": row2(4, 20),
+                "bass":  row2(0, 16),
+            ],
+            pitches: [
+                "bass":  pitchRow([10: 7, 30: 7], length: 32),
+                "pluck": pitchRow([3: -7, 23: 7], length: 32),
+            ]
         ),
 
         // ── Rainy Lo-Fi 2-bar — bar 2 drift and dissolve ─────────────────────
@@ -365,7 +483,16 @@ enum Presets {
             ],
             kitId: "rainy-night",
             patternLength: 32,
-            basePresetId: "rainy-lofi", barLength: 2
+            basePresetId: "rainy-lofi", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "snare": row2(4, 20),
+                "pluck": row2(3, 21),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7, 24: 7], length: 32),
+                "pluck": pitchRow([3: -7, 14: 7, 27: 7, 30: -7], length: 32),
+            ]
         ),
 
         // ── Dusty Breaks 2-bar — bar 2 break fill ────────────────────────────
@@ -388,7 +515,15 @@ enum Presets {
             ],
             kitId: "dusty-tape",
             patternLength: 32,
-            basePresetId: "dusty-breaks", barLength: 2
+            basePresetId: "dusty-breaks", barLength: 2,
+            accents: [
+                "kick":  row2(0, 16),
+                "snare": row2(4, 12, 20, 28),
+            ],
+            pitches: [
+                "bass":  pitchRow([8: 7, 24: 7], length: 32),
+                "pluck": pitchRow([12: -7, 28: -7], length: 32),
+            ]
         ),
 
         // ── Jazz Brush 2-bar — bar 2 open blowing ────────────────────────────
@@ -412,7 +547,15 @@ enum Presets {
             ],
             kitId: "jazz",
             patternLength: 32,
-            basePresetId: "jazz-brush", barLength: 2
+            basePresetId: "jazz-brush", barLength: 2,
+            accents: [
+                "snare": row2(4, 22),
+                "bass":  row2(0, 16),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7, 12: 12, 22: 7, 28: 12], length: 32),
+                "pluck": pitchRow([10: 7, 24: 7, 30: -7], length: 32),
+            ]
         ),
 
         // ── Music Box Fantasy 2-bar — bar 2 harmonic shift ───────────────────
@@ -437,7 +580,15 @@ enum Presets {
             ],
             kitId: "music-box",
             patternLength: 32,
-            basePresetId: "music-box-fantasy", barLength: 2
+            basePresetId: "music-box-fantasy", barLength: 2,
+            accents: [
+                "bass":  row2(0, 17),
+                "pluck": row2(1, 8, 16, 26),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7, 12: 12, 21: 7, 29: 12], length: 32),
+                "pluck": pitchRow([5: 7, 11: -7, 14: 7, 19: 7, 26: -7, 30: 7], length: 32),
+            ]
         ),
 
         // ── Space Drift 2-bar — bar 2 build ──────────────────────────────────
@@ -460,7 +611,14 @@ enum Presets {
             ],
             kitId: "space",
             patternLength: 32,
-            basePresetId: "space-drift", barLength: 2
+            basePresetId: "space-drift", barLength: 2,
+            accents: [
+                "kick": row2(0, 8, 16, 24),
+                "perc": row2(7, 19),
+            ],
+            pitches: [
+                "bass": pitchRow([6: 12, 22: 12, 30: 7], length: 32),
+            ]
         ),
 
         // ── Arcade Rush 2-bar — bar 2 phase shift ────────────────────────────
@@ -487,7 +645,16 @@ enum Presets {
             ],
             kitId: "arcade",
             patternLength: 32,
-            basePresetId: "arcade-rush", barLength: 2
+            basePresetId: "arcade-rush", barLength: 2,
+            accents: [
+                "kick":  row2(0, 8, 16, 24),
+                "snare": row2(4, 12, 20, 28),
+                "pluck": row2(0, 16),
+            ],
+            pitches: [
+                "bass":  pitchRow([3: 12, 11: 12, 20: 12, 30: 12], length: 32),
+                "pluck": pitchRow([3: 7, 10: -7, 13: 7, 19: 7, 27: -7, 30: 7], length: 32),
+            ]
         ),
 
         // ── Marimba Groove 2-bar — bar 2 inverted cross-rhythm ───────────────
@@ -510,7 +677,15 @@ enum Presets {
             ],
             kitId: "marimba",
             patternLength: 32,
-            basePresetId: "marimba-groove", barLength: 2
+            basePresetId: "marimba-groove", barLength: 2,
+            accents: [
+                "kick": row2(0, 16),
+                "perc": row2(3, 11, 18, 26),
+            ],
+            pitches: [
+                "bass":  pitchRow([5: 7, 13: 7, 23: 7, 29: 7], length: 32),
+                "pluck": pitchRow([4: 7, 13: -7, 22: -7, 29: 7], length: 32),
+            ]
         ),
 
         // ── Concrete Jungle — NYC boom bap, punchy downbeat knock ────────────
@@ -540,6 +715,10 @@ enum Presets {
                 "kick":  row(0),
                 "snare": row(4),
                 "hat":   row(2, 10),
+            ],
+            pitches: [
+                "bass":  pitchRow([11: 7]),
+                "pluck": pitchRow([9: -7, 15: 7]),
             ]
         ),
 
@@ -572,6 +751,10 @@ enum Presets {
                 "kick":  row2(0, 16),
                 "snare": row2(4, 20),
                 "hat":   row2(2, 10, 18, 26),
+            ],
+            pitches: [
+                "bass":  pitchRow([11: 7, 27: 7], length: 32),
+                "pluck": pitchRow([9: -7, 15: 7, 25: -7, 31: 7], length: 32),
             ]
         ),
 
@@ -603,6 +786,10 @@ enum Presets {
                 "snare": row(4),
                 "hat":   row(4, 12),
                 "pluck": row(1, 11),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7]),
+                "pluck": pitchRow([7: -7, 15: 7]),
             ]
         ),
 
@@ -636,6 +823,10 @@ enum Presets {
                 "snare": row2(4, 20),
                 "hat":   row2(4, 12, 20, 28),
                 "pluck": row2(1, 11, 17, 27),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7, 22: 7], length: 32),
+                "pluck": pitchRow([7: -7, 15: 7, 23: -7, 31: 7], length: 32),
             ]
         ),
 
@@ -662,6 +853,10 @@ enum Presets {
                 "kick":  row(0),
                 "hat":   row(0, 8),
                 "pluck": row(2),
+            ],
+            pitches: [
+                "bass":  pitchRow([5: 7]),
+                "pluck": pitchRow([7: -7, 11: 7]),
             ]
         ),
 
@@ -690,6 +885,10 @@ enum Presets {
                 "kick":  row2(0, 16),
                 "hat":   row2(0, 8, 16, 24),
                 "pluck": row2(2, 18),
+            ],
+            pitches: [
+                "bass":  pitchRow([5: 7, 25: 7], length: 32),
+                "pluck": pitchRow([7: -7, 11: 7, 23: -7, 27: 7], length: 32),
             ]
         ),
 
@@ -716,6 +915,10 @@ enum Presets {
                 "kick":  row(0),
                 "snare": row(4),
                 "pluck": row(3),
+            ],
+            pitches: [
+                "bass":  pitchRow([6: 7]),
+                "pluck": pitchRow([9: 7, 15: -7]),
             ]
         ),
 
@@ -743,6 +946,10 @@ enum Presets {
             accents: [
                 "pluck": row(1, 10),
                 "perc":  row(3, 8),
+            ],
+            pitches: [
+                "bass":  pitchRow([9: 7]),
+                "pluck": pitchRow([6: 7, 14: -7]),
             ]
         ),
 
@@ -772,6 +979,10 @@ enum Presets {
             accents: [
                 "pluck": row2(1, 10, 17, 26),
                 "perc":  row2(3, 8, 19, 24),
+            ],
+            pitches: [
+                "bass":  pitchRow([9: 7, 25: 7], length: 32),
+                "pluck": pitchRow([6: 7, 14: -7, 22: 7, 31: -7], length: 32),
             ]
         ),
 
@@ -797,6 +1008,10 @@ enum Presets {
             accents: [
                 "pluck": row(0, 7),
                 "perc":  row(1, 9),
+            ],
+            pitches: [
+                "bass":  pitchRow([9: 7]),
+                "pluck": pitchRow([3: 7, 12: -7]),
             ]
         ),
 
@@ -824,6 +1039,10 @@ enum Presets {
             accents: [
                 "pluck": row2(0, 7, 17, 27),
                 "perc":  row2(1, 9, 17, 25),
+            ],
+            pitches: [
+                "bass":  pitchRow([9: 7, 25: 7], length: 32),
+                "pluck": pitchRow([3: 7, 12: -7, 23: 7, 31: -7], length: 32),
             ]
         ),
 
@@ -851,6 +1070,10 @@ enum Presets {
             accents: [
                 "kick":  row(0),
                 "pluck": row(3),
+            ],
+            pitches: [
+                "bass":  pitchRow([13: 7]),
+                "pluck": pitchRow([8: -7]),
             ]
         ),
 
@@ -880,6 +1103,10 @@ enum Presets {
             accents: [
                 "kick":  row2(0, 17),
                 "pluck": row2(3, 19),
+            ],
+            pitches: [
+                "bass":  pitchRow([13: 7, 29: 7], length: 32),
+                "pluck": pitchRow([8: -7, 28: -7], length: 32),
             ]
         ),
 
@@ -903,6 +1130,10 @@ enum Presets {
             accents: [
                 "pluck": row(0, 7),
                 "perc":  row(5),
+            ],
+            pitches: [
+                "bass":  pitchRow([13: 7]),
+                "pluck": pitchRow([3: 7, 12: -7]),
             ]
         ),
 
@@ -928,6 +1159,10 @@ enum Presets {
             accents: [
                 "pluck": row2(0, 7, 18, 25),
                 "perc":  row2(5, 20),
+            ],
+            pitches: [
+                "bass":  pitchRow([13: 7, 29: 7], length: 32),
+                "pluck": pitchRow([3: 7, 12: -7, 21: 7, 30: -7], length: 32),
             ]
         ),
 
@@ -956,6 +1191,10 @@ enum Presets {
                 "kick":  row(0),
                 "hat":   row(0, 8),
                 "pluck": row(0, 9),
+            ],
+            pitches: [
+                "bass":  pitchRow([7: 7]),
+                "pluck": pitchRow([2: 7, 9: -7]),
             ]
         ),
 
@@ -986,6 +1225,10 @@ enum Presets {
                 "kick":  row2(0, 16),
                 "hat":   row2(0, 8, 16, 24),
                 "pluck": row2(0, 9, 17, 28),
+            ],
+            pitches: [
+                "bass":  pitchRow([7: 7, 23: 7], length: 32),
+                "pluck": pitchRow([2: 7, 9: -7, 21: 7, 28: -7], length: 32),
             ]
         ),
 

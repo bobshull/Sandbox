@@ -7,6 +7,7 @@ protocol SequencerViewDelegate: AnyObject {
     func sequencerDidRequestTrackActions(_ track: Track)
     func sequencerDidRequestBarActions(barIndex: Int)
     func sequencerDidToggleAccent(isAccented: Bool)
+    func sequencerDidRequestStepOptions(_ track: Track, step: Int)
 }
 
 /// Scrolling grid where each row pins its track header to the leading edge
@@ -406,7 +407,9 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                 case .pattern:
                     self.syncPattern()
                     self.syncAccents()
+                    self.syncPitches()
                 case .accent: self.syncAccents()
+                case .pitch: self.syncPitches()
                 case .patternLength:
                     let needsRebuild = store.patternLength != (self.rows.first?.cells.count ?? 0)
                     if needsRebuild {
@@ -417,11 +420,13 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
                     }
                     self.syncPattern()
                     self.syncAccents()
+                    self.syncPitches()
                     self.syncPlayhead()
                 case .load:
                     self.rebuildForPatternLength()
                     self.syncPattern()
                     self.syncAccents()
+                    self.syncPitches()
                     self.syncPlayhead()
                     self.syncMutes()
                     self.syncVolumes()
@@ -440,6 +445,7 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
         rebuildForPatternLength()
         syncPattern()
         syncAccents()
+        syncPitches()
         syncMutes()
         syncVolumes()
         syncEffects()
@@ -520,6 +526,18 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
             let arr = store.accents[row.track.id] ?? []
             for cell in row.cells {
                 cell.isAccented = arr.indices.contains(cell.tag) && arr[cell.tag]
+            }
+        }
+    }
+
+    private func syncPitches() {
+        for row in rows {
+            let supportsPitch = StepPitch.supportsPitch(row.track.voice)
+            let arr = store.pitches[row.track.id] ?? []
+            for cell in row.cells {
+                cell.pitchOffset = supportsPitch
+                    ? (arr.indices.contains(cell.tag) ? arr[cell.tag] : 0)
+                    : nil
             }
         }
     }
@@ -636,7 +654,10 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     @objc private func cellLongPressed(_ gr: UILongPressGestureRecognizer) {
         guard gr.state == .began, let cell = gr.view as? CellButton else { return }
         // cell.isOn is reliable here: long press suppresses touchUpInside, step state unchanged
-        toggleAccent(on: cell)
+        guard cell.isOn,
+              let row = rows.first(where: { $0.cells.contains(cell) }) else { return }
+        if AppSettings.hapticsEnabled { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+        delegate?.sequencerDidRequestStepOptions(row.track, step: cell.tag)
     }
 
     @objc private func cellDoubleTapped(_ gr: UITapGestureRecognizer) {

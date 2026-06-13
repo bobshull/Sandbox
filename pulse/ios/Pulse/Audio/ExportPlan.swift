@@ -38,6 +38,8 @@ enum GrooveTiming {
 struct ExportStepEvent: Equatable {
     let frame: AVAudioFramePosition
     let isAccented: Bool
+    /// Per-step semitone offset; 0 = track's base pitch.
+    var pitch: Int = 0
 }
 
 /// Frame-accurate timing plan for one offline export, derived from a
@@ -102,7 +104,9 @@ enum ExportPlanBuilder {
                 let frame = min(max(jittered, 0), max(totalFrames - 1, 0))
                 let isAccented = snapshot.accents[track.id]?.indices.contains(patStep) == true
                               && (snapshot.accents[track.id]?[patStep] ?? false)
-                trackEvents.append(ExportStepEvent(frame: frame, isAccented: isAccented))
+                let pitchRow = snapshot.pitches[track.id]
+                let pitch = pitchRow?.indices.contains(patStep) == true ? pitchRow![patStep] : 0
+                trackEvents.append(ExportStepEvent(frame: frame, isAccented: isAccented, pitch: pitch))
             }
             guard !trackEvents.isEmpty else { continue }
             // High humanize can reorder neighboring hits; render in frame order so
@@ -131,15 +135,20 @@ enum OfflineTrackRenderer {
         let startFrame: AVAudioFramePosition
     }
 
+    /// Buffer dictionaries are keyed by per-step semitone offset; key 0 is the
+    /// track's base pitch and must be present. Unrendered offsets fall back to 0.
     static func render(events: [ExportStepEvent],
-                       normalBuffer: AVAudioPCMBuffer,
-                       accentBuffer: AVAudioPCMBuffer?,
+                       normalBuffers: [Int: AVAudioPCMBuffer],
+                       accentBuffers: [Int: AVAudioPCMBuffer]?,
                        totalFrames: AVAudioFramePosition,
                        format: AVAudioFormat) -> TrackRender? {
-        guard !events.isEmpty, totalFrames > 0 else { return nil }
+        guard !events.isEmpty, totalFrames > 0,
+              let baseBuffer = normalBuffers[0] else { return nil }
 
         func source(for event: ExportStepEvent) -> AVAudioPCMBuffer {
-            event.isAccented ? (accentBuffer ?? normalBuffer) : normalBuffer
+            let normal = normalBuffers[event.pitch] ?? baseBuffer
+            guard event.isAccented else { return normal }
+            return accentBuffers?[event.pitch] ?? accentBuffers?[0] ?? normal
         }
         /// End of the audible portion of event `i`: full source length, cut at the
         /// next hit on the track (interrupt semantics) and at the export end.
