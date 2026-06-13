@@ -23,14 +23,20 @@ final class AudioEngine {
 
     private let store: Store
 
-    // schedulerQueue only.
-    private var buffers: [String: AVAudioPCMBuffer] = [:]
-    private var accentBuffers: [String: AVAudioPCMBuffer] = [:]
+    // schedulerQueue only. Keyed by track id, then per-step semitone offset
+    // (0 = base pitch; melodic voices also carry their StepPitch variants).
+    private var buffers: [String: [Int: AVAudioPCMBuffer]] = [:]
+    private var accentBuffers: [String: [Int: AVAudioPCMBuffer]] = [:]
     private static let accentGains: [String: Float] = [
         "kick": 2.00, "snare": 2.00, "hat": 2.00,
         "clap": 2.00, "bass": 1.80, "pluck": 1.80,
-        "pad":  1.60, "perc": 2.00,
+        "pad":  2.00, "perc": 2.00,
     ]
+    /// Every rendered voice is scaled by this (~-3 dB) so accented hits have room
+    /// to rise above the normal mix instead of slamming into full-scale clipping
+    /// (where the boost is inaudible). Applied uniformly, so the relative mix and
+    /// playback/export agreement are unchanged — just quieter by a fixed margin.
+    private static let voiceHeadroom: Float = 0.71
     // Recreated alongside the engine after a media services reset. Main thread only.
     private var masterMixer = AVAudioMixerNode()
 
@@ -136,22 +142,30 @@ final class AudioEngine {
         schedulerQueue.sync { fxChains = newChains }
     }
 
-    private func renderVoiceBuffers(kit: String) -> (normal: [String: AVAudioPCMBuffer],
-                                                     accent: [String: AVAudioPCMBuffer]) {
-        var normal: [String: AVAudioPCMBuffer] = [:]
-        var accent: [String: AVAudioPCMBuffer] = [:]
+    private func renderVoiceBuffers(kit: String) -> (normal: [String: [Int: AVAudioPCMBuffer]],
+                                                     accent: [String: [Int: AVAudioPCMBuffer]]) {
+        var normal: [String: [Int: AVAudioPCMBuffer]] = [:]
+        var accent: [String: [Int: AVAudioPCMBuffer]] = [:]
         for track in Tracks.all {
-            let samples = Synths.render(track.voice, kit: kit, sampleRate: sampleRate)
-            let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
-            buf.frameLength = AVAudioFrameCount(samples.count)
-            samples.withUnsafeBufferPointer { src in
-                let channels = buf.floatChannelData!
-                channels[0].update(from: src.baseAddress!, count: samples.count)
-                channels[1].update(from: src.baseAddress!, count: samples.count)
-            }
-            normal[track.id] = buf
             let gain = AudioEngine.accentGains[track.id] ?? 1.25
-            accent[track.id] = makeAccentBuffer(from: buf, gain: gain)
+            var normalVariants: [Int: AVAudioPCMBuffer] = [:]
+            var accentVariants: [Int: AVAudioPCMBuffer] = [:]
+            for offset in StepPitch.renderedOffsets(for: track.voice) {
+                var samples = Synths.render(track.voice, kit: kit, sampleRate: sampleRate,
+                                            semitoneOffset: offset)
+                for i in samples.indices { samples[i] *= AudioEngine.voiceHeadroom }
+                let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
+                buf.frameLength = AVAudioFrameCount(samples.count)
+                samples.withUnsafeBufferPointer { src in
+                    let channels = buf.floatChannelData!
+                    channels[0].update(from: src.baseAddress!, count: samples.count)
+                    channels[1].update(from: src.baseAddress!, count: samples.count)
+                }
+                normalVariants[offset] = buf
+                accentVariants[offset] = makeAccentBuffer(from: buf, gain: gain)
+            }
+            normal[track.id] = normalVariants
+            accent[track.id] = accentVariants
         }
         return (normal, accent)
     }
@@ -247,27 +261,58 @@ final class AudioEngine {
         }
     }
 
+    /// High-frequency emphasis added to accented hits. A real accent is a *harder*
+    /// hit — louder and brighter — so a few dB of gain alone reads as "barely
+    /// different" on soft voices like the pad. Mixing in the first difference
+    /// (a cheap high-pass) sharpens the transient so an accent is unmistakable in
+    /// character, not just level.
+    private static let accentBrightness: Float = 0.6
+
     private func makeAccentBuffer(from buf: AVAudioPCMBuffer, gain: Float) -> AVAudioPCMBuffer {
         let out = AVAudioPCMBuffer(pcmFormat: buf.format, frameCapacity: buf.frameCapacity)!
         out.frameLength = buf.frameLength
         let count = Int(buf.frameLength)
         guard let srcCh = buf.floatChannelData, let dstCh = out.floatChannelData else { return out }
+        let bright = AudioEngine.accentBrightness
         for ch in 0..<Int(buf.format.channelCount) {
-            for i in 0..<count { dstCh[ch][i] = srcCh[ch][i] * gain }
+            var prev: Float = 0
+            for i in 0..<count {
+                let x = srcCh[ch][i]
+                let emphasized = x + bright * (x - prev)   // boost highs → sharper attack
+                prev = x
+                dstCh[ch][i] = AudioEngine.softLimit(emphasized * gain)
+            }
         }
         return out
     }
 
-    /// Triggers a single voice immediately. Used for track-header preview taps.
+    /// Soft-knee limiter for accent buffers. Hot voices (kick peaks at 1.0)
+    /// would push the accent gain past full scale, where the DAC flat-clips and
+    /// the boost becomes inaudible; folding the overage into tanh saturation
+    /// keeps the peak legal while the hit gains density and bite instead.
+    static func softLimit(_ x: Float, knee: Float = 0.8) -> Float {
+        let magnitude = abs(x)
+        guard magnitude > knee else { return x }
+        let shaped = knee + (1 - knee) * tanhf((magnitude - knee) / (1 - knee))
+        return x < 0 ? -shaped : shaped
+    }
+
+    /// Triggers a single voice immediately. Used for track-header preview taps
+    /// and step-options auditioning (which passes the step's pitch/accent).
     /// Hops to the scheduler queue so it can never race a kit-reload buffer swap,
     /// and restarts the engine first if it idled in the background.
-    func preview(trackId: String) {
+    func preview(trackId: String, semitones: Int = 0, accented: Bool = false) {
         guard ensureEngineRunning() else { return }
         schedulerQueue.async { [weak self] in
             guard let self,
                   let chain = self.fxChains[trackId],
-                  let buf = self.buffers[trackId],
                   self.engine.isRunning else { return }
+            let normals = self.buffers[trackId]
+            let buf = accented
+                ? (self.accentBuffers[trackId]?[semitones] ?? self.accentBuffers[trackId]?[0]
+                   ?? normals?[semitones] ?? normals?[0])
+                : (normals?[semitones] ?? normals?[0])
+            guard let buf else { return }
             chain.player.play()
             chain.player.scheduleBuffer(buf, at: nil, options: [.interrupts], completionHandler: nil)
         }
@@ -400,12 +445,19 @@ final class AudioEngine {
             guard snap.mutes[track.id] != true,
                   let row = snap.rows[track.id], row.indices.contains(step), row[step],
                   let chain = fxChains[track.id],
-                  let normalBuf = buffers[track.id]
+                  let normalVariants = buffers[track.id]
             else { continue }
 
             let isAccented = snap.accents[track.id]?.indices.contains(step) == true
                           && (snap.accents[track.id]?[step] ?? false)
-            let buf = isAccented ? (accentBuffers[track.id] ?? normalBuf) : normalBuf
+            let pitchRow = snap.pitches[track.id]
+            let pitch = pitchRow?.indices.contains(step) == true ? pitchRow![step] : 0
+            // Unrendered offsets (stale data) fall back to the base pitch.
+            guard let buf = isAccented
+                    ? (accentBuffers[track.id]?[pitch] ?? accentBuffers[track.id]?[0]
+                       ?? normalVariants[pitch] ?? normalVariants[0])
+                    : (normalVariants[pitch] ?? normalVariants[0])
+            else { continue }
             #if DEBUG
             if isAccented {
                 let gain = AudioEngine.accentGains[track.id] ?? 1.25
@@ -590,8 +642,8 @@ final class AudioEngine {
     @discardableResult
     func exportMix(reps: Int, format: ExportFormat, completion: @escaping (Result<URL, Error>) -> Void) -> ExportHandle {
         let handle = ExportHandle()
-        var captured: [String: AVAudioPCMBuffer] = [:]
-        var capturedAccentBuffers: [String: AVAudioPCMBuffer] = [:]
+        var captured: [String: [Int: AVAudioPCMBuffer]] = [:]
+        var capturedAccentBuffers: [String: [Int: AVAudioPCMBuffer]] = [:]
         // Serialize behind any in-flight kit render (renderQueue is FIFO) so an
         // export right after a kit switch captures the new kit's buffers.
         renderQueue.sync {
@@ -654,10 +706,10 @@ final class AudioEngine {
                     if handle.isCancelled { throw ExportError.cancelled }
                     guard let chain = exportChains[track.id],
                           let events = plan.events[track.id],
-                          let normalBuf = captured[track.id],
+                          let normalBufs = captured[track.id],
                           let render = OfflineTrackRenderer.render(events: events,
-                                                                   normalBuffer: normalBuf,
-                                                                   accentBuffer: capturedAccentBuffers[track.id],
+                                                                   normalBuffers: normalBufs,
+                                                                   accentBuffers: capturedAccentBuffers[track.id],
                                                                    totalFrames: totalFrames,
                                                                    format: self.format)
                     else { continue }

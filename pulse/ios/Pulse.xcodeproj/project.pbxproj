@@ -49,9 +49,11 @@
 		C2248374EB3B1E80F731F30A /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */; };
 		D137BDC802515EFD1669CAA2 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA857BE40CCB4925205352A /* AppSettingsTests.swift */; };
 		DD600448B5D57F1D8F25DF5B /* TrackEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */; };
+		E0BD73CD4040AEDD6D513076 /* StepPitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197638F5DD50EF96B0BEF932 /* StepPitch.swift */; };
 		E91C04DE87C0D499832AABCF /* Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */; };
 		F17837AAB34BE33E169E3658 /* CellButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE1C4767AB7667B0376366A /* CellButton.swift */; };
 		F1A5D42C877007077A318F45 /* SequencerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */; };
+		F8F5366889E3F373C8FE91A8 /* StepOptionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF7E28141A3C5726E562A2B /* StepOptionsViewController.swift */; };
 		FB61F8B02D4E5452965B1AF2 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58107A90060A6D3A39ED5760 /* AudioEngine.swift */; };
 /* End PBXBuildFile section */
 
@@ -69,6 +71,7 @@
 		0ED5080B2F01C0239F566442 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
 		13FEF2D2118D74C3572DF349 /* Pulse.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18BCDEC2A6D0EE413F750213 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
+		197638F5DD50EF96B0BEF932 /* StepPitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepPitch.swift; sourceTree = "<group>"; };
 		1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
 		2AE1C4767AB7667B0376366A /* CellButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellButton.swift; sourceTree = "<group>"; };
 		2C0F34E5DE9E1AE3F62C2678 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -112,6 +115,7 @@
 		CF7709EC17543072039B4671 /* SampleKitsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKitsTests.swift; sourceTree = "<group>"; };
 		D749E47C006DBF8D719533DE /* ExportPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportPlanTests.swift; sourceTree = "<group>"; };
 		DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
+		DEF7E28141A3C5726E562A2B /* StepOptionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepOptionsViewController.swift; sourceTree = "<group>"; };
 		E6DA0C4A10EE8077361EC0D6 /* TrackActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionsViewController.swift; sourceTree = "<group>"; };
 		EB05F18EB784C467E9F52091 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
 		FF4DDB05E646D862FBBEAC3C /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
@@ -148,6 +152,7 @@
 				DD07FB99292ED2FF9866F738 /* PatternLibraryViewController.swift */,
 				AAB092684FDCED1A9BDDAA15 /* SequencerView.swift */,
 				BD0B6A0582997898623109FC /* SettingsViewController.swift */,
+				DEF7E28141A3C5726E562A2B /* StepOptionsViewController.swift */,
 				A51EDD8265DEB720F5F54516 /* Theme.swift */,
 				42EC5B8C7893835120454B29 /* ToastView.swift */,
 				E6DA0C4A10EE8077361EC0D6 /* TrackActionsViewController.swift */,
@@ -212,6 +217,7 @@
 			children = (
 				AAE3ECB55FD5E43C0AA30DDB /* Presets.swift */,
 				EB05F18EB784C467E9F52091 /* SampleKits.swift */,
+				197638F5DD50EF96B0BEF932 /* StepPitch.swift */,
 				1EF40678C2BE06437F33AFC9 /* TrackEffects.swift */,
 				4E56E4EBC2B00FD97B4F7FD6 /* Tracks.swift */,
 			);
@@ -381,6 +387,8 @@
 				425E074066A69E62EFF84D5F /* SceneDelegate.swift in Sources */,
 				F1A5D42C877007077A318F45 /* SequencerView.swift in Sources */,
 				97710BDD3FA9DE1F343CF4D2 /* SettingsViewController.swift in Sources */,
+				F8F5366889E3F373C8FE91A8 /* StepOptionsViewController.swift in Sources */,
+				E0BD73CD4040AEDD6D513076 /* StepPitch.swift in Sources */,
 				5B1224B4A7B8F994B72217B7 /* Store.swift in Sources */,
 				1588E0A7A2CC232214B932DC /* Synths.swift in Sources */,
 				0CD41FB68FDBEA533E7F020D /* Theme.swift in Sources */,

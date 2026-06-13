@@ -208,4 +208,63 @@ final class PresetsTests: XCTestCase {
         XCTAssertEqual(decoded.basePresetId, "y")
         XCTAssertEqual(decoded.barLength, 2)
     }
+
+    // MARK: - Preset pitch variation
+
+    func test_pattern_codableRoundTripsPitches() throws {
+        var p = Pattern(id: "x", name: "X", tempo: 100, swing: 0.1, rows: [:])
+        p.pitches = ["bass": (0..<16).map { $0 == 3 ? 12 : 0 }]
+        let data = try JSONEncoder().encode(p)
+        let decoded = try JSONDecoder().decode(Pattern.self, from: data)
+        XCTAssertEqual(decoded.pitches?["bass"]?[3], 12)
+    }
+
+    func test_pattern_decodesWithoutPitches() throws {
+        // Pre-pitch saved payloads have no "pitches" key and must still decode.
+        let json = #"{"id":"old","name":"Old","tempo":90,"swing":0.2,"rows":{}}"#
+        let decoded = try JSONDecoder().decode(Pattern.self, from: Data(json.utf8))
+        XCTAssertNil(decoded.pitches)
+    }
+
+    func test_presets_pitchesOnlyOnMelodicTracks() {
+        for preset in Presets.all {
+            for trackId in (preset.pitches ?? [:]).keys {
+                let voice = Tracks.find(trackId)?.voice
+                XCTAssertNotNil(voice, "\(preset.id): unknown track \(trackId)")
+                XCTAssertTrue(voice.map(StepPitch.supportsPitch) == true,
+                              "\(preset.id): pitch variation on non-melodic track \(trackId)")
+            }
+        }
+    }
+
+    func test_presets_pitchValuesAreRenderableOffsets() {
+        for preset in Presets.all {
+            for (trackId, row) in preset.pitches ?? [:] {
+                guard let voice = Tracks.find(trackId)?.voice else { continue }
+                let allowed = Set(StepPitch.renderedOffsets(for: voice))
+                for (step, semitones) in row.enumerated() where semitones != 0 {
+                    XCTAssertTrue(allowed.contains(semitones),
+                                  "\(preset.id)/\(trackId) step \(step): offset \(semitones) has no rendered buffer")
+                }
+            }
+        }
+    }
+
+    func test_presets_pitchRowsMatchPatternLengthAndActiveSteps() {
+        for preset in Presets.all {
+            let length = preset.patternLength ?? 16
+            for (trackId, row) in preset.pitches ?? [:] {
+                XCTAssertEqual(row.count, length, "\(preset.id)/\(trackId): pitch row length")
+                let steps = preset.rows[trackId] ?? []
+                for (step, semitones) in row.enumerated() where semitones != 0 {
+                    XCTAssertTrue(steps.indices.contains(step) && steps[step],
+                                  "\(preset.id)/\(trackId) step \(step): pitch on inactive step")
+                }
+            }
+        }
+    }
+
+    func test_presets_somePitchVariationExists() {
+        XCTAssertTrue(Presets.all.contains { !($0.pitches ?? [:]).isEmpty })
+    }
 }

@@ -67,7 +67,7 @@ final class TrackActionsViewController: UIViewController {
         panel.addSubview(contentStack)
 
         let hintLabel = UILabel()
-        hintLabel.text = "Long-press a step to accent it for a louder hit."
+        hintLabel.text = "Long-press a step to show more options."
         hintLabel.font = .systemFont(ofSize: 11, weight: .regular)
         hintLabel.textColor = Theme.textFaint
         hintLabel.textAlignment = .center

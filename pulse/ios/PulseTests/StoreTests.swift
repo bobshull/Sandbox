@@ -1461,4 +1461,185 @@ final class StoreTests: XCTestCase {
         let b = AudioEngine.exportFileName(patternName: "Same Name", format: .wav)
         XCTAssertNotEqual(a, b)
     }
+
+    // MARK: - Step pitch
+
+    func test_init_pitchesAllZero() {
+        for track in Tracks.all {
+            XCTAssertEqual(store.pitches[track.id], Array(repeating: 0, count: 16))
+        }
+    }
+
+    func test_setStepPitch_setsSemitonesAndSendsPitch() {
+        store.toggleStep(trackId: "bass", step: 3)
+        var sections: [StateSection] = []
+        store.changes.sink { sections.append($0) }.store(in: &cancellables)
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 12)
+        XCTAssertEqual(store.pitches["bass"]?[3], 12)
+        XCTAssertTrue(sections.contains(.pitch))
+    }
+
+    func test_setStepPitch_noopWhenUnchanged() {
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 0)
+        XCTAssertFalse(store.canUndo)
+    }
+
+    func test_setStepPitch_ignoredForDrumTracks() {
+        store.setStepPitch(trackId: "kick", step: 0, semitones: 7)
+        XCTAssertEqual(store.pitches["kick"]?[0], 0)
+        XCTAssertFalse(store.canUndo)
+    }
+
+    func test_setStepPitch_updatesAudioSnapshot() {
+        store.setStepPitch(trackId: "pluck", step: 5, semitones: -7)
+        XCTAssertEqual(store.audioSnapshot().pitches["pluck"]?[5], -7)
+    }
+
+    func test_setStepPitch_coexistsWithAccent() {
+        store.toggleStep(trackId: "bass", step: 9)
+        store.toggleAccent(trackId: "bass", step: 9)
+        store.setStepPitch(trackId: "bass", step: 9, semitones: 7)
+        XCTAssertEqual(store.accents["bass"]?[9], true)
+        XCTAssertEqual(store.pitches["bass"]?[9], 7)
+    }
+
+    func test_setStepAccent_setsExplicitValueAndIsUndoable() {
+        store.toggleStep(trackId: "snare", step: 4)
+        store.setStepAccent(trackId: "snare", step: 4, accented: true)
+        XCTAssertEqual(store.accents["snare"]?[4], true)
+        store.setStepAccent(trackId: "snare", step: 4, accented: true)   // no-op
+        store.undo()
+        XCTAssertEqual(store.accents["snare"]?[4], false)
+    }
+
+    func test_toggleStepOff_resetsPitch() {
+        store.toggleStep(trackId: "bass", step: 3)
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 12)
+        store.toggleStep(trackId: "bass", step: 3)   // off
+        XCTAssertEqual(store.pitches["bass"]?[3], 0)
+    }
+
+    func test_undo_restoresPitch() {
+        store.setStepPitch(trackId: "pad", step: 6, semitones: 7)
+        store.undo()
+        XCTAssertEqual(store.pitches["pad"]?[6], 0)
+    }
+
+    func test_sessionState_roundTripsPitches() {
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 7)
+        let session = store.sessionState()
+        let fresh = Store()
+        fresh.loadSession(session)
+        XCTAssertEqual(fresh.pitches["bass"]?[3], 7)
+    }
+
+    func test_loadSession_withoutPitches_defaultsToZero() {
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 12)
+        var session = store.sessionState()
+        session.pitches = nil   // simulate a pre-pitch saved session
+        store.loadSession(session)
+        XCTAssertEqual(store.pitches["bass"], Array(repeating: 0, count: 16))
+    }
+
+    func test_exportPattern_includesPitches() {
+        store.setStepPitch(trackId: "pluck", step: 7, semitones: -7)
+        let pattern = store.exportPattern()
+        XCTAssertEqual(pattern.pitches?["pluck"]?[7], -7)
+    }
+
+    func test_loadPattern_withoutPitches_defaultsToZero() {
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 12)
+        store.loadPattern(Pattern(id: "x", name: "X", tempo: 100, swing: 0, rows: [:]))
+        XCTAssertEqual(store.pitches["bass"], Array(repeating: 0, count: 16))
+    }
+
+    func test_loadPattern_restoresPitches() {
+        var pattern = Pattern(id: "x", name: "X", tempo: 100, swing: 0,
+                              rows: ["bass": (0..<16).map { $0 == 3 }])
+        pattern.pitches = ["bass": (0..<16).map { $0 == 3 ? 12 : 0 }]
+        store.loadPattern(pattern)
+        XCTAssertEqual(store.pitches["bass"]?[3], 12)
+    }
+
+    func test_setPatternLength32_extendsPitchesWithZeros() {
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 7)
+        store.setPatternLength(32)
+        XCTAssertEqual(store.pitches["bass"]?.count, 32)
+        XCTAssertEqual(store.pitches["bass"]?[3], 7)
+        XCTAssertEqual(store.pitches["bass"]?[19], 0)
+    }
+
+    func test_expandToTwoBarsDuplicate_copiesPitchesToBar2() {
+        store.toggleStep(trackId: "bass", step: 3)
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 12)
+        store.expandToTwoBarsDuplicate()
+        XCTAssertEqual(store.pitches["bass"]?[19], 12)
+    }
+
+    func test_duplicateBar1_preservesPitchVariation() {
+        store.setPatternLength(32)
+        store.toggleStep(trackId: "bass", step: 3)
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 7)
+        store.setStepPitch(trackId: "bass", step: 19, semitones: 12)   // gets overwritten by bar 1
+        store.duplicateBar1()
+        XCTAssertEqual(store.pitches["bass"]?[19], 7)
+        XCTAssertEqual(store.rows["bass"]?[19], true)
+    }
+
+    func test_generateBar2Variation_preservesBar1Pitches() {
+        store.toggleStep(trackId: "bass", step: 0)
+        store.setStepPitch(trackId: "bass", step: 0, semitones: 7)
+        store.generateBar2Variation()
+        XCTAssertEqual(store.pitches["bass"]?[0], 7)
+        XCTAssertEqual(store.pitches["bass"]?.count, 32)
+    }
+
+    func test_generateBar2Variation_pitchesStayWithinVoiceOptions() {
+        for track in Tracks.all where StepPitch.supportsPitch(track.voice) {
+            for step in [0, 4, 8, 12] { store.toggleStep(trackId: track.id, step: step) }
+        }
+        store.generateBar2Variation()
+        for track in Tracks.all {
+            let allowed = Set(StepPitch.renderedOffsets(for: track.voice))
+            for value in store.pitches[track.id] ?? [] {
+                XCTAssertTrue(allowed.contains(value),
+                              "\(track.id) produced unrenderable offset \(value)")
+            }
+        }
+    }
+
+    func test_clearTrack_resetsPitches() {
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 12)
+        store.clearTrack(trackId: "bass")
+        XCTAssertEqual(store.pitches["bass"], Array(repeating: 0, count: 16))
+    }
+
+    func test_clearBar_resetsPitchesInBarOnly() {
+        store.setPatternLength(32)
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 7)
+        store.setStepPitch(trackId: "bass", step: 19, semitones: 12)
+        store.clearBar(1)
+        XCTAssertEqual(store.pitches["bass"]?[3], 7)
+        XCTAssertEqual(store.pitches["bass"]?[19], 0)
+    }
+
+    func test_clearPattern_resetsPitches() {
+        store.setStepPitch(trackId: "pad", step: 5, semitones: -7)
+        store.clearPattern()
+        XCTAssertEqual(store.pitches["pad"], Array(repeating: 0, count: 16))
+    }
+
+    func test_shiftTrack_rotatesPitchesWithSteps() {
+        store.toggleStep(trackId: "bass", step: 3)
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 12)
+        store.shiftTrack(trackId: "bass", by: -1)   // shift right
+        XCTAssertEqual(store.pitches["bass"]?[4], 12)
+        XCTAssertEqual(store.pitches["bass"]?[3], 0)
+    }
+
+    func test_randomizeTrack_resetsPitches() {
+        store.setStepPitch(trackId: "bass", step: 3, semitones: 7)
+        store.randomizeTrack("bass")
+        XCTAssertEqual(store.pitches["bass"], Array(repeating: 0, count: 16))
+    }
 }

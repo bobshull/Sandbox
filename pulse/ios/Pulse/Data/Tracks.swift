@@ -20,7 +20,7 @@ enum Tracks {
         Track(id: "clap",  name: "Clap",  voice: .clap),
         Track(id: "bass",  name: "Bass",  voice: .bass),
         Track(id: "pluck", name: "Pluck", voice: .pluck),
-        Track(id: "pad",   name: "Pad",   voice: .pad),
+        Track(id: "pad",   name: "Chord", voice: .pad),
         Track(id: "perc",  name: "Perc",  voice: .perc),
     ]
 

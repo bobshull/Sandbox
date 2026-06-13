@@ -3,15 +3,20 @@ import Foundation
 
 enum Synths {
 
-    static func render(_ voice: VoiceKind, kit: String = "studio", sampleRate: Double) -> [Float] {
+    /// `semitoneOffset` transposes the oscillator frequency of melodic voices
+    /// (bass/pluck/pad) without changing envelope or duration; drum voices
+    /// ignore it.
+    static func render(_ voice: VoiceKind, kit: String = "studio", sampleRate: Double,
+                       semitoneOffset: Int = 0) -> [Float] {
+        let ratio = pow(2.0, Double(semitoneOffset) / 12.0)
         switch voice {
         case .kick:  return renderKick(kit: kit, sampleRate: sampleRate)
         case .snare: return renderSnare(kit: kit, sampleRate: sampleRate)
         case .hat:   return renderHat(kit: kit, sampleRate: sampleRate)
         case .clap:  return renderClap(kit: kit, sampleRate: sampleRate)
-        case .bass:  return renderBass(kit: kit, sampleRate: sampleRate)
-        case .pluck: return renderPluck(kit: kit, sampleRate: sampleRate)
-        case .pad:   return renderPad(kit: kit, sampleRate: sampleRate)
+        case .bass:  return renderBass(kit: kit, sampleRate: sampleRate, freqRatio: ratio)
+        case .pluck: return renderPluck(kit: kit, sampleRate: sampleRate, freqRatio: ratio)
+        case .pad:   return renderPad(kit: kit, sampleRate: sampleRate, freqRatio: ratio)
         case .perc:  return renderPerc(kit: kit, sampleRate: sampleRate)
         }
     }
@@ -219,7 +224,7 @@ private extension Synths {
 // MARK: - Bass
 
 private extension Synths {
-    static func renderBass(kit: String, sampleRate: Double) -> [Float] {
+    static func renderBass(kit: String, sampleRate: Double, freqRatio: Double = 1.0) -> [Float] {
         var len = 0.35, freq = 55.0, lpStart = 1200.0, lpEnd = 180.0
         var sweepT = 0.25, decayT = 0.18, peak = Float(0.60), useSine = false
         switch kit {
@@ -252,6 +257,7 @@ private extension Synths {
             len = 0.55; freq = 41; lpStart = 800; lpEnd = 60; sweepT = 0.40; decayT = 0.38; peak = 0.50; useSine = true
         default: break
         }
+        freq *= freqRatio
         let count = Int(sampleRate * len)
         var out = [Float](repeating: 0, count: count)
         var phase = 0.0, lpPrev = Float(0)
@@ -278,7 +284,7 @@ private extension Synths {
 // MARK: - Pluck
 
 private extension Synths {
-    static func renderPluck(kit: String, sampleRate: Double) -> [Float] {
+    static func renderPluck(kit: String, sampleRate: Double, freqRatio: Double = 1.0) -> [Float] {
         var len = 0.40, startF = 523.25, endF = 440.0, sweepT = 0.20, decayT = 0.18, peak = Float(0.50)
         switch kit {
         case "dusty-tape":  len = 0.45; startF = 392; endF = 330; sweepT = 0.22; decayT = 0.22; peak = 0.42
@@ -297,6 +303,8 @@ private extension Synths {
         case "space":       len = 0.45; startF = 1047;   endF = 1175;   sweepT = 0.08;  decayT = 0.28; peak = 0.42
         default: break
         }
+        startF *= freqRatio
+        endF *= freqRatio
         let count = Int(sampleRate * len)
         var out = [Float](repeating: 0, count: count)
         var phase = 0.0
@@ -327,79 +335,92 @@ private extension Synths {
 // MARK: - Pad
 
 private extension Synths {
-    static func renderPad(kit: String, sampleRate: Double) -> [Float] {
-        var len = 0.90, baseFreq = 261.63, detuneCents = 12.0, lpCutoff = 1600.0
-        var attack = 0.06, decayT = 0.40, sustain = Float(0.40), releaseT = 0.40, peak = Float(0.35)
+    /// Strummed guitar-style chord via Karplus-Strong strings: root + fifth +
+    /// octave plucked a few milliseconds apart like a downstroke. Pick attack,
+    /// then the chord rings and decays — no sustained "synth pad" character.
+    /// `brightness` is the lowpass on the pluck excitation (1 = steel string,
+    /// 0.3 = nylon); `damping` sets ring length. Post-normalized to `peak`.
+    static func renderPad(kit: String, sampleRate: Double, freqRatio: Double = 1.0) -> [Float] {
+        var len = 1.60, baseFreq = 220.00, strumMs = 14.0
+        var damping = Float(0.995), brightness = Float(0.70), peak = Float(0.32)
         switch kit {
         case "dusty-tape":
-            len = 1.00; baseFreq = 246.94; detuneCents = 18; lpCutoff = 1100
-            attack = 0.09; decayT = 0.50; sustain = 0.35; releaseT = 0.45; peak = 0.28
+            len = 1.40; baseFreq = 196.00; strumMs = 12; damping = 0.990; brightness = 0.40; peak = 0.28
         case "boom-bap":
-            len = 0.85; baseFreq = 220.00; detuneCents = 8;  lpCutoff = 1400
-            attack = 0.05; decayT = 0.35; sustain = 0.45; releaseT = 0.38; peak = 0.38
+            len = 1.20; baseFreq = 220.00; strumMs = 10; damping = 0.988; brightness = 0.45; peak = 0.34
         case "808":
-            len = 1.00; baseFreq = 220.00; detuneCents = 22; lpCutoff = 1800
-            attack = 0.07; decayT = 0.45; sustain = 0.45; releaseT = 0.45; peak = 0.38
+            len = 1.50; baseFreq = 220.00; strumMs = 12; damping = 0.992; brightness = 0.55; peak = 0.34
         case "jazz":
-            len = 1.00; baseFreq = 261.63; detuneCents = 6;  lpCutoff = 1400
-            attack = 0.12; decayT = 0.50; sustain = 0.50; releaseT = 0.50; peak = 0.32
+            len = 1.80; baseFreq = 261.63; strumMs = 22; damping = 0.995; brightness = 0.30; peak = 0.30
         case "rainy-night":
-            len = 1.20; baseFreq = 220.00; detuneCents = 15; lpCutoff = 900
-            attack = 0.15; decayT = 0.60; sustain = 0.50; releaseT = 0.60; peak = 0.25
+            len = 2.00; baseFreq = 196.00; strumMs = 24; damping = 0.994; brightness = 0.28; peak = 0.24
         case "music-box":
-            // Two detuned pure sines — delicate bell shimmer
-            len = 0.90; baseFreq = 659.26; detuneCents = 2; lpCutoff = 20000
-            attack = 0.012; decayT = 0.38; sustain = 0.50; releaseT = 0.38; peak = 0.30
+            len = 1.60; baseFreq = 523.25; strumMs = 18; damping = 0.996; brightness = 0.50; peak = 0.24
         case "wind-chimes":
-            len = 1.10; baseFreq = 659.26; detuneCents = 2;  lpCutoff = 20000
-            attack = 0.10; decayT = 0.50; sustain = 0.38; releaseT = 0.55; peak = 0.22
+            len = 1.80; baseFreq = 440.00; strumMs = 26; damping = 0.996; brightness = 0.45; peak = 0.20
         case "marimba":
-            len = 0.90; baseFreq = 261.63; detuneCents = 3;  lpCutoff = 20000
-            attack = 0.03; decayT = 0.40; sustain = 0.45; releaseT = 0.45; peak = 0.30
+            len = 1.40; baseFreq = 261.63; strumMs = 12; damping = 0.992; brightness = 0.50; peak = 0.28
         case "arcade":
-            len = 0.70; baseFreq = 220;    detuneCents = 0;  lpCutoff = 2200
-            attack = 0.02; decayT = 0.25; sustain = 0.60; releaseT = 0.30; peak = 0.40
+            len = 0.90; baseFreq = 220.00; strumMs = 8;  damping = 0.985; brightness = 0.95; peak = 0.36
         case "glass":
-            len = 1.00; baseFreq = 440;    detuneCents = 1;  lpCutoff = 20000
-            attack = 0.06; decayT = 0.45; sustain = 0.45; releaseT = 0.50; peak = 0.28
+            len = 1.80; baseFreq = 440.00; strumMs = 16; damping = 0.996; brightness = 0.60; peak = 0.24
         case "toy-piano":
-            len = 0.80; baseFreq = 261.63; detuneCents = 14; lpCutoff = 2800
-            attack = 0.03; decayT = 0.35; sustain = 0.45; releaseT = 0.40; peak = 0.35
+            len = 1.20; baseFreq = 329.63; strumMs = 12; damping = 0.990; brightness = 0.60; peak = 0.30
         case "jungle":
-            len = 1.00; baseFreq = 87.31;  detuneCents = 20; lpCutoff = 700
-            attack = 0.12; decayT = 0.50; sustain = 0.50; releaseT = 0.55; peak = 0.30
+            len = 1.40; baseFreq = 174.61; strumMs = 10; damping = 0.991; brightness = 0.45; peak = 0.30
         case "space":
-            len = 1.20; baseFreq = 110;    detuneCents = 25; lpCutoff = 1200
-            attack = 0.25; decayT = 0.60; sustain = 0.55; releaseT = 0.65; peak = 0.28
+            len = 2.20; baseFreq = 146.83; strumMs = 20; damping = 0.996; brightness = 0.35; peak = 0.26
         default: break
         }
+        baseFreq *= freqRatio
         let count = Int(sampleRate * len)
         var out = [Float](repeating: 0, count: count)
-        let freqs = [
-            baseFreq * pow(2.0, -detuneCents / 1200.0),
-            baseFreq * pow(2.0,  detuneCents / 1200.0),
+
+        // Root anchored, upper strings quieter — reads as one strummed chord.
+        let chordTones: [(ratio: Double, level: Float)] = [
+            (1.0, 1.0),
+            (pow(2.0, 7.0 / 12.0), 0.85),
+            (2.0, 0.70),
         ]
-        var phases = [0.0, 0.0]
-        var lpPrev: Float = 0
-        let rc = 1 / (2 * Double.pi * lpCutoff)
-        let dt = 1 / sampleRate
-        let alpha = Float(dt / (rc + dt))
-        for i in 0..<count {
-            let t = Double(i) / sampleRate
-            var sample: Float = 0
-            for (j, f) in freqs.enumerated() {
-                phases[j] += 2 * .pi * f / sampleRate
-                if kit == "music-box" || kit == "wind-chimes" || kit == "glass" || kit == "space" || kit == "marimba" {
-                    sample += Float(sin(phases[j]))
-                } else {
-                    let frac = phases[j] / (2 * .pi) - floor(phases[j] / (2 * .pi))
-                    sample += Float(2 * frac - 1)
-                }
+        for (k, tone) in chordTones.enumerated() {
+            let string = pluckString(freq: baseFreq * tone.ratio, count: count,
+                                     sampleRate: sampleRate,
+                                     damping: damping, brightness: brightness)
+            let offset = min(Int(sampleRate * strumMs * Double(k) / 1000), count)
+            for i in 0..<(count - offset) {
+                out[i + offset] += string[i] * tone.level
             }
-            sample *= 0.5
-            lpPrev += alpha * (sample - lpPrev)
-            out[i] = lpPrev * adsr(t, attack: attack, decay: decayT, sustain: sustain,
-                                   release: releaseT, totalLen: len, peak: peak)
+        }
+
+        // Normalize so the loudest sample lands exactly on the kit's peak.
+        let maxAbs = out.reduce(Float(0)) { max($0, abs($1)) }
+        if maxAbs > 0 {
+            let gain = peak / maxAbs
+            for i in 0..<count { out[i] *= gain }
+        }
+        return out
+    }
+
+    /// One Karplus-Strong plucked string: a noise burst (lowpassed by
+    /// `brightness`) feeds a delay line that's averaged and damped each pass.
+    private static func pluckString(freq: Double, count: Int, sampleRate: Double,
+                                    damping: Float, brightness: Float) -> [Float] {
+        let n = max(Int(sampleRate / freq), 2)
+        var line = [Float](repeating: 0, count: n)
+        var lp: Float = 0
+        for i in 0..<n {
+            let noise = Float.random(in: -1...1)
+            lp += brightness * (noise - lp)
+            line[i] = lp
+        }
+        var out = [Float](repeating: 0, count: count)
+        var idx = 0
+        for i in 0..<count {
+            let cur = line[idx]
+            let nxt = line[(idx + 1) % n]
+            out[i] = cur
+            line[idx] = (cur + nxt) * 0.5 * damping
+            idx = (idx + 1) % n
         }
         return out
     }
