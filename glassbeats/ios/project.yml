@@ -1,0 +1,79 @@
+name: GlassBeats
+options:
+  bundleIdPrefix: com.bobbyshull.glassbeats
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: TX75WUA2RL
+    CODE_SIGN_STYLE: Automatic
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    SUPPORTS_MACCATALYST: false
+    ENABLE_PREVIEWS: NO
+
+targets:
+  GlassBeats:
+    type: application
+    platform: iOS
+    sources:
+      - path: GlassBeats
+        excludes:
+          - "Resources/Info.plist"
+    resources:
+      - GlassBeats/Resources
+    info:
+      path: GlassBeats/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: GlassBeats
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: GlassBeatsMark
+          UIImageRespectsSafeAreaLayoutGuide: false
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIRequiresFullScreen: true
+        UIBackgroundModes:
+          - audio
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bobbyshull.glassbeats
+        CODE_SIGN_ENTITLEMENTS: GlassBeats/GlassBeats.entitlements
+        INFOPLIST_FILE: GlassBeats/Resources/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
+
+  GlassBeatsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: GlassBeatsTests
+    dependencies:
+      - target: GlassBeats
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bobbyshull.glassbeats.tests
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/GlassBeats.app/GlassBeats
+        BUNDLE_LOADER: $(TEST_HOST)
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  GlassBeats:
+    build:
+      targets:
+        GlassBeats: all
+        GlassBeatsTests: [test]
+    test:
+      targets:
+        - GlassBeatsTests
+      gatherCoverageData: true
