@@ -8,6 +8,7 @@ enum AppSettings {
     private static let hapticsKey    = "glassbeats.hapticsEnabled"
     private static let tempoKey      = "glassbeats.defaultTempo"
     private static let colorThemeKey = "glassbeats.colorThemeId"
+    private static let launchTourIntroKey = "glassbeats.hasHandledLaunchTourIntro"
 
     static var hapticsEnabled: Bool {
         get { local.object(forKey: hapticsKey) == nil ? true : local.bool(forKey: hapticsKey) }
@@ -27,8 +28,14 @@ enum AppSettings {
         }
     }
 
+    static var hasHandledLaunchTourIntro: Bool {
+        get { local.bool(forKey: launchTourIntroKey) }
+        set { local.set(newValue, forKey: launchTourIntroKey) }
+    }
+
 }
 
 extension Notification.Name {
     static let colorThemeDidChange = Notification.Name("glassbeats.colorThemeDidChange")
+    static let replayLaunchTourRequested = Notification.Name("glassbeats.replayLaunchTourRequested")
 }

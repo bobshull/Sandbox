@@ -40,6 +40,11 @@ final class TransportView: UIView {
     /// Source view for popovers/sheets that originate from the pattern-length chip.
     var patternLengthButton: UIView { lengthChip }
 
+    var playTempoTourFrame: CGRect {
+        layoutIfNeeded()
+        return playButton.frame.union(tempoSwingChip.frame)
+    }
+
     // MARK: - Public
 
     /// Greys out the play button when the audio engine is unavailable.

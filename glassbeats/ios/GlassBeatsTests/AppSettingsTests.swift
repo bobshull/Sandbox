@@ -6,18 +6,21 @@ final class AppSettingsTests: XCTestCase {
     private let hapticsKey   = "glassbeats.hapticsEnabled"
     private let tempoKey     = "glassbeats.defaultTempo"
     private let colorThemeKey = "glassbeats.colorThemeId"
+    private let launchTourIntroKey = "glassbeats.hasHandledLaunchTourIntro"
 
     override func setUp() {
         super.setUp()
         UserDefaults.standard.removeObject(forKey: hapticsKey)
         UserDefaults.standard.removeObject(forKey: tempoKey)
         UserDefaults.standard.removeObject(forKey: colorThemeKey)
+        UserDefaults.standard.removeObject(forKey: launchTourIntroKey)
     }
 
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: hapticsKey)
         UserDefaults.standard.removeObject(forKey: tempoKey)
         UserDefaults.standard.removeObject(forKey: colorThemeKey)
+        UserDefaults.standard.removeObject(forKey: launchTourIntroKey)
         super.tearDown()
     }
 
@@ -80,5 +83,22 @@ final class AppSettingsTests: XCTestCase {
     func test_colorThemeId_persistsValue() {
         AppSettings.colorThemeId = "seaGlass"
         XCTAssertEqual(AppSettings.colorThemeId, "seaGlass")
+    }
+
+    // MARK: - hasHandledLaunchTourIntro
+
+    func test_hasHandledLaunchTourIntro_defaultsToFalse() {
+        XCTAssertFalse(AppSettings.hasHandledLaunchTourIntro)
+    }
+
+    func test_hasHandledLaunchTourIntro_setTrue() {
+        AppSettings.hasHandledLaunchTourIntro = true
+        XCTAssertTrue(AppSettings.hasHandledLaunchTourIntro)
+    }
+
+    func test_hasHandledLaunchTourIntro_setFalse() {
+        AppSettings.hasHandledLaunchTourIntro = true
+        AppSettings.hasHandledLaunchTourIntro = false
+        XCTAssertFalse(AppSettings.hasHandledLaunchTourIntro)
     }
 }

@@ -52,6 +52,7 @@
 		CC48263EC2E935924A76820A /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70FB4BD7A5E98B5C2179CB41 /* AudioEngine.swift */; };
 		CCC39E56BF50D81DB234BCE0 /* BarActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0069A412882E6B36CFBC8A69 /* BarActionsViewController.swift */; };
 		D2AF2F6F48DAA61FF70BA274 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40C682917970782D5C273866 /* SceneDelegate.swift */; };
+		D7A8EE43B877FF82B6EB9564 /* TourOverlayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77314608291B1EF2F1656DA3 /* TourOverlayViewController.swift */; };
 		F6DE076059A6723699849CA8 /* SessionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84900C88D9BDF9088A0C48E /* SessionStateTests.swift */; };
 		F7C9BCE4AE17DD2A2C4B7529 /* PatternLibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F589CA82273E8AD10626BB /* PatternLibraryViewController.swift */; };
 		FE1C593A9892ABB1021AFDE1 /* TransportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 991E55F3BC98D0277258ABF9 /* TransportView.swift */; };
@@ -92,6 +93,7 @@
 		70A85A32AF4D971CD199A949 /* Tracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tracks.swift; sourceTree = "<group>"; };
 		70FB4BD7A5E98B5C2179CB41 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
 		75DC9896EAEB43A2E7E99F92 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
+		77314608291B1EF2F1656DA3 /* TourOverlayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourOverlayViewController.swift; sourceTree = "<group>"; };
 		7859093CC023A6C060798AA0 /* TrackActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionsViewController.swift; sourceTree = "<group>"; };
 		7EB091CE68869467554F004C /* AudioLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLifecycle.swift; sourceTree = "<group>"; };
 		81674C7E6133AFED6D141AC2 /* StepOptionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepOptionsViewController.swift; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 				81674C7E6133AFED6D141AC2 /* StepOptionsViewController.swift */,
 				CA6D531F5AA2D0BF77EC1609 /* Theme.swift */,
 				29ECD1E79B7D4642DF00F5A5 /* ToastView.swift */,
+				77314608291B1EF2F1656DA3 /* TourOverlayViewController.swift */,
 				7859093CC023A6C060798AA0 /* TrackActionsViewController.swift */,
 				93607AC03BD9EB24F0C72AFF /* TrackDetailViewController.swift */,
 				FF5B9C1071C6684558CECF52 /* TrackHeaderView.swift */,
@@ -393,6 +396,7 @@
 				69976327E016ABFBC46D046E /* Synths.swift in Sources */,
 				7F9C2FFEF2A64869B7578AD2 /* Theme.swift in Sources */,
 				2FD14A4CF15D6BE4E5A81597 /* ToastView.swift in Sources */,
+				D7A8EE43B877FF82B6EB9564 /* TourOverlayViewController.swift in Sources */,
 				BFFBBB639A871016A3F928D1 /* TrackActionsViewController.swift in Sources */,
 				763762B884298EAD5611FAEE /* TrackDetailViewController.swift in Sources */,
 				3EFBD6ACFF673555DC9C3416 /* TrackEffects.swift in Sources */,

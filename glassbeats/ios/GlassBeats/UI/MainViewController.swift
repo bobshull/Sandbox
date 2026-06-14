@@ -20,6 +20,7 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
 
     private var levelMeterStrip: LevelMeterStripView?
     private var cancellables = Set<AnyCancellable>()
+    private var didOfferLaunchTour = false
     private lazy var sessionSaver = SessionSaver { [weak self] in
         guard let self else { return }
         PatternStore.saveSession(self.store.sessionState())
@@ -46,6 +47,14 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
         NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive),
                                                name: UIApplication.willResignActiveNotification,
                                                object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(replayLaunchTourRequested),
+                                               name: .replayLaunchTourRequested,
+                                               object: nil)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        offerLaunchTourIfNeeded()
     }
 
     @objc private func appDidEnterBackground() {
@@ -55,6 +64,118 @@ final class MainViewController: UIViewController, TransportViewDelegate, Sequenc
     // Edits made inside the save debounce window must not be lost to suspension.
     @objc private func appWillResignActive() {
         sessionSaver.flush()
+    }
+
+    private func offerLaunchTourIfNeeded() {
+        guard !didOfferLaunchTour, !AppSettings.hasHandledLaunchTourIntro, presentedViewController == nil else { return }
+        didOfferLaunchTour = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self, self.presentedViewController == nil else { return }
+            self.presentLaunchTourPrompt()
+        }
+    }
+
+    @objc private func replayLaunchTourRequested() {
+        dismiss(animated: true) { [weak self] in
+            self?.presentLaunchTour()
+        }
+    }
+
+    private func presentLaunchTourPrompt() {
+        let alert = UIAlertController(
+            title: "Take a quick tour?",
+            message: "See the basics in under a minute, or jump straight in.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Not Now", style: .cancel) { _ in
+            AppSettings.hasHandledLaunchTourIntro = true
+        })
+        alert.addAction(UIAlertAction(title: "Start Tour", style: .default) { [weak self] _ in
+            self?.presentLaunchTour()
+        })
+        alert.preferredAction = alert.actions.last
+        present(alert, animated: true)
+    }
+
+    private func presentLaunchTour() {
+        view.layoutIfNeeded()
+        let steps = [
+            TourStep(
+                title: "Start the groove",
+                message: "Press Play to start the loop. Tap BPM to adjust tempo and swing.",
+                padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6),
+                targetFrame: { [weak self] in self?.transportControlsTourFrame() ?? .zero }
+            ),
+            TourStep(
+                title: "Build the beat",
+                message: "Tap cells to turn steps on and off. The bright columns mark the downbeats.",
+                targetFrame: { [weak self] in self?.stepGridTourFrame() ?? .zero }
+            ),
+            TourStep(
+                title: "Long-press a step",
+                message: "Hold an active step to edit accents. Melodic tracks also include pitch choices.",
+                padding: UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4),
+                targetFrame: { [weak self] in self?.longPressStepTourFrame() ?? .zero }
+            ),
+            TourStep(
+                title: "Shape each track",
+                message: "Tap a track name for preview, randomize, shift, and clear actions. Tap volume for level, pan, pitch, reverb, delay, and distortion.",
+                padding: UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6),
+                targetFrame: { [weak self] in self?.trackControlTourFrame() ?? .zero }
+            ),
+            TourStep(
+                title: "Swap kits and mixes",
+                message: "Try different sound kits, load built-in mixes, or save your own.",
+                padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6),
+                targetFrame: { [weak self] in self?.libraryControlsTourFrame() ?? .zero }
+            ),
+        ]
+        let tour = TourOverlayViewController(steps: steps)
+        tour.onFinish = {
+            AppSettings.hasHandledLaunchTourIntro = true
+        }
+        present(tour, animated: true)
+    }
+
+    private func transportControlsTourFrame() -> CGRect {
+        transportView.superview?.layoutIfNeeded()
+        return transportView.convert(transportView.playTempoTourFrame, to: view)
+    }
+
+    private func stepGridTourFrame() -> CGRect {
+        let frame = sequencerView.frame
+        let headerWidth: CGFloat = 154
+        let headerHeight: CGFloat = 28
+        return CGRect(
+            x: frame.minX + headerWidth,
+            y: frame.minY + headerHeight,
+            width: max(120, frame.width - headerWidth),
+            height: max(80, frame.height - headerHeight)
+        )
+    }
+
+    private func longPressStepTourFrame() -> CGRect {
+        sequencerView.layoutIfNeeded()
+        if let cellFrame = sequencerView.tourFrameForCell(trackIndex: 0, step: 0) {
+            return sequencerView.convert(cellFrame, to: view)
+        }
+        let grid = stepGridTourFrame()
+        let rowHeight = max(48, grid.height / CGFloat(max(1, Tracks.all.count)))
+        return CGRect(x: grid.minX, y: grid.minY, width: rowHeight, height: rowHeight)
+    }
+
+    private func trackControlTourFrame() -> CGRect {
+        let grid = sequencerView.frame
+        let rowHeight = max(40, (grid.height - 28) / CGFloat(max(1, Tracks.all.count)))
+        return CGRect(x: grid.minX, y: grid.minY + 28, width: 150, height: rowHeight * 2 + 4)
+    }
+
+    private func libraryControlsTourFrame() -> CGRect {
+        kitsButton.superview?.layoutIfNeeded()
+        let kitsFrame = kitsButton.frame
+        let mixesFrame = patternsButton.frame
+        let settingsFrame = settingsButton.frame
+        return kitsFrame.union(mixesFrame).union(settingsFrame)
     }
 
     private func prepareAudio() {

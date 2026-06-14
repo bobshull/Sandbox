@@ -45,6 +45,16 @@ final class SequencerView: UIView, UIScrollViewDelegate, TrackHeaderViewDelegate
     /// The currently visible bar index (0 or 1) — used by MainViewController for context menus.
     var currentBar: Int { activePage }
 
+    func tourFrameForCell(trackIndex: Int, step: Int) -> CGRect? {
+        layoutIfNeeded()
+        guard rows.indices.contains(trackIndex),
+              rows[trackIndex].cells.indices.contains(step)
+        else { return nil }
+        let cell = rows[trackIndex].cells[step]
+        cell.superview?.layoutIfNeeded()
+        return cell.convert(cell.bounds, to: self)
+    }
+
     // Bar 1 / Bar 2 toggles — lives in the header corner, only shown in 32-step mode
     private let bar1Button = UIButton(type: .system)
     private let bar2Button = UIButton(type: .system)

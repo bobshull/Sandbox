@@ -6,6 +6,7 @@ final class SettingsViewController: UIViewController {
     private let tableView   = UITableView(frame: .zero, style: .plain)
     private let titlePill   = UIButton(type: .custom)
     private let feedbackBtn = UIButton(type: .system)
+    private let replayTourBtn = UIButton(type: .system)
 
     private enum Row { case syncHaptics, bpmAppearance }
     private let rows: [Row] = [.syncHaptics, .bpmAppearance]
@@ -114,7 +115,19 @@ final class SettingsViewController: UIViewController {
         feedbackBtn.titleLabel?.font = .systemFont(ofSize: 12)
         feedbackBtn.addAction(UIAction { [weak self] _ in self?.sendFeedback() }, for: .touchUpInside)
 
-        let topRow = UIStackView(arrangedSubviews: [versionLabel, dot, feedbackBtn])
+        let tourDot = UILabel()
+        tourDot.text = "·"
+        tourDot.font = .systemFont(ofSize: 12)
+        tourDot.textColor = Theme.textFaint
+
+        replayTourBtn.setTitle("Replay Tour", for: .normal)
+        replayTourBtn.setTitleColor(ColorTheme.current.primaryColor, for: .normal)
+        replayTourBtn.titleLabel?.font = .systemFont(ofSize: 12)
+        replayTourBtn.addAction(UIAction { _ in
+            NotificationCenter.default.post(name: .replayLaunchTourRequested, object: nil)
+        }, for: .touchUpInside)
+
+        let topRow = UIStackView(arrangedSubviews: [versionLabel, dot, feedbackBtn, tourDot, replayTourBtn])
         topRow.axis = .horizontal
         topRow.spacing = 6
         topRow.alignment = .center
@@ -131,7 +144,7 @@ final class SettingsViewController: UIViewController {
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        let footer = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 56))
+        let footer = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 64))
         footer.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: footer.centerXAnchor),
@@ -148,6 +161,7 @@ final class SettingsViewController: UIViewController {
         cfg?.background.strokeColor = primary.withAlphaComponent(0.55)
         titlePill.configuration = cfg
         feedbackBtn.setTitleColor(primary, for: .normal)
+        replayTourBtn.setTitleColor(primary, for: .normal)
     }
 
     private func sendFeedback() {
