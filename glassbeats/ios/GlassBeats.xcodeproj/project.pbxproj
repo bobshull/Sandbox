@@ -1,0 +1,654 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05AF68008691A700B1144628 /* PatternStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4E855BAC2F43D15D713407 /* PatternStoreTests.swift */; };
+		06DC0A77175586962141BC52 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB798513434677792517822 /* MainViewController.swift */; };
+		0A75F82098B88939501A8A70 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562CFED9E38E1ED6D82188BE /* StoreTests.swift */; };
+		0ACD3AD61C11C57456CF2ECA /* SequencerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C410A7DF31F39658C31C8F /* SequencerView.swift */; };
+		0DED98BECB87706196E24958 /* TrackEffectsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466606D7856A7A3D5B22F098 /* TrackEffectsTests.swift */; };
+		10E1E7ABD36F56257A950B62 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A7CFAAE6EE61EA32FF2BD6 /* Store.swift */; };
+		116336F5C9A3EBF7516DB159 /* Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70A85A32AF4D971CD199A949 /* Tracks.swift */; };
+		20B0E867AE5F7C2135ED30EB /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CC39902ABAC17587F36A7F4 /* SettingsViewController.swift */; };
+		21778E95D668585519976519 /* PatternStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D28464EE882E54EE5EE3E92 /* PatternStore.swift */; };
+		2FD14A4CF15D6BE4E5A81597 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29ECD1E79B7D4642DF00F5A5 /* ToastView.swift */; };
+		3EFBD6ACFF673555DC9C3416 /* TrackEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = D87C53D73D2A4BF7482DB018 /* TrackEffects.swift */; };
+		40952C4087F5ABE3583AC15D /* ExportPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF58755AFA32A65A9C8799F /* ExportPlan.swift */; };
+		4312D3612DD6720BA26DABB8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD8A48F672138123B98C8630 /* AppDelegate.swift */; };
+		463160581938999A37B3D0A8 /* AudioLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E5C8E990F62C5EF6795B495 /* AudioLifecycleTests.swift */; };
+		4CD955D7E39E4040621377C9 /* LevelMeterStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA6B40098325B7EC7C917D1 /* LevelMeterStripView.swift */; };
+		4DCDFD0F0D48874D85A4F1EE /* SampleKitsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA731175D65FCBD373E7E7D5 /* SampleKitsTests.swift */; };
+		5168FC95A9F87387130BF842 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0E2743B533BAD0077238BE /* AppSettings.swift */; };
+		580FCF1C0C1E0C5F52B05F68 /* AudioLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB091CE68869467554F004C /* AudioLifecycle.swift */; };
+		5BC591CC1B0F8DCB06481A40 /* SampleKits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BC4BC6BA640F1123A216A6 /* SampleKits.swift */; };
+		5C1C869A77F0BB3D2145834B /* StepPitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AE5DB1D766F587174930FE /* StepPitch.swift */; };
+		628E9CFD5ADA225CE38296B6 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E2F09259F41B48E6D1CBE78 /* AppSettingsTests.swift */; };
+		644B60C3D41C7C4EC6AA3B46 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6F694BF57CAEA5D9D5B9C6 /* Presets.swift */; };
+		69976327E016ABFBC46D046E /* Synths.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCF5969A557D7EAA129FFD15 /* Synths.swift */; };
+		71959F3EFFB93FA12F747C1F /* ColorThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3798FC2B60D4DE981EA02 /* ColorThemeTests.swift */; };
+		763762B884298EAD5611FAEE /* TrackDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93607AC03BD9EB24F0C72AFF /* TrackDetailViewController.swift */; };
+		77FDAF301597360F8A534B09 /* TracksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAA5B19474CFF48515778F9 /* TracksTests.swift */; };
+		7C1A59BAF7BDD2F1E356A612 /* StepOptionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81674C7E6133AFED6D141AC2 /* StepOptionsViewController.swift */; };
+		7F9C2FFEF2A64869B7578AD2 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6D531F5AA2D0BF77EC1609 /* Theme.swift */; };
+		84C67C25A71C1AED34DFA391 /* PresetsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2C846DC9D8735F31580BC8 /* PresetsTests.swift */; };
+		8575A7B727E5B65DEFEF2BCB /* KitPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75DC9896EAEB43A2E7E99F92 /* KitPickerViewController.swift */; };
+		95348AC826D5784A014EC9A3 /* CrashLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 569560D6EC18D239B8BF986C /* CrashLogger.swift */; };
+		9739A9D00403DD0C0758018A /* ExportPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FAC7E0CC12A2BE49B9DA53 /* ExportPlanTests.swift */; };
+		99D51469F4DF7EEE3EECE79A /* KnobControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3FAA49F8DD59DAEB7CAF54C /* KnobControl.swift */; };
+		A444AE83F46C73AE0B1894C8 /* ExportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86928D2BE42A5C3C7DBDCF52 /* ExportCoordinator.swift */; };
+		AA248583CF6CE487AFFEE3C9 /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6634523B8347A41865A94BD /* ColorTheme.swift */; };
+		B0883BDFCECA39313C59021C /* TrackHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5B9C1071C6684558CECF52 /* TrackHeaderView.swift */; };
+		B39E8AB9FC61EE63D3179265 /* FaderControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F98583A8AE4E8869AB1A5C /* FaderControl.swift */; };
+		B83222B102C896AFC0C87706 /* CellButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91DFA22E6F1E6B6F8D186795 /* CellButton.swift */; };
+		BF4E391B8D87BE5C198AB186 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C38FBC23AD4BBAB23C838032 /* Assets.xcassets */; };
+		BFFBBB639A871016A3F928D1 /* TrackActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7859093CC023A6C060798AA0 /* TrackActionsViewController.swift */; };
+		C31B3F61D351008C943F420C /* ExportIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69963D89950CFE0F3B704C2A /* ExportIntegrationTests.swift */; };
+		C7CE72E9FA50398B1DA4D8F8 /* ActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56DF9C8B778D53B8E94429 /* ActionsViewController.swift */; };
+		CC48263EC2E935924A76820A /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70FB4BD7A5E98B5C2179CB41 /* AudioEngine.swift */; };
+		CCC39E56BF50D81DB234BCE0 /* BarActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0069A412882E6B36CFBC8A69 /* BarActionsViewController.swift */; };
+		D2AF2F6F48DAA61FF70BA274 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40C682917970782D5C273866 /* SceneDelegate.swift */; };
+		D7A8EE43B877FF82B6EB9564 /* TourOverlayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77314608291B1EF2F1656DA3 /* TourOverlayViewController.swift */; };
+		F6DE076059A6723699849CA8 /* SessionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84900C88D9BDF9088A0C48E /* SessionStateTests.swift */; };
+		F7C9BCE4AE17DD2A2C4B7529 /* PatternLibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F589CA82273E8AD10626BB /* PatternLibraryViewController.swift */; };
+		FE1C593A9892ABB1021AFDE1 /* TransportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 991E55F3BC98D0277258ABF9 /* TransportView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B3409230FC1986E51249CF24 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 91F2714C4430F2DC85C70EFA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 694E1A57BC4FD80EE0AD5DB9;
+			remoteInfo = GlassBeats;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0069A412882E6B36CFBC8A69 /* BarActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarActionsViewController.swift; sourceTree = "<group>"; };
+		05C3798FC2B60D4DE981EA02 /* ColorThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorThemeTests.swift; sourceTree = "<group>"; };
+		10BC4BC6BA640F1123A216A6 /* SampleKits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKits.swift; sourceTree = "<group>"; };
+		1CC39902ABAC17587F36A7F4 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		29ECD1E79B7D4642DF00F5A5 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		2B59A135107E1EB8549E7FD1 /* GlassBeats.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GlassBeats.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		30AE5DB1D766F587174930FE /* StepPitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepPitch.swift; sourceTree = "<group>"; };
+		32F98583A8AE4E8869AB1A5C /* FaderControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaderControl.swift; sourceTree = "<group>"; };
+		3E5C8E990F62C5EF6795B495 /* AudioLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLifecycleTests.swift; sourceTree = "<group>"; };
+		40C682917970782D5C273866 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		466606D7856A7A3D5B22F098 /* TrackEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffectsTests.swift; sourceTree = "<group>"; };
+		4B6A52280A86EB11A12E64CE /* GlassBeats.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GlassBeats.entitlements; sourceTree = "<group>"; };
+		4D56DF9C8B778D53B8E94429 /* ActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsViewController.swift; sourceTree = "<group>"; };
+		51F589CA82273E8AD10626BB /* PatternLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternLibraryViewController.swift; sourceTree = "<group>"; };
+		562CFED9E38E1ED6D82188BE /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
+		569560D6EC18D239B8BF986C /* CrashLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashLogger.swift; sourceTree = "<group>"; };
+		5FA6B40098325B7EC7C917D1 /* LevelMeterStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterStripView.swift; sourceTree = "<group>"; };
+		60C410A7DF31F39658C31C8F /* SequencerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequencerView.swift; sourceTree = "<group>"; };
+		69963D89950CFE0F3B704C2A /* ExportIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportIntegrationTests.swift; sourceTree = "<group>"; };
+		6C2C846DC9D8735F31580BC8 /* PresetsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetsTests.swift; sourceTree = "<group>"; };
+		6D28464EE882E54EE5EE3E92 /* PatternStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStore.swift; sourceTree = "<group>"; };
+		70A85A32AF4D971CD199A949 /* Tracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tracks.swift; sourceTree = "<group>"; };
+		70FB4BD7A5E98B5C2179CB41 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		75DC9896EAEB43A2E7E99F92 /* KitPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KitPickerViewController.swift; sourceTree = "<group>"; };
+		77314608291B1EF2F1656DA3 /* TourOverlayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourOverlayViewController.swift; sourceTree = "<group>"; };
+		7859093CC023A6C060798AA0 /* TrackActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionsViewController.swift; sourceTree = "<group>"; };
+		7EB091CE68869467554F004C /* AudioLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLifecycle.swift; sourceTree = "<group>"; };
+		81674C7E6133AFED6D141AC2 /* StepOptionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepOptionsViewController.swift; sourceTree = "<group>"; };
+		86928D2BE42A5C3C7DBDCF52 /* ExportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportCoordinator.swift; sourceTree = "<group>"; };
+		8C0E2743B533BAD0077238BE /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		91DFA22E6F1E6B6F8D186795 /* CellButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellButton.swift; sourceTree = "<group>"; };
+		93607AC03BD9EB24F0C72AFF /* TrackDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDetailViewController.swift; sourceTree = "<group>"; };
+		991E55F3BC98D0277258ABF9 /* TransportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportView.swift; sourceTree = "<group>"; };
+		9E2F09259F41B48E6D1CBE78 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		A3FAA49F8DD59DAEB7CAF54C /* KnobControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnobControl.swift; sourceTree = "<group>"; };
+		A84900C88D9BDF9088A0C48E /* SessionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStateTests.swift; sourceTree = "<group>"; };
+		B6634523B8347A41865A94BD /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
+		BCF5969A557D7EAA129FFD15 /* Synths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Synths.swift; sourceTree = "<group>"; };
+		C38FBC23AD4BBAB23C838032 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C6FAC7E0CC12A2BE49B9DA53 /* ExportPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportPlanTests.swift; sourceTree = "<group>"; };
+		CA6D531F5AA2D0BF77EC1609 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		CDB798513434677792517822 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		CFAA5B19474CFF48515778F9 /* TracksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksTests.swift; sourceTree = "<group>"; };
+		D87C53D73D2A4BF7482DB018 /* TrackEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEffects.swift; sourceTree = "<group>"; };
+		DA731175D65FCBD373E7E7D5 /* SampleKitsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleKitsTests.swift; sourceTree = "<group>"; };
+		DD8A48F672138123B98C8630 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		E53BA066AFEE3FA517303F9F /* GlassBeatsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GlassBeatsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F5A7CFAAE6EE61EA32FF2BD6 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
+		FA4E855BAC2F43D15D713407 /* PatternStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternStoreTests.swift; sourceTree = "<group>"; };
+		FE6F694BF57CAEA5D9D5B9C6 /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
+		FF5B9C1071C6684558CECF52 /* TrackHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackHeaderView.swift; sourceTree = "<group>"; };
+		FFF58755AFA32A65A9C8799F /* ExportPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportPlan.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0B6B9E0DAF34A0542547B2D3 /* GlassBeats */ = {
+			isa = PBXGroup;
+			children = (
+				4B6A52280A86EB11A12E64CE /* GlassBeats.entitlements */,
+				5C903C27F3EC5B3BD1105219 /* App */,
+				410943B8614DB501E80E0327 /* Audio */,
+				FCAD98C14FEE9D7E50B01861 /* Data */,
+				FF755D54728D13DBD9FAF70B /* Resources */,
+				15D244027620618FAA313D77 /* State */,
+				4C256987CC03327AB75D9C72 /* UI */,
+			);
+			path = GlassBeats;
+			sourceTree = "<group>";
+		};
+		15D244027620618FAA313D77 /* State */ = {
+			isa = PBXGroup;
+			children = (
+				8C0E2743B533BAD0077238BE /* AppSettings.swift */,
+				569560D6EC18D239B8BF986C /* CrashLogger.swift */,
+				6D28464EE882E54EE5EE3E92 /* PatternStore.swift */,
+				F5A7CFAAE6EE61EA32FF2BD6 /* Store.swift */,
+			);
+			path = State;
+			sourceTree = "<group>";
+		};
+		1ED245D1C52845F0D195A6E4 = {
+			isa = PBXGroup;
+			children = (
+				0B6B9E0DAF34A0542547B2D3 /* GlassBeats */,
+				3E3AD9EAC3B032974C62F189 /* GlassBeatsTests */,
+				8BF5562EE9777E1BFA556099 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3E3AD9EAC3B032974C62F189 /* GlassBeatsTests */ = {
+			isa = PBXGroup;
+			children = (
+				9E2F09259F41B48E6D1CBE78 /* AppSettingsTests.swift */,
+				3E5C8E990F62C5EF6795B495 /* AudioLifecycleTests.swift */,
+				05C3798FC2B60D4DE981EA02 /* ColorThemeTests.swift */,
+				69963D89950CFE0F3B704C2A /* ExportIntegrationTests.swift */,
+				C6FAC7E0CC12A2BE49B9DA53 /* ExportPlanTests.swift */,
+				FA4E855BAC2F43D15D713407 /* PatternStoreTests.swift */,
+				6C2C846DC9D8735F31580BC8 /* PresetsTests.swift */,
+				DA731175D65FCBD373E7E7D5 /* SampleKitsTests.swift */,
+				A84900C88D9BDF9088A0C48E /* SessionStateTests.swift */,
+				562CFED9E38E1ED6D82188BE /* StoreTests.swift */,
+				466606D7856A7A3D5B22F098 /* TrackEffectsTests.swift */,
+				CFAA5B19474CFF48515778F9 /* TracksTests.swift */,
+			);
+			path = GlassBeatsTests;
+			sourceTree = "<group>";
+		};
+		410943B8614DB501E80E0327 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				70FB4BD7A5E98B5C2179CB41 /* AudioEngine.swift */,
+				7EB091CE68869467554F004C /* AudioLifecycle.swift */,
+				FFF58755AFA32A65A9C8799F /* ExportPlan.swift */,
+				BCF5969A557D7EAA129FFD15 /* Synths.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		4C256987CC03327AB75D9C72 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				4D56DF9C8B778D53B8E94429 /* ActionsViewController.swift */,
+				0069A412882E6B36CFBC8A69 /* BarActionsViewController.swift */,
+				91DFA22E6F1E6B6F8D186795 /* CellButton.swift */,
+				B6634523B8347A41865A94BD /* ColorTheme.swift */,
+				86928D2BE42A5C3C7DBDCF52 /* ExportCoordinator.swift */,
+				32F98583A8AE4E8869AB1A5C /* FaderControl.swift */,
+				75DC9896EAEB43A2E7E99F92 /* KitPickerViewController.swift */,
+				A3FAA49F8DD59DAEB7CAF54C /* KnobControl.swift */,
+				5FA6B40098325B7EC7C917D1 /* LevelMeterStripView.swift */,
+				CDB798513434677792517822 /* MainViewController.swift */,
+				51F589CA82273E8AD10626BB /* PatternLibraryViewController.swift */,
+				60C410A7DF31F39658C31C8F /* SequencerView.swift */,
+				1CC39902ABAC17587F36A7F4 /* SettingsViewController.swift */,
+				81674C7E6133AFED6D141AC2 /* StepOptionsViewController.swift */,
+				CA6D531F5AA2D0BF77EC1609 /* Theme.swift */,
+				29ECD1E79B7D4642DF00F5A5 /* ToastView.swift */,
+				77314608291B1EF2F1656DA3 /* TourOverlayViewController.swift */,
+				7859093CC023A6C060798AA0 /* TrackActionsViewController.swift */,
+				93607AC03BD9EB24F0C72AFF /* TrackDetailViewController.swift */,
+				FF5B9C1071C6684558CECF52 /* TrackHeaderView.swift */,
+				991E55F3BC98D0277258ABF9 /* TransportView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		5C903C27F3EC5B3BD1105219 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				DD8A48F672138123B98C8630 /* AppDelegate.swift */,
+				40C682917970782D5C273866 /* SceneDelegate.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		8BF5562EE9777E1BFA556099 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2B59A135107E1EB8549E7FD1 /* GlassBeats.app */,
+				E53BA066AFEE3FA517303F9F /* GlassBeatsTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FCAD98C14FEE9D7E50B01861 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				FE6F694BF57CAEA5D9D5B9C6 /* Presets.swift */,
+				10BC4BC6BA640F1123A216A6 /* SampleKits.swift */,
+				30AE5DB1D766F587174930FE /* StepPitch.swift */,
+				D87C53D73D2A4BF7482DB018 /* TrackEffects.swift */,
+				70A85A32AF4D971CD199A949 /* Tracks.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		FF755D54728D13DBD9FAF70B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C38FBC23AD4BBAB23C838032 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		25AC48F23C16C02F27D47A2B /* GlassBeatsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F9B4B945395240ACB6D54465 /* Build configuration list for PBXNativeTarget "GlassBeatsTests" */;
+			buildPhases = (
+				7AAD5DA67FE7233A432ECF06 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3C89278C5A401DE160E8E753 /* PBXTargetDependency */,
+			);
+			name = GlassBeatsTests;
+			packageProductDependencies = (
+			);
+			productName = GlassBeatsTests;
+			productReference = E53BA066AFEE3FA517303F9F /* GlassBeatsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		694E1A57BC4FD80EE0AD5DB9 /* GlassBeats */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27D5EFDACF246A55938423EF /* Build configuration list for PBXNativeTarget "GlassBeats" */;
+			buildPhases = (
+				D839F4218A93037C6EF53C61 /* Sources */,
+				CCEB7D982ED5A364B2539846 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GlassBeats;
+			packageProductDependencies = (
+			);
+			productName = GlassBeats;
+			productReference = 2B59A135107E1EB8549E7FD1 /* GlassBeats.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		91F2714C4430F2DC85C70EFA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					25AC48F23C16C02F27D47A2B = {
+						DevelopmentTeam = TX75WUA2RL;
+						ProvisioningStyle = Automatic;
+					};
+					694E1A57BC4FD80EE0AD5DB9 = {
+						DevelopmentTeam = TX75WUA2RL;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = ABABBCDB95E0AB26311D8D3D /* Build configuration list for PBXProject "GlassBeats" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1ED245D1C52845F0D195A6E4;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				694E1A57BC4FD80EE0AD5DB9 /* GlassBeats */,
+				25AC48F23C16C02F27D47A2B /* GlassBeatsTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CCEB7D982ED5A364B2539846 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF4E391B8D87BE5C198AB186 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7AAD5DA67FE7233A432ECF06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				628E9CFD5ADA225CE38296B6 /* AppSettingsTests.swift in Sources */,
+				463160581938999A37B3D0A8 /* AudioLifecycleTests.swift in Sources */,
+				71959F3EFFB93FA12F747C1F /* ColorThemeTests.swift in Sources */,
+				C31B3F61D351008C943F420C /* ExportIntegrationTests.swift in Sources */,
+				9739A9D00403DD0C0758018A /* ExportPlanTests.swift in Sources */,
+				05AF68008691A700B1144628 /* PatternStoreTests.swift in Sources */,
+				84C67C25A71C1AED34DFA391 /* PresetsTests.swift in Sources */,
+				4DCDFD0F0D48874D85A4F1EE /* SampleKitsTests.swift in Sources */,
+				F6DE076059A6723699849CA8 /* SessionStateTests.swift in Sources */,
+				0A75F82098B88939501A8A70 /* StoreTests.swift in Sources */,
+				0DED98BECB87706196E24958 /* TrackEffectsTests.swift in Sources */,
+				77FDAF301597360F8A534B09 /* TracksTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D839F4218A93037C6EF53C61 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7CE72E9FA50398B1DA4D8F8 /* ActionsViewController.swift in Sources */,
+				4312D3612DD6720BA26DABB8 /* AppDelegate.swift in Sources */,
+				5168FC95A9F87387130BF842 /* AppSettings.swift in Sources */,
+				CC48263EC2E935924A76820A /* AudioEngine.swift in Sources */,
+				580FCF1C0C1E0C5F52B05F68 /* AudioLifecycle.swift in Sources */,
+				CCC39E56BF50D81DB234BCE0 /* BarActionsViewController.swift in Sources */,
+				B83222B102C896AFC0C87706 /* CellButton.swift in Sources */,
+				AA248583CF6CE487AFFEE3C9 /* ColorTheme.swift in Sources */,
+				95348AC826D5784A014EC9A3 /* CrashLogger.swift in Sources */,
+				A444AE83F46C73AE0B1894C8 /* ExportCoordinator.swift in Sources */,
+				40952C4087F5ABE3583AC15D /* ExportPlan.swift in Sources */,
+				B39E8AB9FC61EE63D3179265 /* FaderControl.swift in Sources */,
+				8575A7B727E5B65DEFEF2BCB /* KitPickerViewController.swift in Sources */,
+				99D51469F4DF7EEE3EECE79A /* KnobControl.swift in Sources */,
+				4CD955D7E39E4040621377C9 /* LevelMeterStripView.swift in Sources */,
+				06DC0A77175586962141BC52 /* MainViewController.swift in Sources */,
+				F7C9BCE4AE17DD2A2C4B7529 /* PatternLibraryViewController.swift in Sources */,
+				21778E95D668585519976519 /* PatternStore.swift in Sources */,
+				644B60C3D41C7C4EC6AA3B46 /* Presets.swift in Sources */,
+				5BC591CC1B0F8DCB06481A40 /* SampleKits.swift in Sources */,
+				D2AF2F6F48DAA61FF70BA274 /* SceneDelegate.swift in Sources */,
+				0ACD3AD61C11C57456CF2ECA /* SequencerView.swift in Sources */,
+				20B0E867AE5F7C2135ED30EB /* SettingsViewController.swift in Sources */,
+				7C1A59BAF7BDD2F1E356A612 /* StepOptionsViewController.swift in Sources */,
+				5C1C869A77F0BB3D2145834B /* StepPitch.swift in Sources */,
+				10E1E7ABD36F56257A950B62 /* Store.swift in Sources */,
+				69976327E016ABFBC46D046E /* Synths.swift in Sources */,
+				7F9C2FFEF2A64869B7578AD2 /* Theme.swift in Sources */,
+				2FD14A4CF15D6BE4E5A81597 /* ToastView.swift in Sources */,
+				D7A8EE43B877FF82B6EB9564 /* TourOverlayViewController.swift in Sources */,
+				BFFBBB639A871016A3F928D1 /* TrackActionsViewController.swift in Sources */,
+				763762B884298EAD5611FAEE /* TrackDetailViewController.swift in Sources */,
+				3EFBD6ACFF673555DC9C3416 /* TrackEffects.swift in Sources */,
+				B0883BDFCECA39313C59021C /* TrackHeaderView.swift in Sources */,
+				116336F5C9A3EBF7516DB159 /* Tracks.swift in Sources */,
+				FE1C593A9892ABB1021AFDE1 /* TransportView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3C89278C5A401DE160E8E753 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 694E1A57BC4FD80EE0AD5DB9 /* GlassBeats */;
+			targetProxy = B3409230FC1986E51249CF24 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0E54563697283AC7B853553E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.glassbeats.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GlassBeats.app/GlassBeats";
+			};
+			name = Release;
+		};
+		2675625BF5B5C2B4E0D96E9F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = TX75WUA2RL;
+				ENABLE_PREVIEWS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5D000CCA5F455021A311F8B6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = GlassBeats/GlassBeats.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GlassBeats/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.glassbeats;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7EF899572CE1E6A9018E4121 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = TX75WUA2RL;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_PREVIEWS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		9912AB24A834F34040862889 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = GlassBeats/GlassBeats.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GlassBeats/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.glassbeats;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		9DB3609C02C5DD6965BAB85F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bobbyshull.glassbeats.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GlassBeats.app/GlassBeats";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		27D5EFDACF246A55938423EF /* Build configuration list for PBXNativeTarget "GlassBeats" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5D000CCA5F455021A311F8B6 /* Debug */,
+				9912AB24A834F34040862889 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		ABABBCDB95E0AB26311D8D3D /* Build configuration list for PBXProject "GlassBeats" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2675625BF5B5C2B4E0D96E9F /* Debug */,
+				7EF899572CE1E6A9018E4121 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F9B4B945395240ACB6D54465 /* Build configuration list for PBXNativeTarget "GlassBeatsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9DB3609C02C5DD6965BAB85F /* Debug */,
+				0E54563697283AC7B853553E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 91F2714C4430F2DC85C70EFA /* Project object */;
+}

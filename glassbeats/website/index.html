@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlassBeats — Beat Machine</title>
+  <meta name="description" content="Dead-simple drum machine for making quick grooves. Open it. Tap the grid. Press play. That's it." />
+  <link rel="icon" type="image/png" href="app-icon.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0C0C14;
+      --bg2:       #12121E;
+      --bg3:       #1A1A28;
+      --border:    rgba(255,255,255,0.08);
+      --orange:    #E8714A;
+      --orange-dim:#C45A36;
+      --teal:      #3ECFCF;
+      --purple:    #9E7FD4;
+      --yellow:    #D4B44A;
+      --green:     #6BCB77;
+      --text:      #F0EEF8;
+      --muted:     rgba(240,238,248,0.45);
+      --radius:    16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(24px, 5vw, 80px);
+      height: 64px;
+      background: rgba(12,12,20,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .nav-brand span {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 9px 20px;
+      border-radius: 100px;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .nav-cta:hover { background: var(--orange-dim); transform: translateY(-1px); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 140px clamp(24px, 5vw, 80px) 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(232,113,74,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--orange);
+      background: rgba(232,113,74,0.12);
+      border: 1px solid rgba(232,113,74,0.3);
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(52px, 8vw, 96px);
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: clamp(18px, 2.5vw, 24px);
+      color: var(--muted);
+      max-width: 520px;
+      margin-bottom: 40px;
+      line-height: 1.5;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 72px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      padding: 16px 32px;
+      border-radius: 100px;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 8px 32px rgba(232,113,74,0.35);
+    }
+
+    .btn-primary:hover {
+      background: var(--orange-dim);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(232,113,74,0.45);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 600;
+      padding: 16px 32px;
+      border-radius: 100px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-2px);
+    }
+
+    /* Apple badge SVG replacement */
+    .appstore-badge {
+      height: 54px;
+      width: auto;
+      display: block;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .appstore-badge:hover { opacity: 0.85; transform: translateY(-2px); }
+
+    /* ── VIDEO ── */
+    .video-wrapper {
+      width: 100%;
+      max-width: 900px;
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.05),
+        0 40px 120px rgba(0,0,0,0.7),
+        0 0 80px rgba(232,113,74,0.08);
+    }
+
+    .video-wrapper video {
+      width: 100%;
+      display: block;
+      border-radius: 24px;
+    }
+
+    /* ── THREE WORDS ── */
+    .three-words {
+      padding: 100px clamp(24px, 5vw, 80px);
+      text-align: center;
+    }
+
+    .three-words-label {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+
+    .steps {
+      display: flex;
+      gap: clamp(16px, 3vw, 48px);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-num {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(232,113,74,0.15);
+      border: 1px solid rgba(232,113,74,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--orange);
+    }
+
+    .step-text {
+      font-size: clamp(22px, 3.5vw, 36px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--text);
+    }
+
+    .step-connector {
+      align-self: center;
+      width: clamp(24px, 4vw, 60px);
+      height: 2px;
+      background: var(--border);
+      margin-top: -12px;
+    }
+
+    .three-words-foot {
+      margin-top: 32px;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: -0.5px;
+    }
+
+    /* ── SCREENSHOTS ── */
+    .screenshots {
+      padding: 0 clamp(24px, 5vw, 80px) 100px;
+    }
+
+    .section-label {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: clamp(32px, 4.5vw, 56px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 60px;
+    }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(12px, 2vw, 24px);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .screenshot-card {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      position: relative;
+      aspect-ratio: 2796/1290;
+    }
+
+    .screenshot-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: var(--radius);
+    }
+
+
+    .screenshot-caption {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 40px 20px 16px;
+      background: linear-gradient(transparent, rgba(8,8,16,0.97) 70%);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.01em;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+    }
+
+    /* ── FEATURES ── */
+    .features {
+      padding: 100px clamp(24px, 5vw, 80px);
+      background: var(--bg2);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 28px 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(255,255,255,0.16);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── KITS ── */
+    .kits {
+      padding: 100px clamp(24px, 5vw, 80px);
+    }
+
+    .kits-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .kit-pill {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 10px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      cursor: default;
+    }
+
+    .kit-pill:hover {
+      background: var(--bg3);
+      border-color: rgba(255,255,255,0.2);
+      color: var(--text);
+    }
+
+    .kit-pill.featured {
+      background: rgba(232,113,74,0.12);
+      border-color: rgba(232,113,74,0.4);
+      color: var(--orange);
+    }
+
+    /* ── DETAILS ── */
+    .details {
+      padding: 100px clamp(24px, 5vw, 80px);
+      background: var(--bg2);
+    }
+
+    .details-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .details-text h2 {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    .details-text h2 em {
+      font-style: normal;
+      color: var(--orange);
+    }
+
+    .details-text p {
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .check-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .check-list li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .check-list li::before {
+      content: '✓';
+      color: var(--teal);
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .details-pills {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .detail-pill {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+
+    .detail-pill-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .detail-pill-value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .detail-pill-value.orange { color: var(--orange); }
+    .detail-pill-value.teal   { color: var(--teal); }
+    .detail-pill-value.purple { color: var(--purple); }
+    .detail-pill-value.yellow { color: var(--yellow); }
+
+    /* ── CTA ── */
+    .cta {
+      padding: 120px clamp(24px, 5vw, 80px);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta::before {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(232,113,74,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta h2 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+
+    .cta p {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 48px;
+    }
+
+    .cta-badges {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .cta-note {
+      display: block;
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px clamp(24px, 5vw, 80px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .footer-brand img {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+    }
+
+    footer p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .screenshots-grid { grid-template-columns: 1fr; }
+      .details-inner { grid-template-columns: 1fr; gap: 40px; }
+      .steps { gap: 20px; }
+      .step-connector { display: none; }
+    }
+
+    @media (max-width: 500px) {
+      .hero-actions { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <img src="app-icon.png" alt="GlassBeats icon" />
+      <span>GlassBeats</span>
+    </a>
+    <a href="#download" class="nav-cta">Download</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#E8714A" stroke-width="1.5"/><path d="M5 7l2 2 3-3" stroke="#E8714A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Dead-Simple Beat Machine
+    </div>
+    <h1>More groove.<br><span>Less friction.</span></h1>
+    <p class="hero-sub">A fast, colorful beat machine for building polished loops without digging through studio clutter.</p>
+    <div class="hero-actions">
+      <a href="#download" class="btn-primary">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2C6.13 2 3 5.13 3 9c0 2.48 1.28 4.65 3.2 5.93L5 17h10l-1.2-2.07A6.97 6.97 0 0 0 17 9c0-3.87-3.13-7-7-7Z" fill="currentColor" opacity=".3"/><path d="M10 5v7M7 9l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download on the App Store
+      </a>
+    </div>
+
+    <div class="video-wrapper" id="see-it">
+      <video autoplay muted loop playsinline poster="app-icon.png">
+        <source src="glassbeats.mov" type="video/mp4" />
+      </video>
+    </div>
+  </section>
+
+  <!-- THREE WORDS -->
+  <section class="three-words">
+    <p class="three-words-label">How it works</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Open it.</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Tap the grid.</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">Press play.</div>
+      </div>
+    </div>
+    <p class="three-words-foot">That's it.</p>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section class="screenshots">
+    <p class="section-label">In action</p>
+    <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+
+    <div class="screenshots-grid">
+      <div class="screenshot-card">
+        <img src="1.png" alt="GlassBeats 8-track step sequencer in 2-bar mode" />
+        <div class="screenshot-caption">8-track step sequencer, 2-bar mode</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="2.png" alt="GlassBeats sound kit picker — 22 synthesized sound kits" />
+        <div class="screenshot-caption">22 sound kits, one tap away</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="3.png" alt="GlassBeats mixes browser — built-in presets and saved mixes" />
+        <div class="screenshot-caption">Built-in presets, saved mixes, and quick save</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="4.png" alt="GlassBeats per-track controls — volume, pan, pitch, reverb, delay, distortion" />
+        <div class="screenshot-caption">Per-track vol, pan, pitch, reverb, delay &amp; distortion</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <h2 class="section-title" style="margin-bottom:48px;">What you get.</h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🥁</span>
+        <h3>8-Track Step Sequencer</h3>
+        <p>Kick, Snare, Hat, Clap, Bass, Pluck, Chord, and Perc. Every track you need for a full groove.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔁</span>
+        <h3>16 or 32 Steps</h3>
+        <p>Tight 16-step patterns for quick ideas, or 2-bar mode for fills, movement, and variation.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎛️</span>
+        <h3>Per-Track Control</h3>
+        <p>Volume, mute, pitch, and pan on every track. Shape the mix without digging through settings screens.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">〰️</span>
+        <h3>Swing</h3>
+        <p>Add swing for a looser, more human feel. One slider, immediately musical.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎚️</span>
+        <h3>Reverb, Delay & Distortion</h3>
+        <p>Enough FX to shape the mood. Not enough to derail your session.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">💾</span>
+        <h3>Save & Export</h3>
+        <p>Save your mixes. Export and share your loops as audio files.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎹</span>
+        <h3>Built-in Mixes</h3>
+        <p>Load a polished mix, choose the 1-bar or 2-bar version, then customize from there.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔊</span>
+        <h3>High-Quality Synth Kits</h3>
+        <p>All sounds are synthesized, not lo-fi samples. Clean, punchy, and ready to sit in a mix.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎯</span>
+        <h3>Step Accents</h3>
+        <p>Long-press or double-tap any lit step to accent it. That hit plays louder — great for ghost notes, dynamic kicks, and anything that needs to punch.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎲</span>
+        <h3>Randomize & Mutate</h3>
+        <p>Randomize tracks or bars with Light, Medium, and Wild intensity. Mutate a bar when it needs variation without starting over.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡️</span>
+        <h3>Track & Bar Actions</h3>
+        <p>Tap a track name to preview, randomize, shift, or clear it. Use bar actions to clear, copy, duplicate, vary, accent, or mutate a bar.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📤</span>
+        <h3>WAV & M4A Export</h3>
+        <p>Export your loop as full-quality WAV or compressed M4A. Drop it in a DAW, send it, do whatever.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎨</span>
+        <h3>Color Themes</h3>
+        <p>Choose from 16 themes including Sour Apple, Night Swim, Sea Glass, and Northern Glow. Set the vibe, then make the beat.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">☁️</span>
+        <h3>iCloud Sync</h3>
+        <p>Keep saved mixes synced with iCloud when sync is enabled and available on the device.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🧭</span>
+        <h3>Guided Tour</h3>
+        <p>New users can take a quick tour, and replay it later from Settings.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- KITS -->
+  <section class="kits">
+    <p class="section-label">Sound kits</p>
+    <h2 class="section-title">One tap changes everything.</h2>
+
+    <div class="kits-row">
+      <div class="kit-pill">Studio</div>
+      <div class="kit-pill">Analog</div>
+      <div class="kit-pill">House</div>
+      <div class="kit-pill">Trap</div>
+      <div class="kit-pill">Garage</div>
+      <div class="kit-pill">Minimal</div>
+      <div class="kit-pill featured">Lo-Fi</div>
+      <div class="kit-pill">Breakbeat</div>
+      <div class="kit-pill">Dusty Tape</div>
+      <div class="kit-pill">Boom Bap</div>
+      <div class="kit-pill featured">808</div>
+      <div class="kit-pill">Jazz</div>
+      <div class="kit-pill">Rainy Night</div>
+      <div class="kit-pill">Glass</div>
+      <div class="kit-pill">Marimba</div>
+      <div class="kit-pill">Kalimba</div>
+      <div class="kit-pill">Wind Chimes</div>
+      <div class="kit-pill">Music Box</div>
+      <div class="kit-pill featured">Arcade</div>
+      <div class="kit-pill">Toy Piano</div>
+      <div class="kit-pill featured">Jungle</div>
+      <div class="kit-pill featured">Space</div>
+    </div>
+  </section>
+
+  <!-- DETAILS -->
+  <section class="details">
+    <div class="details-inner">
+      <div class="details-text">
+        <h2>Built for the <em>fun part</em> of making beats.</h2>
+        <p>No music theory required. No production experience required. No manual required.</p>
+        <p>GlassBeats trims everything down to the controls that actually matter — enough power to shape the groove, not enough clutter to kill the mood.</p>
+        <ul class="check-list">
+          <li>No ads, no subscriptions — just beats</li>
+          <li>Not a complicated DAW — just a fast way to make grooves</li>
+          <li>Everything stays one tap away</li>
+          <li>Works great as a starting point for a full track</li>
+        </ul>
+      </div>
+
+      <div class="details-pills">
+        <div class="detail-pill">
+          <div class="detail-pill-label">Tracks</div>
+          <div class="detail-pill-value orange">8</div>
+        </div>
+        <div class="detail-pill">
+          <div class="detail-pill-label">Sound Kits</div>
+          <div class="detail-pill-value teal">22</div>
+        </div>
+        <div class="detail-pill">
+          <div class="detail-pill-label">Max Steps</div>
+          <div class="detail-pill-value purple">32</div>
+        </div>
+        <div class="detail-pill">
+          <div class="detail-pill-label">Price</div>
+          <div class="detail-pill-value yellow">$9.99</div>
+        </div>
+        <div class="detail-pill" style="grid-column: 1 / -1;">
+          <div class="detail-pill-label">Platform</div>
+          <div class="detail-pill-value" style="color: var(--text); font-size: 16px;">iPhone · iOS 16+</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta" id="download">
+    <h2>Quick ideas.<br>Late-night loops.<br>Head-nod grooves.</h2>
+    <p>Download GlassBeats on the App Store and make your first beat in under a minute.</p>
+
+    <div class="cta-badges">
+      <!-- Replace href with your actual App Store URL -->
+      <a href="#" aria-label="Download on the App Store">
+        <svg class="appstore-badge" viewBox="0 0 180 54" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Download on the App Store">
+          <rect width="180" height="54" rx="10" fill="#1A1A2E"/>
+          <rect x="0.5" y="0.5" width="179" height="53" rx="9.5" stroke="white" stroke-opacity="0.25"/>
+          <g transform="translate(26,0)">
+            <path d="M24.7 27.2c0-4.1 3.4-6.1 3.5-6.2-1.9-2.8-4.9-3.1-5.9-3.2-2.5-.3-4.9 1.5-6.1 1.5-1.3 0-3.2-1.5-5.3-1.4-2.7 0-5.2 1.6-6.6 4-2.8 4.9-.7 12.1 2 16.1 1.3 1.9 2.9 4 5 3.9 2-.1 2.8-1.3 5.2-1.3 2.4 0 3.1 1.3 5.2 1.2 2.2 0 3.5-1.9 4.8-3.8 1.5-2.2 2.1-4.3 2.2-4.4-.1 0-4-1.5-4-6.4Z" fill="white"/>
+            <path d="M20.8 15.6c1.1-1.3 1.8-3.1 1.6-4.9-1.6.1-3.5 1.1-4.6 2.4-1 1.1-1.9 3-1.7 4.7 1.8.1 3.6-.9 4.7-2.2Z" fill="white"/>
+            <text x="40" y="20" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="9.5" fill="white" fill-opacity="0.7" letter-spacing="0.3">Download on the</text>
+            <text x="40" y="37" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="20" font-weight="600" fill="white" letter-spacing="-0.5">App Store</text>
+          </g>
+        </svg>
+      </a>
+    </div>
+    <span class="cta-note">No ads. No subscriptions. Just beats.</span>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">
+      <img src="app-icon.png" alt="GlassBeats icon" />
+      GlassBeats
+    </div>
+    <p>© 2026 GlassBeats. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
